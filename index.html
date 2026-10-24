@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#07080a" />
+    <meta
+      name="description"
+      content="sen: nueve ambientes de luz y sonido para descansar. Sesiones de diez minutos."
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="sen" />
+    <title>sen</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="src/styles/main.css" />
+  </head>
+  <body>
+    <main class="app" id="app">
+      <header class="brand">
+        <span class="brand__mark">sen</span>
+        <span class="brand__rule" aria-hidden="true"></span>
+      </header>
+
+      <h1 class="sr-only">sen — elige un ambiente de luz y sonido para diez minutos</h1>
+
+      <div class="grid" id="grid" role="group" aria-label="Elige un ambiente"></div>
+
+      <footer class="foot">
+        <span>10 min</span>
+        <span class="foot__dot" aria-hidden="true"></span>
+        <span>toca un ambiente</span>
+      </footer>
+
+      <noscript>
+        <p class="noscript">sen necesita JavaScript para reproducir luz y sonido.</p>
+      </noscript>
+    </main>
+
+    <section
+      class="stage"
+      id="stage"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sesión"
+      aria-hidden="true"
+      tabindex="-1"
+      hidden
+    >
+      <canvas class="stage__canvas" id="canvas" aria-hidden="true"></canvas>
+      <div class="stage__vignette" aria-hidden="true"></div>
+      <div class="stage__dim" id="dim" aria-hidden="true"></div>
+
+      <div class="controls" id="controls" role="group" aria-label="Controles de la sesión" aria-hidden="true" inert>
+        <span class="controls__time" id="time">10:00</span>
+        <span class="controls__rule" aria-hidden="true"></span>
+        <button class="ctrl" id="pause" type="button" aria-label="Pausar">
+          <svg class="ctrl__icon ctrl__icon--pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M9.5 6.5v11M14.5 6.5v11" />
+          </svg>
+          <svg class="ctrl__icon ctrl__icon--play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M9 6.4a.6.6 0 0 1 .9-.5l8 5.6a.6.6 0 0 1 0 1l-8 5.6a.6.6 0 0 1-.9-.5Z" />
+          </svg>
+        </button>
+        <button class="ctrl" id="end" type="button" aria-label="Terminar sesión">
+          <svg class="ctrl__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M7.5 7.5l9 9M16.5 7.5l-9 9" />
+          </svg>
+        </button>
+      </div>
+
+      <p class="stage__note" id="note" hidden>Audio no disponible</p>
+      <p class="sr-only" id="live" aria-live="polite"></p>
+    </section>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
