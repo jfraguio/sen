@@ -1,21 +1,35 @@
 /**
- * Genera audios de reemplazo (16 s, mono, WAV) para que la app funcione
- * sin depender de archivos externos. Son ambientes sintéticos sencillos:
- * sustitúyelos por tus pistas definitivas manteniendo los nombres.
+ * Genera los audios sintéticos de sen.
  *
- * Uso: node scripts/make-placeholder-audio.mjs
+ * Sin argumentos:
+ *   9 bucles de 16 s en WAV para `assets/audio` (los placeholders de la app).
+ *
+ * Con `--long`:
+ *   versiones de 10 minutos en MP3 para `sounds/generados` (carpeta local,
+ *   ignorada por git). La síntesis se extiende y evoluciona durante toda la
+ *   pista para que no se note un bucle corto.
+ *
+ * Uso:
+ *   node scripts/make-placeholder-audio.mjs
+ *   node scripts/make-placeholder-audio.mjs --long
+ *   node scripts/make-placeholder-audio.mjs --long --seconds=600
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+const args = process.argv.slice(2);
+const LONG = args.includes('--long');
+const secondsArg = args.find((arg) => arg.startsWith('--seconds='));
+const SECONDS = LONG ? Math.max(30, Number(secondsArg?.split('=')[1] || 600)) : 16;
 const SR = 16000;
-const SECONDS = 16;
 const N = SR * SECONDS;
-const CROSS = Math.floor(SR * 1.5);
+const CROSS = LONG ? 0 : Math.floor(SR * 1.5);
 const LEN = N + CROSS;
 const TAU = Math.PI * 2;
+const SCALE = SECONDS / 16;
 
 const rand = (min = 0, max = 1) => min + Math.random() * (max - min);
 
@@ -161,23 +175,31 @@ function addDrone(data, freqs, gain) {
   });
 }
 
-/** Mezcla el final del buffer con el principio para que el bucle no chasquee. */
-function seamless(raw) {
-  const out = new Float32Array(N);
-  out.set(raw.subarray(0, N));
-  for (let i = 0; i < CROSS; i++) {
-    const w = i / CROSS;
-    out[i] = raw[i] * w + raw[N + i] * (1 - w);
+function applyFades(data, fadeInSeconds, fadeOutSeconds) {
+  const fadeIn = Math.min(data.length, Math.floor(fadeInSeconds * SR));
+  const fadeOut = Math.min(data.length, Math.floor(fadeOutSeconds * SR));
+  for (let i = 0; i < fadeIn; i++) {
+    data[i] *= 0.5 - 0.5 * Math.cos((Math.PI * i) / fadeIn);
   }
-  return out;
+  for (let i = 0; i < fadeOut; i++) {
+    data[data.length - 1 - i] *= 0.5 - 0.5 * Math.cos((Math.PI * i) / fadeOut);
+  }
 }
 
 function master(raw, peak = 0.5) {
-  const out = seamless(raw);
+  const out = new Float32Array(N);
+  out.set(raw.subarray(0, N));
+  if (!LONG) {
+    for (let i = 0; i < CROSS; i++) {
+      const w = i / CROSS;
+      out[i] = raw[i] * w + raw[N + i] * (1 - w);
+    }
+  }
   let max = 0;
   for (const sample of out) max = Math.max(max, Math.abs(sample));
   const scale = max > 0 ? peak / max : 1;
   for (let i = 0; i < out.length; i++) out[i] *= scale;
+  if (LONG) applyFades(out, 2.5, 6);
   return out;
 }
 
@@ -189,14 +211,15 @@ function lluvia() {
   const raw = make();
   addRain(raw, 0.9, 5200);
   highpass(raw, 180);
-  for (let i = 0; i < 26; i++) {
+  const droplets = LONG ? Math.round(26 * SCALE) : 26;
+  for (let i = 0; i < droplets; i++) {
     addTone(raw, rand(0, SECONDS), rand(0.05, 0.18), rand(900, 2600), rand(0.015, 0.06), {
       slide: rand(-500, 500),
       harmonic: 0.1,
       decay: 4.5,
     });
   }
-  breathe(raw, 1 / SECONDS, 0.25);
+  breathe(raw, LONG ? 1 / 90 : 1 / SECONDS, 0.25);
   return master(raw, 0.48);
 }
 
@@ -222,10 +245,18 @@ function tormenta() {
       raw[start + j] += Math.sin(TAU * 46 * t) * env * gain * 0.5;
     }
   };
-  thunder(3.2, 5.5);
-  thunder(10.8, 3.8);
+  if (LONG) {
+    let at = rand(8, 22);
+    while (at < SECONDS - 8) {
+      thunder(at, rand(3.2, 5.8));
+      at += rand(45, 95);
+    }
+  } else {
+    thunder(3.2, 5.5);
+    thunder(10.8, 3.8);
+  }
 
-  breathe(raw, 1 / 8, 0.3);
+  breathe(raw, LONG ? 1 / 120 : 1 / 8, 0.3);
   return master(raw, 0.52);
 }
 
@@ -237,8 +268,8 @@ function fuego() {
   mixNoise(hiss, 1);
   bandpass(hiss, 1000, 0.6);
   add(raw, hiss, 0.25);
-  addCrackles(raw, 130, 0.22);
-  breathe(raw, 1 / 4, 0.3);
+  addCrackles(raw, LONG ? Math.round(130 * SCALE) : 130, 0.22);
+  breathe(raw, LONG ? 1 / 23 : 1 / 4, 0.3);
   return master(raw, 0.46);
 }
 
@@ -248,9 +279,15 @@ function mar() {
   mixNoise(surf, 1);
   highpass(surf, 110);
   lowpass(surf, 1400);
-  const step = TAU / (SECONDS * SR);
+
+  const wavePeriod = LONG ? 9 : SECONDS;
+  const step = TAU / (wavePeriod * SR);
+  const slowStep = TAU / (73 * SR);
   for (let i = 0; i < LEN; i++) {
-    const swell = (0.5 + 0.5 * Math.sin(step * i - Math.PI / 2)) ** 1.6;
+    let swell = (0.5 + 0.5 * Math.sin(step * i - Math.PI / 2)) ** 1.6;
+    if (LONG) {
+      swell *= 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(slowStep * i + 0.6));
+    }
     surf[i] *= 0.12 + swell * 0.88;
   }
   add(raw, surf, 1);
@@ -264,7 +301,10 @@ function mar() {
   mixNoise(foam, 1);
   highpass(foam, 2200);
   for (let i = 0; i < LEN; i++) {
-    const swell = (0.5 + 0.5 * Math.sin(step * i - Math.PI / 2)) ** 4;
+    let swell = (0.5 + 0.5 * Math.sin(step * i - Math.PI / 2)) ** 4;
+    if (LONG) {
+      swell *= 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(slowStep * i + 0.6));
+    }
     foam[i] *= swell;
   }
   add(raw, foam, 0.25);
@@ -284,14 +324,15 @@ function rio() {
   bandpass(body, 700, 0.8);
   add(raw, body, 0.45);
 
-  for (let i = 0; i < 38; i++) {
+  const bubbles = LONG ? Math.round(38 * SCALE) : 38;
+  for (let i = 0; i < bubbles; i++) {
     addTone(raw, rand(0, SECONDS), rand(0.06, 0.2), rand(420, 1200), rand(0.02, 0.07), {
       slide: rand(150, 700),
       harmonic: 0.08,
       decay: 4,
     });
   }
-  breathe(raw, 1 / 8, 0.22);
+  breathe(raw, LONG ? 1 / 55 : 1 / 8, 0.22);
   return master(raw, 0.44);
 }
 
@@ -300,44 +341,57 @@ function viento() {
   const low = make();
   mixNoise(low, 1);
   lowpass(low, 420);
-  breathe(low, 1 / 16, 0.65, 0);
+  breathe(low, LONG ? 1 / 23 : 1 / 16, 0.65, 0);
   add(raw, low, 1);
 
   const mid = make();
   mixNoise(mid, 1);
   bandpass(mid, 900, 0.7);
-  breathe(mid, 1 / 8, 0.8, 1.4);
+  breathe(mid, LONG ? 1 / 13 : 1 / 8, 0.8, 1.4);
   add(raw, mid, 0.75);
 
   const high = make();
   mixNoise(high, 1);
   highpass(high, 2200);
-  breathe(high, 1 / 16, 0.9, 3.1);
+  breathe(high, LONG ? 1 / 31 : 1 / 16, 0.9, 3.1);
   add(raw, high, 0.18);
 
+  if (LONG) breathe(raw, 1 / 150, 0.35);
   return master(raw, 0.44);
 }
 
 function espacio() {
   const raw = make();
   addDrone(raw, [55, 82.5, 110, 165], 0.055);
-  breathe(raw, 1 / 16, 0.45, 0.8);
+  breathe(raw, LONG ? 1 / 170 : 1 / 16, 0.45, 0.8);
 
   const shimmer = make();
   mixNoise(shimmer, 1);
   highpass(shimmer, 3200);
-  breathe(shimmer, 1 / 8, 0.85, 2.2);
+  breathe(shimmer, LONG ? 1 / 90 : 1 / 8, 0.85, 2.2);
   add(raw, shimmer, 0.05);
 
   sine(raw, 220, 0.018);
   sine(raw, 329.0625, 0.01);
+
+  if (LONG) {
+    const notes = [220, 277.1875, 329.625, 440, 554.375];
+    let at = rand(12, 30);
+    while (at < SECONDS - 8) {
+      addTone(raw, at, rand(2.4, 4.2), notes[Math.floor(rand(0, notes.length))], rand(0.014, 0.03), {
+        harmonic: 0.12,
+        decay: 3.4,
+      });
+      at += rand(28, 58);
+    }
+  }
   return master(raw, 0.4);
 }
 
 function cuento() {
   const raw = make();
   addDrone(raw, [220, 261.625, 329.625, 440], 0.022);
-  breathe(raw, 1 / 8, 0.35, 1.1);
+  breathe(raw, LONG ? 1 / 70 : 1 / 8, 0.35, 1.1);
 
   const air = make();
   mixNoise(air, 1);
@@ -345,17 +399,38 @@ function cuento() {
   highpass(air, 300);
   add(raw, air, 0.025);
 
-  const melody = [440, 523.25, 659.25, 880, 659.25, 523.25, 493.875, 440];
-  melody.forEach((freq, i) => {
-    addTone(raw, i * (SECONDS / melody.length), 1.8, freq, 0.075, {
-      harmonic: 0.3,
-      decay: 3.8,
+  if (LONG) {
+    const scale = [440, 493.875, 523.25, 587.328, 659.25, 783.99, 880];
+    let at = 0.8;
+    let i = 0;
+    while (at < SECONDS - 2) {
+      const freq = scale[i % scale.length] * (Math.random() < 0.12 ? 0.5 : 1);
+      addTone(raw, at, rand(1.6, 2.8), freq, rand(0.045, 0.07), {
+        harmonic: 0.3,
+        decay: 3.8,
+      });
+      if (Math.random() < 0.35) {
+        addTone(raw, at + rand(0.15, 0.4), 1.2, freq * 2, 0.012, {
+          harmonic: 0.1,
+          decay: 4.2,
+        });
+      }
+      at += rand(1.8, 4.8);
+      i += Math.random() < 0.25 ? 2 : 1;
+    }
+  } else {
+    const melody = [440, 523.25, 659.25, 880, 659.25, 523.25, 493.875, 440];
+    melody.forEach((freq, i) => {
+      addTone(raw, i * (SECONDS / melody.length), 1.8, freq, 0.075, {
+        harmonic: 0.3,
+        decay: 3.8,
+      });
+      addTone(raw, i * (SECONDS / melody.length) + 0.16, 1.4, freq * 2, 0.018, {
+        harmonic: 0.1,
+        decay: 4.2,
+      });
     });
-    addTone(raw, i * (SECONDS / melody.length) + 0.16, 1.4, freq * 2, 0.018, {
-      harmonic: 0.1,
-      decay: 4.2,
-    });
-  });
+  }
   return master(raw, 0.44);
 }
 
@@ -364,14 +439,25 @@ function meditacion() {
   addDrone(raw, [110, 165, 220, 330], 0.035);
   sine(raw, 55, 0.05);
   sine(raw, 82.5, 0.025);
-  breathe(raw, 1 / 8, 0.5, 0);
+  breathe(raw, LONG ? 1 / 95 : 1 / 8, 0.5, 0);
 
   const air = make();
   mixNoise(air, 1);
   bandpass(air, 2400, 0.5);
-  breathe(air, 1 / 8, 0.7, 2.4);
+  breathe(air, LONG ? 1 / 60 : 1 / 8, 0.7, 2.4);
   add(raw, air, 0.025);
 
+  if (LONG) {
+    const bowls = [220, 277.1875, 329.625, 440];
+    let at = rand(18, 35);
+    while (at < SECONDS - 10) {
+      addTone(raw, at, rand(3, 5), bowls[Math.floor(rand(0, bowls.length))], 0.025, {
+        harmonic: 0.1,
+        decay: 4,
+      });
+      at += rand(45, 85);
+    }
+  }
   return master(raw, 0.38);
 }
 
@@ -413,15 +499,180 @@ const tracks = {
   meditacion,
 };
 
+const longInfo = {
+  lluvia: { title: 'Lluvia', description: 'Azules oscuros, gotas y aire húmedo.', accent: '#8fbdff' },
+  tormenta: { title: 'Tormenta', description: 'Lluvia, viento y truenos que llegan de lejos.', accent: '#a99bff' },
+  fuego: { title: 'Fuego', description: 'Brasas, chasquidos y un resplandor irregular.', accent: '#ffa45c' },
+  mar: { title: 'Mar', description: 'Oleaje lento, espuma y resaca.', accent: '#5cebd5' },
+  rio: { title: 'Río', description: 'Agua entre piedras, con pájaros al fondo.', accent: '#79e8b7' },
+  viento: { title: 'Viento', description: 'Ráfagas, hojas y corriente.', accent: '#b7d8d3' },
+  espacio: { title: 'Espacio', description: 'Drones graves, polvo estelar y destellos.', accent: '#a48bff' },
+  cuento: { title: 'Cuento', description: 'Kalimba, pads y melodías oníricas.', accent: '#ffd08a' },
+  meditacion: { title: 'Meditación', description: 'Drone profundo, respiración y cuencos.', accent: '#9dded8' },
+};
+
 const here = path.dirname(fileURLToPath(import.meta.url));
-const outDir = path.join(here, '..', 'assets', 'audio');
+const outDir = LONG
+  ? path.join(here, '..', 'sounds', 'generados')
+  : path.join(here, '..', 'assets', 'audio');
 fs.mkdirSync(outDir, { recursive: true });
+
+const made = [];
 
 for (const [name, create] of Object.entries(tracks)) {
   const samples = create();
-  const file = path.join(outDir, `${name}.wav`);
-  writeWav(file, samples);
-  console.log(`${name.padEnd(11)} ${(fs.statSync(file).size / 1024).toFixed(0)} KB`);
+
+  if (!LONG) {
+    const file = path.join(outDir, `${name}.wav`);
+    writeWav(file, samples);
+    console.log(`${name.padEnd(11)} ${(fs.statSync(file).size / 1024).toFixed(0)} KB`);
+    continue;
+  }
+
+  const wavFile = path.join(outDir, `${name}.wav`);
+  const mp3File = path.join(outDir, `${name}.mp3`);
+  writeWav(wavFile, samples);
+  try {
+    execFileSync(
+      'ffmpeg',
+      [
+        '-y', '-hide_banner', '-loglevel', 'error',
+        '-i', wavFile,
+        '-ac', '1',
+        '-ar', String(SR),
+        '-c:a', 'libmp3lame',
+        '-b:a', '64k',
+        '-metadata', `title=sen · ${longInfo[name].title}`,
+        '-metadata', 'artist=sen',
+        '-metadata', 'album=sen · ambientes sintéticos',
+        '-metadata', 'comment=Generado con scripts/make-placeholder-audio.mjs',
+        mp3File,
+      ],
+      { stdio: 'ignore' },
+    );
+    fs.unlinkSync(wavFile);
+    made.push({ name, ...longInfo[name], file: `${name}.mp3` });
+    console.log(`${name.padEnd(11)} ${(fs.statSync(mp3File).size / 1048576).toFixed(1)} MB · ${(SECONDS / 60).toFixed(0)} min`);
+  } catch (error) {
+    made.push({ name, ...longInfo[name], file: `${name}.wav` });
+    console.warn(`${name.padEnd(11)} WAV (ffmpeg no disponible: ${error.message})`);
+  }
 }
 
-console.log(`\nListo: ${Object.keys(tracks).length} bucles de ${SECONDS} s en assets/audio.`);
+if (LONG) {
+  const totalSize = made.reduce((sum, track) => {
+    const file = path.join(outDir, track.file);
+    return sum + fs.statSync(file).size;
+  }, 0);
+  const minutes = Math.round(SECONDS / 60);
+  const cards = made
+    .map(
+      (track, index) => `      <article class="track" style="--accent:${track.accent}">
+        <div class="track__head">
+          <span class="track__num">${String(index + 1).padStart(2, '0')}</span>
+          <div>
+            <h2>${track.title}</h2>
+            <p>${track.description}</p>
+          </div>
+          <span class="track__time">${minutes}:00</span>
+        </div>
+        <audio controls preload="none" src="${track.file}"></audio>
+        <code>sounds/generados/${track.file}</code>
+      </article>`,
+    )
+    .join('\n');
+
+  const index = `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml" />
+  <title>sen · sintéticos largos</title>
+  <style>
+    :root { color-scheme: dark; --bg:#07080a; --ink:#eae6dd; --muted:#8a8882; --line:rgba(255,255,255,.08); }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body { margin:0; padding:clamp(20px,4vw,48px); background:radial-gradient(120% 60% at 50% -5%, #13151c 0%, transparent 55%), var(--bg); color:var(--ink); font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .brand { margin:0 0 10px; font-size:14px; letter-spacing:.4em; color:rgba(234,230,221,.8); }
+    h1 { margin:0 0 10px; font-size:clamp(28px,5vw,44px); font-weight:400; letter-spacing:-.02em; }
+    .intro { margin:0; max-width:650px; color:var(--muted); font-size:14px; line-height:1.6; }
+    .meta { display:flex; gap:8px; flex-wrap:wrap; margin:20px 0 30px; }
+    .meta span { border:1px solid var(--line); border-radius:999px; padding:5px 10px; color:var(--muted); font-size:11px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+    .track { border:1px solid var(--line); border-radius:14px; padding:16px; background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.008)); }
+    .track__head { display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; }
+    .track__num { color:var(--accent); font-size:10px; padding-top:4px; }
+    .track h2 { margin:0 0 3px; font-size:16px; font-weight:500; color:var(--accent); }
+    .track p { margin:0; color:var(--muted); font-size:11px; line-height:1.45; }
+    .track__time { margin-left:auto; color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+    audio { width:100%; height:34px; display:block; }
+    code { display:block; margin-top:10px; color:#6f6d68; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10px; }
+    .foot { margin-top:36px; padding-top:18px; border-top:1px solid var(--line); color:#5f5d58; font-size:11px; line-height:1.7; }
+    a { color:#8d8a84; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="brand">sen</p>
+    <h1>Ambientes sintéticos</h1>
+    <p class="intro">Las versiones largas de los nueve ambientes generados para sen. La síntesis evoluciona durante toda la pista para que no se note el bucle de 16 segundos.</p>
+    <div class="meta"><span>${made.length} pistas</span><span>${minutes} min cada una</span><span>${(totalSize / 1048576).toFixed(0)} MB</span><span>generado localmente</span></div>
+    <div class="grid">
+${cards}
+    </div>
+    <p class="foot">MP3 mono a 64 kbps, generado con <code>scripts/make-placeholder-audio.mjs --long</code>. Esta carpeta no se publica en el repositorio. <a href="../">Volver al banco de sonidos</a>.</p>
+  </div>
+</body>
+</html>`;
+  fs.writeFileSync(path.join(outDir, 'index.html'), index);
+
+  const readme = `# Ambientes sintéticos largos
+
+Versiones de ${minutes} minutos de los nueve ambientes generados con
+\`scripts/make-placeholder-audio.mjs --long\`. Son las mismas texturas que los
+placeholders de 16 s, pero con eventos y modulaciones repartidos a lo largo de
+toda la pista para evitar que se note el bucle.
+
+- Formato: MP3 mono, 64 kbps, ${SR} Hz.
+- Duración: ${minutes}:00 por pista.
+- Peso total: ${(totalSize / 1048576).toFixed(0)} MB.
+- Carácter: ruido filtrado, drones, gotas, chasquidos y melodías sintetizadas.
+
+## Escuchar
+
+Desde la raíz del proyecto:
+
+\`\`\`bash
+python3 -m http.server 4174
+\`\`\`
+
+Y abre <http://localhost:4174/sounds/generados/>.
+
+## Regenerar
+
+\`\`\`bash
+node scripts/make-placeholder-audio.mjs --long
+\`\`\`
+
+La carpeta \`sounds/\` está en \`.gitignore\`; estos audios no se suben al
+repositorio. Para usar uno en la app, copia el MP3 a \`assets/audio/\` y apunta
+el ambiente correspondiente en \`src/config/ambients.js\`.
+
+## Pistas
+
+${made.map((track) => `- \`${track.file}\` — ${track.title}: ${track.description}`).join('\n')}
+`;
+  fs.writeFileSync(path.join(outDir, 'README.md'), readme);
+
+  fs.writeFileSync(
+    path.join(outDir, 'playlist.m3u'),
+    ['#EXTM3U', ...made.map((track) => `#EXTINF:${SECONDS},${track.title}\n${track.file}`)].join('\n'),
+  );
+
+  console.log(`\nListo: ${made.length} pistas de ${minutes} min en sounds/generados.`);
+} else {
+  console.log(`\nListo: ${Object.keys(tracks).length} bucles de ${SECONDS} s en assets/audio.`);
+}

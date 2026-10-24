@@ -99,6 +99,17 @@ placeholders:
 node scripts/make-placeholder-audio.mjs
 ```
 
+También hay un modo largo que genera versiones de **10 minutos** de los mismos
+nueve ambientes (MP3 mono, 64 kbps) en `sounds/generados/`, con su propio
+reproductor local. Esa carpeta está ignorada por git:
+
+```bash
+node scripts/make-placeholder-audio.mjs --long
+```
+
+La síntesis reparte gotas, chasquidos, truenos y notas a lo largo de toda la
+pista, así que no se limita a repetir el bucle de 16 segundos.
+
 ## Comportamiento de la sesión
 
 - Cada sesión dura exactamente **10 minutos**.
