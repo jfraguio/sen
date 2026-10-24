@@ -14,11 +14,45 @@ const els = {
   end: document.getElementById('end'),
   note: document.getElementById('note'),
   live: document.getElementById('live'),
+  ambientName: document.getElementById('ambient-name'),
+  progress: document.getElementById('progress'),
+  ambientCount: document.getElementById('ambient-count'),
+  lines: document.getElementById('constellation-lines'),
 };
 
 const renderer = new AmbientRenderer(document.getElementById('canvas'));
+const menuRenderer = new AmbientRenderer(document.getElementById('menu-canvas'));
 const wakeLock = new WakeLock();
 const audio = new AmbientAudio({ onError: () => notifyAudioFailure() });
+
+const MENU_BACKDROP = {
+  animation: 'constellation',
+  palette: {
+    void: ['#010107', '#070b20', '#010005'],
+    nebula: ['#6f4cff', '#3b6dff', '#d9d1ff'],
+    star: '#f0f3ff',
+  },
+};
+
+/* Posiciones del menú en porcentaje del lienzo de la constelación. */
+const NODE_LAYOUT = [
+  [18, 10],
+  [50, 8],
+  [82, 12],
+  [30, 27],
+  [69, 25],
+  [14, 45],
+  [47, 43],
+  [83, 47],
+  [27, 63],
+  [59, 61],
+  [87, 66],
+  [37, 81],
+  [69, 84],
+];
+
+/* Índices en el orden en que se dibuja la línea que une los nodos. */
+const NODE_PATH = [0, 1, 2, 4, 3, 5, 6, 7, 10, 9, 8, 11, 12];
 
 let active = null;
 let hideTimer = 0;
@@ -33,25 +67,66 @@ function iconMarkup(paths) {
     .join('')}</svg>`;
 }
 
+function smoothPath(points) {
+  if (points.length < 2) return '';
+  let path = `M ${points[0][0]} ${points[0][1]}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    path += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0]} ${p2[1]}`;
+  }
+  return path;
+}
+
+function drawConstellationLines() {
+  const points = NODE_PATH.map((index) => NODE_LAYOUT[index]);
+  const path = smoothPath(points);
+  els.lines.innerHTML = `
+    <defs>
+      <linearGradient id="line-gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100">
+        <stop offset="0" stop-color="#9ab9ff" />
+        <stop offset="0.5" stop-color="#b59bff" />
+        <stop offset="1" stop-color="#8fd9e8" />
+      </linearGradient>
+    </defs>
+    <path class="connection-glow" d="${path}" />
+    <path class="connection" d="${path}" />
+  `;
+}
+
 function buildGrid() {
   ambients.forEach((ambient, index) => {
     const button = document.createElement('button');
+    const [x, y] = NODE_LAYOUT[index] || [50, 50];
     const { r, g, b } = hexToRgb(ambient.accent);
     button.type = 'button';
-    button.className = 'tile';
+    button.className = 'node';
     button.dataset.ambient = ambient.id;
+    button.style.setProperty('--x', String(x));
+    button.style.setProperty('--y', String(y));
     button.style.setProperty('--accent', ambient.accent);
-    button.style.setProperty('--accent-soft', `rgba(${r}, ${g}, ${b}, 0.13)`);
-    button.style.setProperty('--accent-glow', `rgba(${r}, ${g}, ${b}, 0.34)`);
+    button.style.setProperty('--accent-soft', `rgba(${r}, ${g}, ${b}, 0.16)`);
+    button.style.setProperty('--accent-line', `rgba(${r}, ${g}, ${b}, 0.42)`);
+    button.style.setProperty('--accent-glow', `rgba(${r}, ${g}, ${b}, 0.32)`);
     button.style.setProperty('--i', String(index));
-    button.setAttribute('aria-label', `${ambient.name}: comenzar una sesión de diez minutos`);
+    button.title = ambient.hint;
+    button.setAttribute('aria-label', `${ambient.name}: ${ambient.hint}. Comenzar una sesión de diez minutos`);
     button.innerHTML = `
-      <span class="tile__icon" aria-hidden="true">${iconMarkup(ambient.icon)}</span>
-      <span class="tile__name">${ambient.name}</span>
+      <span class="node__icon" aria-hidden="true">${iconMarkup(ambient.icon)}</span>
+      <span class="node__label">${ambient.name}</span>
     `;
     button.addEventListener('click', () => startSession(ambient, button));
     els.grid.append(button);
   });
+
+  els.ambientCount.textContent = `${ambients.length} ambientes`;
+  drawConstellationLines();
 }
 
 /* --------------------------------------------------------------------------
@@ -76,11 +151,17 @@ function startSession(ambient, trigger) {
     noteTimer: 0,
   };
 
+  menuRenderer.pause();
+
   document.body.classList.add('is-session');
   els.stage.hidden = false;
   els.stage.classList.remove('is-leaving', 'is-clean', 'is-paused');
   els.stage.setAttribute('aria-hidden', 'false');
+  els.stage.setAttribute('aria-label', `Sesión de ${ambient.name}`);
+  els.stage.style.setProperty('--accent', ambient.accent);
   els.dim.style.opacity = '0';
+  els.progress.style.width = '0%';
+  els.ambientName.textContent = ambient.name;
   els.time.textContent = formatTime(APP.durationMs);
   els.note.hidden = true;
   els.pause.disabled = false;
@@ -120,6 +201,7 @@ function updateSession(token, snapshot) {
   const easedIn = fadeIn * fadeIn * (3 - 2 * fadeIn);
   audio.setGain(snapshot.gain * easedIn * APP.audioVolume);
   els.dim.style.opacity = snapshot.light.toFixed(4);
+  els.progress.style.width = `${Math.min(100, (snapshot.elapsed / (APP.durationMs / 1000)) * 100).toFixed(2)}%`;
 
   const label = formatTime(snapshot.remainingMs);
   if (label !== active.lastTime) {
@@ -208,7 +290,10 @@ function finishSession(token, reason) {
     els.stage.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('is-session');
     els.dim.style.opacity = '0';
+    els.progress.style.width = '0%';
+    els.ambientName.textContent = '—';
     renderer.stop();
+    menuRenderer.resume();
     active = null;
     trigger?.focus?.({ preventScroll: true });
   }, 440);
@@ -303,3 +388,4 @@ window.addEventListener('popstate', () => {
 });
 
 buildGrid();
+menuRenderer.start(MENU_BACKDROP);

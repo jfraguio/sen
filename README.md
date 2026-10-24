@@ -73,7 +73,8 @@ src/
 
 Todo se edita en **`src/config/ambients.js`**:
 
-- `name`: nombre del botón.
+- `name`: nombre visible del nodo.
+- `hint`: descripción breve que se usa en el tooltip y en la etiqueta accesible.
 - `icon`: rutas SVG de 24×24 (solo trazo).
 - `accent`: color del icono, del brillo y del foco.
 - `audio`: ruta local al bucle. Cambia el archivo por un MP3/OGG y actualiza
@@ -87,9 +88,11 @@ Para añadir un ambiente nuevo:
 2. Deja el audio en `assets/audio/` con el nombre que indiques.
 3. Usa una animación existente, o crea una fábrica en `src/render/themes.js`
    y regístrala en el objeto `THEMES`.
+4. Si el menú ya tiene sus 13 nodos, añade una posición en `NODE_LAYOUT` y el
+   recorrido de la línea en `NODE_PATH`, ambos en `src/main.js`.
 
-La cuadrícula, los colores del botón y el resto de la interfaz se generan
-automáticamente a partir de esa lista.
+El menú de constelación, los colores de cada nodo y el resto de la interfaz se
+generan automáticamente a partir de esa lista.
 
 ### Audios generados
 
@@ -106,7 +109,9 @@ También puedes sustituir un WAV por una pista propia manteniendo el nombre en
 
 También hay un modo largo que genera versiones de **10 minutos** de los mismos
 trece ambientes (MP3 mono, 64 kbps) en `sounds/generados/`, con su propio
-reproductor local. Esa carpeta está ignorada por git:
+reproductor. La app usa los WAV de `assets/audio/`; este banco es la versión
+larga para escuchar y comparar. Se incluye en el repositorio y se publica en
+`/sounds/generados/`:
 
 ```bash
 node scripts/make-placeholder-audio.mjs --long
@@ -121,7 +126,7 @@ pista, así que no se limita a repetir el bucle de 16 segundos.
 - En los **últimos 30 segundos** baja el volumen y se oscurece la luz de forma
   progresiva.
 - Al terminar, la pantalla queda casi negra unos segundos y vuelve a la
-  cuadrícula.
+  menú principal.
 - **Terminar a mano** aplica un fundido de unos 2 segundos.
 - Un toque en la escena muestra los controles (tiempo restante, pausa/reanudar
   y terminar); se ocultan solos a los 4 segundos.

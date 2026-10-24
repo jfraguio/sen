@@ -5,9 +5,9 @@
  *   9 bucles de 16 s en WAV para `assets/audio` (los placeholders de la app).
  *
  * Con `--long`:
- *   versiones de 10 minutos en MP3 para `sounds/generados` (carpeta local,
- *   ignorada por git). La síntesis se extiende y evoluciona durante toda la
- *   pista para que no se note un bucle corto.
+ *   versiones de 10 minutos en MP3 para `sounds/generados` (incluida en el
+ *   repositorio y publicada con la app). La síntesis se extiende y evoluciona
+ *   durante toda la pista para que no se note un bucle corto.
  *
  * Uso:
  *   node scripts/make-placeholder-audio.mjs
@@ -882,7 +882,7 @@ if (LONG) {
     <div class="grid">
 ${cards}
     </div>
-    <p class="foot">MP3 mono a 64 kbps, generado con <code>scripts/make-placeholder-audio.mjs --long</code>. Esta carpeta no se publica en el repositorio.</p>
+    <p class="foot">MP3 mono a 64 kbps, generado con <code>scripts/make-placeholder-audio.mjs --long</code>. Se publica con el proyecto. <a href="../../">Volver a sen</a>.</p>
   </div>
 </body>
 </html>`;
@@ -916,9 +916,10 @@ Y abre <http://localhost:4174/sounds/generados/>.
 node scripts/make-placeholder-audio.mjs --long
 \`\`\`
 
-La carpeta \`sounds/\` está en \`.gitignore\`; estos audios no se suben al
-repositorio. Para usar uno en la app, copia el MP3 a \`assets/audio/\` y apunta
-el ambiente correspondiente en \`src/config/ambients.js\`.
+La carpeta \`sounds/generados/\` se incluye en el repositorio y se publica con
+la app. Para usar uno de estos MP3 en la app, copia el archivo a
+\`assets/audio/\` y apunta el ambiente correspondiente en
+\`src/config/ambients.js\`.
 
 ## Pistas
 

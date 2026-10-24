@@ -1455,6 +1455,92 @@ function night(ambient) {
 }
 
 
+
+/* --------------------------------------------------------------------------
+   Fondo del menú · Vía Láctea y constelación
+   -------------------------------------------------------------------------- */
+
+function constellation(ambient) {
+  const p = ambient.palette;
+  const sprites = p.nebula.map((color) => glowSprite(color));
+
+  const stars = Array.from({ length: 260 }, () => ({
+    x: rand(0, 1),
+    y: rand(0, 1),
+    size: rand(0.5, 1.8),
+    depth: rand(0.2, 1),
+    phase: rand(0, TAU),
+    speed: rand(0.15, 0.75),
+    bright: Math.random() < 0.06,
+  }));
+
+  const dust = Array.from({ length: 26 }, () => ({
+    x: rand(0, 1),
+    y: rand(0, 1),
+    size: rand(0.012, 0.04),
+    alpha: rand(0.01, 0.045),
+    phase: rand(0, TAU),
+  }));
+
+  return {
+    draw(ctx, t, dt, w, h) {
+      const bg = ctx.createRadialGradient(w * 0.5, h * 0.42, 0, w * 0.5, h * 0.42, Math.max(w, h) * 0.85);
+      bg.addColorStop(0, p.void[1]);
+      bg.addColorStop(0.58, p.void[0]);
+      bg.addColorStop(1, p.void[2]);
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.globalCompositeOperation = 'lighter';
+
+      // Vía Láctea: una banda diagonal de nebulosas muy suaves
+      for (let i = 0; i < 7; i++) {
+        const u = i / 6;
+        const x = w * (0.08 + u * 0.86) + Math.sin(t * 0.025 + i) * w * 0.012;
+        const y = h * (0.02 + u * 0.92);
+        const size = Math.max(w, h) * (0.55 + (i % 3) * 0.16);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(0.62);
+        ctx.scale(1.7, 0.48);
+        ctx.globalAlpha = 0.07 + (i % 3) * 0.025;
+        ctx.drawImage(sprites[i % sprites.length], -size / 2, -size / 2, size, size);
+        ctx.restore();
+      }
+
+      glow(ctx, w * 0.52, h * 0.42, Math.max(w, h) * 0.9, p.nebula[1], 0.055);
+      glow(ctx, w * 0.35, h * 0.22, Math.max(w, h) * 0.55, p.nebula[0], 0.065);
+
+      // polvo estelar
+      for (const mote of dust) {
+        const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(t * 0.08 + mote.phase));
+        glow(ctx, mote.x * w, mote.y * h, Math.max(w, h) * mote.size, p.nebula[2], mote.alpha * pulse);
+      }
+
+      // estrellas
+      for (const star of stars) {
+        star.x -= 0.0005 * star.depth * dt;
+        star.y += 0.00025 * star.depth * dt;
+        if (star.x < -0.01) star.x = 1.01;
+        if (star.y > 1.01) star.y = -0.01;
+        const twinkle = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * star.speed + star.phase));
+        const alpha = clamp01(twinkle * (0.3 + star.depth * 0.65));
+        if (star.bright) {
+          glow(ctx, star.x * w, star.y * h, star.size * 28, p.star, alpha * 0.22);
+          sparkle(ctx, star.x * w, star.y * h, star.size * 4, p.star, alpha * 0.38);
+        } else {
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = p.star;
+          ctx.fillRect(star.x * w, star.y * h, star.size, star.size);
+        }
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    },
+  };
+}
+
 export const THEMES = {
   rain,
   storm,
@@ -1469,6 +1555,7 @@ export const THEMES = {
   bugs,
   forest,
   night,
+  constellation,
 };
 
 /** Tema de reserva si la animación configurada no existe. */

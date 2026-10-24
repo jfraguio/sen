@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml" />
+  <title>sen · sintéticos largos</title>
+  <style>
+    :root { color-scheme: dark; --bg:#07080a; --ink:#eae6dd; --muted:#8a8882; --line:rgba(255,255,255,.08); }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body { margin:0; padding:clamp(20px,4vw,48px); background:radial-gradient(120% 60% at 50% -5%, #13151c 0%, transparent 55%), var(--bg); color:var(--ink); font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .brand { margin:0 0 10px; font-size:14px; letter-spacing:.4em; color:rgba(234,230,221,.8); }
+    h1 { margin:0 0 10px; font-size:clamp(28px,5vw,44px); font-weight:400; letter-spacing:-.02em; }
+    .intro { margin:0; max-width:650px; color:var(--muted); font-size:14px; line-height:1.6; }
+    .meta { display:flex; gap:8px; flex-wrap:wrap; margin:20px 0 30px; }
+    .meta span { border:1px solid var(--line); border-radius:999px; padding:5px 10px; color:var(--muted); font-size:11px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+    .track { border:1px solid var(--line); border-radius:14px; padding:16px; background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.008)); }
+    .track__head { display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; }
+    .track__num { color:var(--accent); font-size:10px; padding-top:4px; }
+    .track h2 { margin:0 0 3px; font-size:16px; font-weight:500; color:var(--accent); }
+    .track p { margin:0; color:var(--muted); font-size:11px; line-height:1.45; }
+    .track__time { margin-left:auto; color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+    audio { width:100%; height:34px; display:block; }
+    code { display:block; margin-top:10px; color:#6f6d68; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10px; }
+    .foot { margin-top:36px; padding-top:18px; border-top:1px solid var(--line); color:#5f5d58; font-size:11px; line-height:1.7; }
+    a { color:#8d8a84; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="brand">sen</p>
+    <h1>Ambientes sintéticos</h1>
+    <p class="intro">Las versiones largas de los 13 ambientes generados para sen. La síntesis evoluciona durante toda la pista para que no se note el bucle de 16 segundos.</p>
+    <div class="meta"><span>13 pistas</span><span>10 min cada una</span><span>60 MB</span><span>generado localmente</span></div>
+    <div class="grid">
+      <article class="track" style="--accent:#8fbdff">
+        <div class="track__head">
+          <span class="track__num">01</span>
+          <div>
+            <h2>Lluvia</h2>
+            <p>Azules oscuros, gotas y aire húmedo.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="lluvia.mp3"></audio>
+        <code>sounds/generados/lluvia.mp3</code>
+      </article>
+      <article class="track" style="--accent:#a99bff">
+        <div class="track__head">
+          <span class="track__num">02</span>
+          <div>
+            <h2>Tormenta</h2>
+            <p>Lluvia, viento y truenos que llegan de lejos.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="tormenta.mp3"></audio>
+        <code>sounds/generados/tormenta.mp3</code>
+      </article>
+      <article class="track" style="--accent:#ffa45c">
+        <div class="track__head">
+          <span class="track__num">03</span>
+          <div>
+            <h2>Fuego</h2>
+            <p>Brasas, chasquidos y un resplandor irregular.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="fuego.mp3"></audio>
+        <code>sounds/generados/fuego.mp3</code>
+      </article>
+      <article class="track" style="--accent:#5cebd5">
+        <div class="track__head">
+          <span class="track__num">04</span>
+          <div>
+            <h2>Mar</h2>
+            <p>Oleaje lento, espuma y resaca.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="mar.mp3"></audio>
+        <code>sounds/generados/mar.mp3</code>
+      </article>
+      <article class="track" style="--accent:#79e8b7">
+        <div class="track__head">
+          <span class="track__num">05</span>
+          <div>
+            <h2>Río</h2>
+            <p>Agua entre piedras, con pájaros al fondo.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="rio.mp3"></audio>
+        <code>sounds/generados/rio.mp3</code>
+      </article>
+      <article class="track" style="--accent:#b7d8d3">
+        <div class="track__head">
+          <span class="track__num">06</span>
+          <div>
+            <h2>Viento</h2>
+            <p>Ráfagas, hojas y corriente.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="viento.mp3"></audio>
+        <code>sounds/generados/viento.mp3</code>
+      </article>
+      <article class="track" style="--accent:#a48bff">
+        <div class="track__head">
+          <span class="track__num">07</span>
+          <div>
+            <h2>Espacio</h2>
+            <p>Drones graves, polvo estelar y destellos.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="espacio.mp3"></audio>
+        <code>sounds/generados/espacio.mp3</code>
+      </article>
+      <article class="track" style="--accent:#ffd08a">
+        <div class="track__head">
+          <span class="track__num">08</span>
+          <div>
+            <h2>Cuento</h2>
+            <p>Kalimba, pads y melodías oníricas.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="cuento.mp3"></audio>
+        <code>sounds/generados/cuento.mp3</code>
+      </article>
+      <article class="track" style="--accent:#9dded8">
+        <div class="track__head">
+          <span class="track__num">09</span>
+          <div>
+            <h2>Meditación</h2>
+            <p>Drone profundo, respiración y cuencos.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="meditacion.mp3"></audio>
+        <code>sounds/generados/meditacion.mp3</code>
+      </article>
+      <article class="track" style="--accent:#e6d891">
+        <div class="track__head">
+          <span class="track__num">10</span>
+          <div>
+            <h2>Pájaros</h2>
+            <p>Trinos, hojas y luz de amanecer.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="pajaros.mp3"></audio>
+        <code>sounds/generados/pajaros.mp3</code>
+      </article>
+      <article class="track" style="--accent:#d7e08f">
+        <div class="track__head">
+          <span class="track__num">11</span>
+          <div>
+            <h2>Bichos</h2>
+            <p>Grillos, cigarras y luciérnagas.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="bichos.mp3"></audio>
+        <code>sounds/generados/bichos.mp3</code>
+      </article>
+      <article class="track" style="--accent:#9ed6a0">
+        <div class="track__head">
+          <span class="track__num">12</span>
+          <div>
+            <h2>Bosque</h2>
+            <p>Hojas, ramas y sombra verde.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="bosque.mp3"></audio>
+        <code>sounds/generados/bosque.mp3</code>
+      </article>
+      <article class="track" style="--accent:#9fb2d9">
+        <div class="track__head">
+          <span class="track__num">13</span>
+          <div>
+            <h2>Noche</h2>
+            <p>Grillos lejanos, búho y luna.</p>
+          </div>
+          <span class="track__time">10:00</span>
+        </div>
+        <audio controls preload="none" src="noche.mp3"></audio>
+        <code>sounds/generados/noche.mp3</code>
+      </article>
+    </div>
+    <p class="foot">MP3 mono a 64 kbps, generado con <code>scripts/make-placeholder-audio.mjs --long</code>. Se publica con el proyecto. <a href="../../">Volver a sen</a>.</p>
+  </div>
+</body>
+</html>

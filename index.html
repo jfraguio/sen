@@ -18,20 +18,25 @@
     <link rel="stylesheet" href="src/styles/main.css" />
   </head>
   <body>
+    <canvas class="menu-canvas" id="menu-canvas" aria-hidden="true"></canvas>
+    <div class="menu-shade" aria-hidden="true"></div>
+
     <main class="app" id="app">
       <header class="brand">
         <span class="brand__mark">sen</span>
-        <span class="brand__rule" aria-hidden="true"></span>
       </header>
 
       <h1 class="sr-only">sen — elige un ambiente de luz y sonido para diez minutos</h1>
 
-      <div class="grid" id="grid" role="group" aria-label="Elige un ambiente"></div>
+      <div class="constellation" id="constellation">
+        <svg class="constellation__lines" id="constellation-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="nodes" id="grid" role="group" aria-label="Elige un ambiente"></div>
+      </div>
 
       <footer class="foot">
-        <span>10 min</span>
+        <span id="ambient-count">13 ambientes</span>
         <span class="foot__dot" aria-hidden="true"></span>
-        <span>toca un ambiente</span>
+        <span>10 min</span>
       </footer>
 
       <noscript>
@@ -51,9 +56,11 @@
     >
       <canvas class="stage__canvas" id="canvas" aria-hidden="true"></canvas>
       <div class="stage__vignette" aria-hidden="true"></div>
+      <div class="stage__progress" aria-hidden="true"><span id="progress"></span></div>
       <div class="stage__dim" id="dim" aria-hidden="true"></div>
 
       <div class="controls" id="controls" role="group" aria-label="Controles de la sesión" aria-hidden="true" inert>
+        <span class="controls__ambient" id="ambient-name">—</span>
         <span class="controls__time" id="time">10:00</span>
         <span class="controls__rule" aria-hidden="true"></span>
         <button class="ctrl" id="pause" type="button" aria-label="Pausar">

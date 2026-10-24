@@ -1,5 +1,6 @@
 :root {
-  --bg: #07080a;
+  --bg: #02030a;
+  --node-size: clamp(50px, 9.5vh, 100px);
   --ink: #eae6dd;
   --muted: #85847f;
   --radius: clamp(14px, 3.6vw, 20px);
@@ -28,7 +29,7 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   background:
-    radial-gradient(130% 70% at 50% -10%, #12141a 0%, transparent 58%),
+    radial-gradient(120% 80% at 50% 0%, #0a1024 0%, transparent 58%),
     var(--bg);
   color: var(--ink);
   font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -64,116 +65,158 @@ button {
 
 .app {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
   padding:
-    max(16px, env(safe-area-inset-top))
+    max(14px, env(safe-area-inset-top))
     max(var(--pad-x), env(safe-area-inset-right))
-    max(14px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-bottom))
     max(var(--pad-x), env(safe-area-inset-left));
+}
+
+.menu-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.menu-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(2, 3, 9, 0.62) 0%, transparent 22%, transparent 74%, rgba(2, 3, 9, 0.72) 100%),
+    radial-gradient(ellipse at 50% 46%, transparent 42%, rgba(0, 0, 0, 0.5) 100%);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: clamp(14px, 3vw, 22px);
+  justify-content: center;
   flex: 0 0 auto;
-  padding-top: 4px;
+  padding-top: clamp(4px, 1.4vh, 12px);
 }
 
 .brand__mark {
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.42em;
-  color: rgba(237, 233, 224, 0.86);
-  padding-left: 0.1em;
+  padding-left: 0.58em;
+  color: rgba(237, 233, 224, 0.9);
+  font-size: clamp(18px, 2.5vmin, 24px);
+  font-weight: 450;
+  letter-spacing: 0.58em;
+  line-height: 1;
+  text-shadow: 0 0 24px rgba(190, 210, 255, 0.24);
 }
 
-.brand__rule {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
-}
-
-.grid {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-  gap: clamp(7px, 1.8vw, 12px);
-  width: min(100%, 620px, 76dvh);
-  aspect-ratio: 1;
-  margin: auto;
-  min-height: 0;
-}
-
-.tile:first-child {
-  grid-column: span 2;
-  grid-row: span 2;
-}
-
-.tile:first-child .tile__icon svg {
-  width: clamp(34px, 9.2vmin, 46px);
-  height: clamp(34px, 9.2vmin, 46px);
-}
-
-.tile:first-child .tile__name {
-  font-size: clamp(12px, 3.2vmin, 15px);
-}
-
-.tile:first-child {
-  border-color: var(--accent-glow, rgba(255, 255, 255, 0.14));
-}
-
-.tile {
+.constellation {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(6px, 1.6vmin, 11px);
-  min-width: 0;
+  flex: 1 1 auto;
+  width: min(100%, 980px);
+  max-height: 780px;
   min-height: 0;
-  padding: 8px 4px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: var(--radius);
-  background:
-    radial-gradient(125% 100% at 50% 0%, var(--accent-soft, rgba(255, 255, 255, 0.08)), transparent 62%),
-    linear-gradient(180deg, #101216 0%, #0a0b0e 100%);
-  cursor: pointer;
-  overflow: hidden;
-  touch-action: manipulation;
-  transition:
-    transform 180ms ease,
-    border-color 240ms ease,
-    box-shadow 240ms ease;
-  animation: tile-in 600ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  animation-delay: calc(var(--i, 0) * 28ms + 80ms);
+  margin: auto;
 }
 
-.tile::after {
-  content: "";
+.constellation__lines {
   position: absolute;
-  inset: auto 12% 0;
-  height: 38%;
-  background: radial-gradient(60% 100% at 50% 100%, var(--accent-soft, transparent), transparent 75%);
-  opacity: 0.7;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
   pointer-events: none;
 }
 
-.tile__icon {
-  display: grid;
-  place-items: center;
-  color: var(--accent, #e9e4da);
-  filter: drop-shadow(0 0 12px var(--accent-glow, transparent));
-  transition: transform 260ms ease;
+.constellation__lines path {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.tile__icon svg {
-  width: clamp(20px, 6.4vmin, 32px);
-  height: clamp(20px, 6.4vmin, 32px);
+.constellation__lines .connection {
+  stroke: url(#line-gradient);
+  stroke-width: 1;
+  opacity: 0.44;
+  filter: drop-shadow(0 0 5px rgba(168, 194, 255, 0.3));
+}
+
+.constellation__lines .connection-glow {
+  stroke: #a8c2ff;
+  stroke-width: 7;
+  opacity: 0.04;
+  filter: blur(3px);
+}
+
+.constellation__lines .branch {
+  stroke: url(#line-gradient);
+  stroke-width: 0.8;
+  opacity: 0.16;
+}
+
+.nodes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.node {
+  position: absolute;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  display: grid;
+  place-items: center;
+  width: var(--node-size);
+  height: var(--node-size);
+  padding: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 32%, var(--accent-soft), transparent 62%),
+    rgba(5, 8, 16, 0.56);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.025),
+    0 0 24px -5px var(--accent-glow),
+    0 0 62px -18px var(--accent-glow),
+    inset 0 0 24px rgba(255, 255, 255, 0.02);
+  color: var(--accent);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition:
+    transform 240ms ease,
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+  animation: node-in 800ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  animation-delay: calc(var(--i) * 35ms + 100ms);
+}
+
+.node::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.045);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.node__icon {
+  display: grid;
+  place-items: center;
+  width: 44%;
+  height: 44%;
+  filter: drop-shadow(0 0 9px var(--accent-glow));
+  transition: transform 240ms ease;
+}
+
+.node__icon svg {
+  width: 100%;
+  height: 100%;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.55;
@@ -181,35 +224,46 @@ button {
   stroke-linejoin: round;
 }
 
-.tile__name {
-  position: relative;
-  z-index: 1;
-  max-width: 100%;
-  font-size: clamp(8.5px, 2.6vmin, 13px);
-  font-weight: 450;
-  letter-spacing: 0.035em;
-  color: rgba(233, 229, 220, 0.86);
+.node__label {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  color: rgba(235, 232, 225, 0.62);
+  font-size: clamp(9px, 2.1vmin, 11px);
+  letter-spacing: 0.04em;
+  line-height: 1;
   white-space: nowrap;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+  transform: translateX(-50%);
+  transition: color 220ms ease;
 }
 
-.tile:active {
-  transform: scale(0.975);
+.node:active {
+  transform: translate(-50%, -50%) scale(0.975);
 }
 
-.tile:focus-visible {
-  outline: 2px solid var(--accent, #e9e4da);
-  outline-offset: 3px;
+.node:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .tile:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent-glow, rgba(255, 255, 255, 0.2));
-    box-shadow: 0 18px 42px -30px var(--accent-glow, transparent);
+  .node:hover {
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 0 30px -3px var(--accent-glow),
+      0 0 80px -16px var(--accent-glow),
+      inset 0 0 24px rgba(255, 255, 255, 0.03);
+    transform: translate(-50%, -50%) scale(1.045);
   }
 
-  .tile:hover .tile__icon {
-    transform: translateY(-1px);
+  .node:hover .node__icon {
+    transform: scale(1.06);
+  }
+
+  .node:hover .node__label {
+    color: rgba(247, 244, 237, 0.92);
   }
 }
 
@@ -220,11 +274,11 @@ button {
   justify-content: center;
   gap: 10px;
   padding: 10px 0 2px;
+  color: var(--muted);
   font-size: 9px;
   font-weight: 500;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--muted);
 }
 
 .foot__dot {
@@ -240,18 +294,18 @@ button {
   inset: auto 20px 24px;
   margin: 0;
   text-align: center;
-  font-size: 12px;
   color: var(--muted);
+  font-size: 12px;
 }
 
-@keyframes tile-in {
+@keyframes node-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    scale: 0.9;
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    scale: 1;
   }
 }
 
@@ -311,6 +365,22 @@ button {
   pointer-events: none;
 }
 
+.stage__progress {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+.stage__progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent, #e9e4da);
+  box-shadow: 0 0 10px var(--accent, transparent);
+}
+
 .stage__dim {
   position: absolute;
   inset: 0;
@@ -341,7 +411,9 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
   background: rgba(10, 10, 12, 0.46);
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.32);
+  box-shadow:
+    0 10px 34px rgba(0, 0, 0, 0.32),
+    0 0 32px -22px var(--accent, transparent);
   backdrop-filter: blur(18px) saturate(130%);
   -webkit-backdrop-filter: blur(18px) saturate(130%);
   opacity: 0;
@@ -358,8 +430,21 @@ button {
   transform: translate(-50%, 0);
 }
 
+.controls__ambient {
+  max-width: 6.5em;
+  overflow: hidden;
+  padding-left: 3px;
+  color: rgba(243, 239, 231, 0.54);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .controls__time {
-  min-width: 3.4em;
+  min-width: 3.15em;
+  margin-left: 6px;
   font-variant-numeric: tabular-nums;
   font-size: 12px;
   font-weight: 450;
@@ -445,7 +530,7 @@ button {
    -------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .tile {
+  .node {
     animation: none;
   }
 
@@ -453,13 +538,14 @@ button {
     animation: none;
   }
 
-  .tile,
-  .tile__icon {
+  .node,
+  .node__icon,
+  .node__label {
     transition: none;
   }
 
-  .tile:hover {
-    transform: none;
+  .node:hover {
+    transform: translate(-50%, -50%);
   }
 
   .controls,
@@ -468,14 +554,21 @@ button {
   }
 }
 
+@media (max-height: 500px) {
+  :root {
+    --node-size: 44px;
+  }
+
+  .node__label {
+    top: calc(100% + 5px);
+    font-size: 8px;
+  }
+}
+
 /* En pantallas muy bajas (móvil en horizontal) se gana espacio. */
 @media (max-height: 460px) {
   .foot {
     display: none;
-  }
-
-  .grid {
-    width: min(100%, 620px, 82dvh);
   }
 
   .brand {
