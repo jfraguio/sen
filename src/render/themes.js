@@ -979,8 +979,481 @@ function meditation(ambient) {
 }
 
 /* --------------------------------------------------------------------------
-   Registro de temas
+   Pájaros · amanecer, bandadas y polen
    -------------------------------------------------------------------------- */
+
+function birds(ambient) {
+  const p = ambient.palette;
+  const flocks = Array.from({ length: 5 }, (_, index) => ({
+    x: rand(0.05, 1.1),
+    y: rand(0.12, 0.55),
+    speed: rand(0.012, 0.028),
+    direction: Math.random() < 0.5 ? -1 : 1,
+    count: 3 + Math.floor(rand(0, 3)),
+    size: rand(0.012, 0.024),
+    spread: rand(0.07, 0.12),
+    phase: rand(0, TAU),
+    flap: rand(2.8, 5.2),
+    index,
+  }));
+
+  const dust = Array.from({ length: 40 }, () => ({
+    x: rand(0, 1),
+    y: rand(0.1, 0.95),
+    size: rand(0.6, 2.6),
+    speed: rand(0.004, 0.02),
+    phase: rand(0, TAU),
+    alpha: rand(0.05, 0.3),
+  }));
+
+  function drawBird(ctx, x, y, size, flap, alpha) {
+    const lift = Math.sin(flap) * size * 0.55;
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = p.bird;
+    ctx.lineWidth = Math.max(1.1, size * 0.13);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - size, y + lift);
+    ctx.quadraticCurveTo(x - size * 0.45, y - size * 0.22, x, y);
+    ctx.quadraticCurveTo(x + size * 0.45, y - size * 0.22, x + size, y + lift);
+    ctx.stroke();
+  }
+
+  function flockY(flock, t, offset, h) {
+    return (flock.y + Math.sin(t * 0.25 + flock.phase) * 0.025 + offset * 0.008) * h;
+  }
+
+  return {
+    draw(ctx, t, dt, w, h) {
+      background(ctx, w, h, p.sky);
+      const unit = Math.min(w, h);
+
+      ctx.globalCompositeOperation = 'lighter';
+      glow(ctx, w * 0.73, h * 0.72, unit * 1.25, p.sun, 0.28);
+      glow(ctx, w * 0.72, h * 0.7, unit * 0.52, p.sun, 0.2);
+      glow(ctx, w * 0.2, h * 0.25, unit * 0.8, p.leaf, 0.06);
+      glow(ctx, w * 0.5, h * 1.04, w * 1.4, p.sky[2], 0.35);
+
+      // nubes bajas y cálidas
+      for (let i = 0; i < 3; i++) {
+        const x = w * ((i * 0.37 + t * 0.004) % 1.2 - 0.1);
+        glow(ctx, x, h * (0.62 + i * 0.05), w * 0.55, p.sun, 0.045);
+      }
+
+      // sol naciente
+      const sunX = w * 0.73;
+      const sunY = h * 0.7;
+      const sunR = unit * 0.045;
+      const sunGrad = ctx.createRadialGradient(
+        sunX - sunR * 0.2,
+        sunY - sunR * 0.25,
+        0,
+        sunX,
+        sunY,
+        sunR,
+      );
+      sunGrad.addColorStop(0, rgba(p.sun, 0.95));
+      sunGrad.addColorStop(0.6, rgba(p.sun, 0.65));
+      sunGrad.addColorStop(1, rgba(p.sun, 0.05));
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = sunGrad;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, sunR, 0, TAU);
+      ctx.fill();
+
+      // siluetas de pájaros
+      ctx.globalCompositeOperation = 'source-over';
+      for (const flock of flocks) {
+        flock.x += flock.direction * flock.speed * dt;
+        if (flock.x > 1.3) flock.x = -0.25;
+        if (flock.x < -0.3) flock.x = 1.25;
+        for (let i = 0; i < flock.count; i++) {
+          const offset = i - (flock.count - 1) / 2;
+          const x = (flock.x + offset * flock.spread * flock.direction) * w;
+          const y =
+            flockY(flock, t, offset, h);
+          const size = unit * flock.size * (0.75 + 0.35 * Math.abs(offset));
+          drawBird(
+            ctx,
+            x,
+            y,
+            size,
+            t * flock.flap + flock.phase + i * 0.7,
+            0.5 + 0.25 * Math.abs(Math.sin(t * 0.4 + i)),
+          );
+        }
+      }
+
+      ctx.globalCompositeOperation = 'lighter';
+      for (const mote of dust) {
+        mote.y += mote.speed * dt;
+        mote.x += Math.sin(t * 0.2 + mote.phase) * 0.004 * dt;
+        if (mote.y > 1.02) {
+          mote.y = -0.02;
+          mote.x = rand(0, 1);
+        }
+        const twinkle = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * 0.7 + mote.phase));
+        ctx.globalAlpha = mote.alpha * twinkle;
+        ctx.fillStyle = p.sun;
+        ctx.fillRect(mote.x * w, mote.y * h, mote.size, mote.size);
+      }
+
+      // horizonte suave
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = p.bird;
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.lineTo(0, h * 0.88);
+      ctx.bezierCurveTo(w * 0.2, h * 0.84, w * 0.34, h * 0.91, w * 0.54, h * 0.87);
+      ctx.bezierCurveTo(w * 0.74, h * 0.83, w * 0.9, h * 0.9, w, h * 0.86);
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = p.sky[0];
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.lineTo(0, h * 0.95);
+      ctx.bezierCurveTo(w * 0.28, h * 0.91, w * 0.48, h * 0.97, w * 0.7, h * 0.93);
+      ctx.bezierCurveTo(w * 0.84, h * 0.9, w * 0.94, h * 0.94, w, h * 0.92);
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    },
+  };
+}
+
+/* --------------------------------------------------------------------------
+   Bichos · pradera, hierba y luciérnagas
+   -------------------------------------------------------------------------- */
+
+function bugs(ambient) {
+  const p = ambient.palette;
+  const blades = Array.from({ length: 56 }, () => ({
+    x: rand(-0.05, 1.05),
+    height: rand(0.08, 0.38),
+    lean: rand(-0.08, 0.08),
+    phase: rand(0, TAU),
+    width: rand(0.8, 2.2),
+    alpha: rand(0.08, 0.26),
+  }));
+
+  const flies = Array.from({ length: 42 }, () => ({
+    x: rand(0.03, 0.97),
+    y: rand(0.35, 0.95),
+    phase: rand(0, TAU),
+    speed: rand(0.15, 0.55),
+    drift: rand(0.01, 0.04),
+    radius: rand(0.01, 0.035),
+    size: rand(0.08, 0.2),
+    warm: Math.random() < 0.72,
+  }));
+
+  return {
+    draw(ctx, t, dt, w, h) {
+      background(ctx, w, h, p.meadow);
+      const unit = Math.min(w, h);
+
+      ctx.globalCompositeOperation = 'lighter';
+      glow(ctx, w * 0.28, h * 0.72, unit * 1.1, p.grass, 0.12);
+      glow(ctx, w * 0.8, h * 0.35, unit * 0.7, p.pale, 0.06);
+      glow(ctx, w * 0.5, h * 1.05, w * 1.5, p.grass, 0.18);
+
+      // hierba en silueta
+      ctx.globalCompositeOperation = 'source-over';
+      for (const blade of blades) {
+        const sway = Math.sin(t * 0.45 + blade.phase) * 0.035;
+        const baseX = blade.x * w;
+        const tipX = (blade.x + blade.lean + sway) * w;
+        const tipY = h - blade.height * h;
+        ctx.strokeStyle = p.grass;
+        ctx.globalAlpha = blade.alpha;
+        ctx.lineWidth = blade.width;
+        ctx.beginPath();
+        ctx.moveTo(baseX, h + 4);
+        ctx.quadraticCurveTo((blade.x + blade.lean * 0.3) * w, h - blade.height * h * 0.55, tipX, tipY);
+        ctx.stroke();
+      }
+
+      // luciérnagas
+      ctx.globalCompositeOperation = 'lighter';
+      for (const fly of flies) {
+        fly.phase += fly.speed * dt;
+        const x = (fly.x + Math.sin(fly.phase * 0.8) * fly.radius) * w;
+        const y = (fly.y + Math.cos(fly.phase * 0.55) * fly.radius * 0.55) * h;
+        const pulse = Math.max(0, Math.sin(t * 0.9 + fly.phase * 3));
+        const alpha = 0.1 + pulse * 0.7;
+        glow(ctx, x, y, unit * fly.size, fly.warm ? p.glow : p.pale, alpha * 0.55);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = fly.warm ? p.glow : p.pale;
+        const dot = Math.max(1, unit * 0.0022);
+        ctx.fillRect(x - dot / 2, y - dot / 2, dot, dot);
+      }
+
+      // polvo vegetal
+      for (let i = 0; i < 24; i++) {
+        const x = ((i * 0.137 + t * 0.003) % 1.1 - 0.05) * w;
+        const y = (0.2 + ((i * 0.091) % 0.75)) * h;
+        const a = 0.08 + 0.08 * Math.sin(t * 0.5 + i);
+        ctx.globalAlpha = Math.max(0, a);
+        ctx.fillStyle = p.pale;
+        ctx.fillRect(x, y, 1, 1);
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    },
+  };
+}
+
+/* --------------------------------------------------------------------------
+   Bosque · troncos, rayos y hojas
+   -------------------------------------------------------------------------- */
+
+function forest(ambient) {
+  const p = ambient.palette;
+  const trees = Array.from({ length: 7 }, (_, i) => ({
+    x: rand(0.05, 0.95),
+    width: rand(0.018, 0.055),
+    height: rand(0.55, 0.95),
+    lean: rand(-0.025, 0.025),
+    alpha: rand(0.28, 0.7),
+    phase: rand(0, TAU),
+    canopy: rand(0.18, 0.3),
+    distance: i,
+  }));
+
+  const motes = Array.from({ length: 44 }, () => ({
+    x: rand(0, 1),
+    y: rand(0, 1),
+    size: rand(0.7, 2.2),
+    speed: rand(0.005, 0.018),
+    drift: rand(-0.012, 0.012),
+    phase: rand(0, TAU),
+    warm: Math.random() < 0.45,
+  }));
+
+  const rays = Array.from({ length: 3 }, (_, i) => ({
+    x: rand(0.15, 0.8),
+    width: rand(0.08, 0.18),
+    alpha: rand(0.03, 0.08),
+    phase: rand(0, TAU),
+    speed: rand(0.01, 0.03),
+    index: i,
+  }));
+
+  return {
+    draw(ctx, t, dt, w, h) {
+      background(ctx, w, h, p.forest);
+      const unit = Math.min(w, h);
+
+      ctx.globalCompositeOperation = 'lighter';
+      glow(ctx, w * 0.3, h * 0.18, unit * 1.1, p.leaf, 0.1);
+      glow(ctx, w * 0.78, h * 0.08, unit * 0.75, p.light, 0.08);
+      glow(ctx, w * 0.5, h * 0.62, unit * 0.9, p.leaf, 0.05);
+
+      // rayos de luz entre los árboles
+      for (const ray of rays) {
+        const shift = Math.sin(t * ray.speed * 0.25 + ray.phase) * w * 0.03;
+        const x = ray.x * w + shift;
+        const grad = ctx.createLinearGradient(x, 0, x + w * 0.22, h);
+        grad.addColorStop(0, rgba(p.light, 0));
+        grad.addColorStop(0.28, rgba(p.light, ray.alpha));
+        grad.addColorStop(1, rgba(p.light, 0));
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(x - ray.width * w * 0.35, -10);
+        ctx.lineTo(x + ray.width * w * 0.35, -10);
+        ctx.lineTo(x + ray.width * w * 1.4 + w * 0.15, h + 10);
+        ctx.lineTo(x + ray.width * w * 0.4 + w * 0.08, h + 10);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // copas difusas
+      ctx.globalCompositeOperation = 'source-over';
+      for (const tree of trees) {
+        const canopyY = h * (1 - tree.height) + h * 0.08;
+        glow(ctx, tree.x * w, canopyY, unit * tree.canopy, p.leaf, 0.035 + tree.alpha * 0.04);
+      }
+
+      // troncos
+      for (const tree of trees) {
+        const base = h + 8;
+        const top = h * (1 - tree.height);
+        const sway = Math.sin(t * 0.12 + tree.phase) * w * 0.006;
+        const x = tree.x * w;
+        const width = tree.width * w;
+        ctx.globalAlpha = tree.alpha;
+        ctx.fillStyle = p.bark;
+        ctx.beginPath();
+        ctx.moveTo(x - width * 0.5, base);
+        ctx.quadraticCurveTo(x - width * 0.35 + tree.lean * w, h * 0.55, x - width * 0.22 + sway, top);
+        ctx.lineTo(x + width * 0.22 + sway, top);
+        ctx.quadraticCurveTo(x + width * 0.35 + tree.lean * w, h * 0.55, x + width * 0.5, base);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // hojas y motas
+      ctx.globalCompositeOperation = 'lighter';
+      for (const mote of motes) {
+        mote.y += mote.speed * dt;
+        mote.x += mote.drift * dt;
+        if (mote.y > 1.02) {
+          mote.y = -0.02;
+          mote.x = rand(0, 1);
+        }
+        if (mote.x < -0.02) mote.x = 1.02;
+        if (mote.x > 1.02) mote.x = -0.02;
+        const twinkle = 0.35 + 0.65 * Math.max(0, Math.sin(t * 0.6 + mote.phase));
+        ctx.globalAlpha = (mote.warm ? 0.4 : 0.24) * twinkle;
+        ctx.fillStyle = mote.warm ? p.light : p.leaf;
+        ctx.fillRect(mote.x * w, mote.y * h, mote.size, mote.size);
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    },
+  };
+}
+
+/* --------------------------------------------------------------------------
+   Noche · luna, colinas y luciérnagas
+   -------------------------------------------------------------------------- */
+
+function night(ambient) {
+  const p = ambient.palette;
+  const stars = Array.from({ length: 140 }, () => ({
+    x: rand(0, 1),
+    y: rand(0, 0.75),
+    size: rand(0.5, 1.8),
+    phase: rand(0, TAU),
+    speed: rand(0.15, 0.7),
+    bright: Math.random() < 0.05,
+  }));
+
+  const flies = Array.from({ length: 36 }, () => ({
+    x: rand(0.05, 0.95),
+    y: rand(0.68, 0.96),
+    phase: rand(0, TAU),
+    speed: rand(0.12, 0.4),
+    radius: rand(0.008, 0.03),
+    size: rand(0.07, 0.18),
+  }));
+
+  let nextShoot = rand(8, 16);
+  let shoot = null;
+
+  return {
+    draw(ctx, t, dt, w, h) {
+      background(ctx, w, h, p.sky);
+      const unit = Math.min(w, h);
+
+      ctx.globalCompositeOperation = 'lighter';
+      glow(ctx, w * 0.78, h * 0.2, unit * 0.95, p.moon, 0.14);
+      glow(ctx, w * 0.78, h * 0.2, unit * 0.32, p.moon, 0.3);
+      glow(ctx, w * 0.25, h * 0.42, unit * 0.75, p.moon, 0.04);
+
+      // luna
+      const moonX = w * 0.78;
+      const moonY = h * 0.2;
+      const moonR = unit * 0.055;
+      const moonGrad = ctx.createRadialGradient(moonX - moonR * 0.25, moonY - moonR * 0.3, 0, moonX, moonY, moonR);
+      moonGrad.addColorStop(0, rgba(p.moon, 0.9));
+      moonGrad.addColorStop(0.65, rgba(p.moon, 0.55));
+      moonGrad.addColorStop(1, rgba(p.moon, 0.05));
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = moonGrad;
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, moonR, 0, TAU);
+      ctx.fill();
+
+      // estrellas
+      for (const star of stars) {
+        const twinkle = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * star.speed + star.phase));
+        if (star.bright) {
+          glow(ctx, star.x * w, star.y * h, star.size * 22, p.moon, twinkle * 0.25);
+          sparkle(ctx, star.x * w, star.y * h, star.size * 3.5, p.moon, twinkle * 0.4);
+        } else {
+          ctx.globalAlpha = twinkle * 0.7;
+          ctx.fillStyle = p.moon;
+          ctx.fillRect(star.x * w, star.y * h, star.size, star.size);
+        }
+      }
+
+      // estrella fugaz ocasional
+      if (t > nextShoot) {
+        shoot = { x: rand(0.15, 0.8), y: rand(0.05, 0.3), start: t };
+        nextShoot = t + rand(10, 22);
+      }
+      if (shoot) {
+        const age = t - shoot.start;
+        if (age < 0.9) {
+          const headX = (shoot.x + age * 0.2) * w;
+          const headY = (shoot.y + age * 0.07) * h;
+          const tail = w * 0.07 * (1 - age);
+          ctx.globalAlpha = (1 - age) * 0.6;
+          ctx.strokeStyle = p.moon;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(headX - tail, headY - tail * 0.35);
+          ctx.lineTo(headX, headY);
+          ctx.stroke();
+        } else {
+          shoot = null;
+        }
+      }
+
+      // colinas
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = p.hill;
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.lineTo(0, h * 0.8);
+      ctx.bezierCurveTo(w * 0.22, h * 0.73, w * 0.42, h * 0.84, w * 0.62, h * 0.78);
+      ctx.bezierCurveTo(w * 0.8, h * 0.73, w * 0.92, h * 0.8, w, h * 0.76);
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      ctx.lineTo(0, h * 0.9);
+      ctx.bezierCurveTo(w * 0.2, h * 0.84, w * 0.38, h * 0.94, w * 0.58, h * 0.88);
+      ctx.bezierCurveTo(w * 0.78, h * 0.83, w * 0.9, h * 0.91, w, h * 0.87);
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
+
+      // luciérnagas
+      ctx.globalCompositeOperation = 'lighter';
+      for (const fly of flies) {
+        fly.phase += fly.speed * dt;
+        const x = (fly.x + Math.sin(fly.phase * 0.7) * fly.radius) * w;
+        const y = (fly.y + Math.cos(fly.phase * 0.5) * fly.radius * 0.4) * h;
+        const pulse = Math.max(0, Math.sin(t * 0.8 + fly.phase * 3));
+        const alpha = 0.08 + pulse * 0.65;
+        glow(ctx, x, y, unit * fly.size, p.firefly, alpha * 0.5);
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.firefly;
+        ctx.fillRect(x, y, 1.4, 1.4);
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    },
+  };
+}
+
 
 export const THEMES = {
   rain,
@@ -992,6 +1465,10 @@ export const THEMES = {
   space,
   story,
   meditation,
+  birds,
+  bugs,
+  forest,
+  night,
 };
 
 /** Tema de reserva si la animación configurada no existe. */

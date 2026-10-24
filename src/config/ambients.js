@@ -184,6 +184,82 @@ export const ambients = [
       breath: ['#a8e6dd', '#7fb4d4', '#c9c1ff'],
     },
   },
+  {
+    id: 'pajaros',
+    name: 'Pájaros',
+    icon: [
+      'M6.5 14.8c1.8-4 4.2-6 7.2-6 2.4 0 4 1.5 4 3.4 0 2.9-3.4 5.5-7.2 5.5-1.6 0-3-.3-4-1.1v-1.8Z',
+      'M17.7 9.9l2.8-1.2-2 2.6',
+      'M14.6 10.8h.01',
+      'M9.4 17.7v2.1M13 17.7v2.1',
+      'M7.5 13.6 4.8 12l1.2 3.2',
+    ],
+    audio: 'assets/audio/pajaros.wav',
+    animation: 'birds',
+    accent: '#e6d891',
+    palette: {
+      sky: ['#06131a', '#173b36', '#4a2c16'],
+      sun: '#ffd98a',
+      bird: '#07100e',
+      leaf: '#a9d69b',
+    },
+  },
+  {
+    id: 'bichos',
+    name: 'Bichos',
+    icon: [
+      'M12 8.2a5 5 0 0 1 5 5v1.6a4.2 4.2 0 0 1-4.2 4.2h-1.6A4.2 4.2 0 0 1 7 14.8v-1.6a5 5 0 0 1 5-5Z',
+      'M12 8.2v10.8',
+      'M9.6 8.1C8.6 6 7.5 5.4 6.2 5.5M14.4 8.1c1-2.1 2.1-2.7 3.4-2.6',
+      'M7 12H4M7 16.5H4M17 12h3M17 16.5h3',
+      'M9.7 10.7h.01M14.3 10.7h.01',
+    ],
+    audio: 'assets/audio/bichos.wav',
+    animation: 'bugs',
+    accent: '#d7e08f',
+    palette: {
+      meadow: ['#041009', '#0f2a17', '#020705'],
+      glow: '#ffe28a',
+      grass: '#7fbf7a',
+      pale: '#d7e08f',
+    },
+  },
+  {
+    id: 'bosque',
+    name: 'Bosque',
+    icon: [
+      'M12 3l6 9h-4l3.5 5h-11L10 12H6l6-9Z',
+      'M12 17v4',
+      'M3 21c3-1.5 5.5-1.5 9 0 3.5-1.5 6-1.5 9 0',
+    ],
+    audio: 'assets/audio/bosque.wav',
+    animation: 'forest',
+    accent: '#9ed6a0',
+    palette: {
+      forest: ['#030c08', '#0d2619', '#020604'],
+      light: '#d8f1b0',
+      bark: '#02110b',
+      leaf: '#67a86a',
+    },
+  },
+  {
+    id: 'noche',
+    name: 'Noche',
+    icon: [
+      'M15.8 4.4a6.4 6.4 0 1 0 4 10.6 7.2 7.2 0 0 1-4-10.6Z',
+      'M17.5 4v2M16.5 5h2',
+      'M3 20c3-4 5.5-4 8.5 0 2.5-3 5-3 7.5 0',
+    ],
+    audio: 'assets/audio/noche.wav',
+    animation: 'night',
+    accent: '#9fb2d9',
+    palette: {
+      sky: ['#02050e', '#0a1730', '#01030a'],
+      moon: '#e6ecff',
+      hill: '#010307',
+      firefly: '#ffdf9a',
+    },
+  },
 ];
 
 /** Utilidades de color compartidas por la UI. */

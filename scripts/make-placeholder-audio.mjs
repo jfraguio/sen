@@ -154,6 +154,99 @@ function addCrackles(data, count, gain) {
   }
 }
 
+/** Silbido corto con glide y trino, para pájaros y búhos. */
+function addChirp(data, at, duration, freqStart, freqEnd, gain, options = {}) {
+  const start = Math.floor(at * SR);
+  const length = Math.max(1, Math.floor(duration * SR));
+  const { warble = 0, warbleRate = 0, decay = 2.2, harmonic = 0.08 } = options;
+  let phase = 0;
+  for (let j = 0; j < length && start + j < LEN; j++) {
+    const t = j / SR;
+    const u = j / length;
+    const freq = freqStart + (freqEnd - freqStart) * u + Math.sin(TAU * warbleRate * t) * warble;
+    const env = Math.sin(Math.PI * u) ** 0.65 * Math.exp(-decay * u);
+    phase += (TAU * freq) / SR;
+    data[start + j] += (Math.sin(phase) + harmonic * Math.sin(phase * 2)) * env * gain;
+  }
+}
+
+function addBirdPhrase(data, at, baseFreq, gain) {
+  let time = at;
+  const count = 2 + Math.floor(rand(0, 4));
+  const direction = Math.random() < 0.5 ? -1 : 1;
+  for (let i = 0; i < count; i++) {
+    const duration = rand(0.06, 0.2);
+    const startFreq = baseFreq * rand(0.85, 1.2) * (1 + direction * i * 0.04);
+    addChirp(data, time, duration, startFreq, startFreq * rand(1.1, 1.7), gain * rand(0.55, 1), {
+      warble: rand(0, 80),
+      warbleRate: rand(15, 40),
+      decay: rand(1.5, 3),
+    });
+    time += duration + rand(0.03, 0.11);
+  }
+  if (Math.random() < 0.3) {
+    let trillAt = time + rand(0.05, 0.2);
+    const trillFreq = baseFreq * rand(1.2, 1.8);
+    for (let i = 0; i < 6; i++) {
+      addChirp(data, trillAt, 0.045, trillFreq, trillFreq * rand(0.9, 1.1), gain * 0.5, { decay: 4 });
+      trillAt += 0.055;
+    }
+  }
+}
+
+/** Pulsos de grillo: portadora aguda con una compuerta rítmica. */
+function addCricket(data, at, duration, freq, pulseRate, gain) {
+  const start = Math.floor(at * SR);
+  const length = Math.max(1, Math.floor(duration * SR));
+  let phase = 0;
+  for (let j = 0; j < length && start + j < LEN; j++) {
+    const t = j / SR;
+    const u = j / length;
+    const env = Math.sin(Math.PI * u) ** 0.5;
+    const pulse = Math.max(0, Math.sin(TAU * pulseRate * t)) ** 3;
+    phase += (TAU * freq * (1 + Math.sin(TAU * 1.7 * t) * 0.002)) / SR;
+    data[start + j] += Math.sin(phase) * env * pulse * gain;
+  }
+}
+
+function addNoiseBurst(data, at, duration, gain) {
+  const start = Math.floor(at * SR);
+  const length = Math.max(1, Math.floor(duration * SR));
+  let previous = 0;
+  for (let j = 0; j < length && start + j < LEN; j++) {
+    const n = Math.random() * 2 - 1;
+    const filtered = n - previous;
+    previous = n;
+    const env = Math.sin((Math.PI * j) / length) ** 2;
+    data[start + j] += filtered * env * gain;
+  }
+}
+
+function addOwl(data, at, gain) {
+  const notes = [
+    { freq: 392, duration: 0.42 },
+    { freq: 330, duration: 0.55 },
+  ];
+  let time = at;
+  for (const note of notes) {
+    addChirp(data, time, note.duration, note.freq, note.freq * 0.94, gain, {
+      warble: 4,
+      warbleRate: 5,
+      decay: 1.2,
+      harmonic: 0.15,
+    });
+    time += note.duration + 0.2;
+  }
+}
+
+function addKnocks(data, at, gain) {
+  let time = at;
+  for (let i = 0; i < 5; i++) {
+    addChirp(data, time, 0.045, 820, 700, gain, { decay: 5, harmonic: 0.2 });
+    time += 0.085 + rand(0, 0.02);
+  }
+}
+
 function addRain(data, gain = 1, brightness = 4200) {
   const layer = make();
   mixNoise(layer, 1);
@@ -461,6 +554,164 @@ function meditacion() {
   return master(raw, 0.38);
 }
 
+function pajaros() {
+  const raw = make();
+
+  const leaves = make();
+  mixNoise(leaves, 1);
+  highpass(leaves, 260);
+  lowpass(leaves, 2600);
+  breathe(leaves, LONG ? 1 / 19 : 1 / 7, 0.35, 0.4);
+  add(raw, leaves, 0.09);
+
+  const air = make();
+  brown(air, 1.3);
+  lowpass(air, 150);
+  add(raw, air, 0.28);
+
+  const phrases = LONG ? Math.round(10 * SCALE) : 10;
+  for (let i = 0; i < phrases; i++) {
+    addBirdPhrase(raw, rand(0, SECONDS - 2), rand(1700, 3600), rand(0.025, 0.05));
+  }
+
+  const cuckoos = LONG ? Math.max(1, Math.round(2 * SCALE)) : 1;
+  for (let i = 0; i < cuckoos; i++) {
+    const at = rand(1, SECONDS - 2);
+    addChirp(raw, at, 0.26, 700, 680, 0.03, { decay: 1.2, harmonic: 0.1 });
+    addChirp(raw, at + 0.36, 0.32, 580, 560, 0.027, { decay: 1.2, harmonic: 0.1 });
+  }
+
+  breathe(raw, LONG ? 1 / 90 : 1 / 16, 0.2);
+  lowpass(raw, 6800);
+  return master(raw, 0.44);
+}
+
+function bichos() {
+  const raw = make();
+
+  const air = make();
+  mixNoise(air, 1);
+  highpass(air, 180);
+  lowpass(air, 1200);
+  add(raw, air, 0.12);
+
+  const low = make();
+  brown(low, 1.1);
+  lowpass(low, 190);
+  add(raw, low, 0.28);
+
+  const crickets = LONG ? Math.round(16 * SCALE) : 16;
+  for (let i = 0; i < crickets; i++) {
+    addCricket(
+      raw,
+      rand(0, SECONDS - 2.5),
+      rand(0.8, 2.6),
+      rand(3200, 4600),
+      rand(18, 32),
+      rand(0.015, 0.038),
+    );
+  }
+
+  const buzz = make();
+  mixNoise(buzz, 1);
+  bandpass(buzz, 4800, 1.6);
+  for (let i = 0; i < LEN; i++) {
+    const pulse = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin((TAU * 52 * i) / SR)) ** 2;
+    buzz[i] *= pulse;
+  }
+  add(raw, buzz, 0.022);
+
+  breathe(raw, LONG ? 1 / 55 : 1 / 8, 0.2);
+  lowpass(raw, 6800);
+  return master(raw, 0.4);
+}
+
+function bosque() {
+  const raw = make();
+
+  const wind = make();
+  mixNoise(wind, 1);
+  lowpass(wind, 1000);
+  highpass(wind, 80);
+  breathe(wind, LONG ? 1 / 27 : 1 / 9, 0.5, 0.2);
+  add(raw, wind, 0.38);
+
+  const leaves = make();
+  mixNoise(leaves, 1);
+  highpass(leaves, 1400);
+  lowpass(leaves, 5200);
+  breathe(leaves, LONG ? 1 / 14 : 1 / 5, 0.6, 1.8);
+  add(raw, leaves, 0.13);
+
+  const low = make();
+  brown(low, 1);
+  lowpass(low, 130);
+  add(raw, low, 0.32);
+
+  const rustles = LONG ? Math.round(2 * SCALE) : 3;
+  for (let i = 0; i < rustles; i++) {
+    addNoiseBurst(raw, rand(0, SECONDS - 0.5), rand(0.15, 0.5), rand(0.01, 0.03));
+  }
+
+  const creaks = LONG ? Math.max(1, Math.round(1 * SCALE)) : 1;
+  for (let i = 0; i < creaks; i++) {
+    addTone(raw, rand(0, SECONDS - 2), rand(0.4, 1.1), rand(80, 180), 0.018, {
+      slide: rand(-30, 30),
+      harmonic: 0.1,
+      decay: 2,
+    });
+  }
+
+  const birds = LONG ? Math.round(3 * SCALE) : 4;
+  for (let i = 0; i < birds; i++) {
+    addBirdPhrase(raw, rand(0, SECONDS - 2), rand(1900, 3200), rand(0.012, 0.028));
+  }
+
+  const woodpeckers = LONG ? Math.max(1, Math.round(0.5 * SCALE)) : 1;
+  for (let i = 0; i < woodpeckers; i++) {
+    addKnocks(raw, rand(0, SECONDS - 1), rand(0.018, 0.032));
+  }
+
+  breathe(raw, LONG ? 1 / 70 : 1 / 16, 0.25);
+  lowpass(raw, 6800);
+  return master(raw, 0.42);
+}
+
+function noche() {
+  const raw = make();
+
+  const air = make();
+  mixNoise(air, 1);
+  lowpass(air, 600);
+  highpass(air, 60);
+  breathe(air, LONG ? 1 / 43 : 1 / 11, 0.4, 0.7);
+  add(raw, air, 0.24);
+
+  sine(raw, 55, 0.035);
+  sine(raw, 82.5, 0.016);
+
+  const crickets = LONG ? Math.round(4 * SCALE) : 8;
+  for (let i = 0; i < crickets; i++) {
+    addCricket(
+      raw,
+      rand(0, SECONDS - 3),
+      rand(1.4, 3.4),
+      rand(3300, 4400),
+      rand(18, 28),
+      rand(0.008, 0.02),
+    );
+  }
+
+  const owls = LONG ? Math.max(2, Math.round(0.4 * SCALE)) : 1;
+  for (let i = 0; i < owls; i++) {
+    addOwl(raw, rand(1, SECONDS - 3), 0.028);
+  }
+
+  breathe(raw, LONG ? 1 / 100 : 1 / 16, 0.3);
+  lowpass(raw, 6800);
+  return master(raw, 0.38);
+}
+
 /* --------------------------------------------------------------------------
    WAV
    -------------------------------------------------------------------------- */
@@ -497,6 +748,10 @@ const tracks = {
   espacio,
   cuento,
   meditacion,
+  pajaros,
+  bichos,
+  bosque,
+  noche,
 };
 
 const longInfo = {
@@ -509,6 +764,10 @@ const longInfo = {
   espacio: { title: 'Espacio', description: 'Drones graves, polvo estelar y destellos.', accent: '#a48bff' },
   cuento: { title: 'Cuento', description: 'Kalimba, pads y melodías oníricas.', accent: '#ffd08a' },
   meditacion: { title: 'Meditación', description: 'Drone profundo, respiración y cuencos.', accent: '#9dded8' },
+  pajaros: { title: 'Pájaros', description: 'Trinos, hojas y luz de amanecer.', accent: '#e6d891' },
+  bichos: { title: 'Bichos', description: 'Grillos, cigarras y luciérnagas.', accent: '#d7e08f' },
+  bosque: { title: 'Bosque', description: 'Hojas, ramas y sombra verde.', accent: '#9ed6a0' },
+  noche: { title: 'Noche', description: 'Grillos lejanos, búho y luna.', accent: '#9fb2d9' },
 };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -618,12 +877,12 @@ if (LONG) {
   <div class="wrap">
     <p class="brand">sen</p>
     <h1>Ambientes sintéticos</h1>
-    <p class="intro">Las versiones largas de los nueve ambientes generados para sen. La síntesis evoluciona durante toda la pista para que no se note el bucle de 16 segundos.</p>
+    <p class="intro">Las versiones largas de los ${made.length} ambientes generados para sen. La síntesis evoluciona durante toda la pista para que no se note el bucle de 16 segundos.</p>
     <div class="meta"><span>${made.length} pistas</span><span>${minutes} min cada una</span><span>${(totalSize / 1048576).toFixed(0)} MB</span><span>generado localmente</span></div>
     <div class="grid">
 ${cards}
     </div>
-    <p class="foot">MP3 mono a 64 kbps, generado con <code>scripts/make-placeholder-audio.mjs --long</code>. Esta carpeta no se publica en el repositorio. <a href="../">Volver al banco de sonidos</a>.</p>
+    <p class="foot">MP3 mono a 64 kbps, generado con <code>scripts/make-placeholder-audio.mjs --long</code>. Esta carpeta no se publica en el repositorio.</p>
   </div>
 </body>
 </html>`;
@@ -631,7 +890,7 @@ ${cards}
 
   const readme = `# Ambientes sintéticos largos
 
-Versiones de ${minutes} minutos de los nueve ambientes generados con
+Versiones de ${minutes} minutos de los ${made.length} ambientes generados con
 \`scripts/make-placeholder-audio.mjs --long\`. Son las mismas texturas que los
 placeholders de 16 s, pero con eventos y modulaciones repartidos a lo largo de
 toda la pista para evitar que se note el bucle.

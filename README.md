@@ -2,7 +2,7 @@
 
 **En línea:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/>
 
-Luz y sonido para descansar. Nueve ambientes de diez minutos, sin cuentas, sin
+Luz y sonido para descansar. Trece ambientes de diez minutos, sin cuentas, sin
 ajustes y sin distracciones: eliges un tema, la pantalla se llena de color y el
 audio suena en bucle hasta completar la sesión.
 
@@ -43,6 +43,10 @@ funciona también en `usuario.github.io/repositorio/`.
 | Espacio   | negro azulado, nebulosas, estrellas y destellos           | `espacio.wav`      |
 | Cuento    | luz cálida onírica, partículas y magia                    | `cuento.wav`       |
 | Meditación| orbe que respira, tonos profundos y suaves                | `meditacion.wav`   |
+| Pájaros   | amanecer, bandadas en silueta y polen dorado               | `pajaros.wav`      |
+| Bichos    | pradera, hierba y luciérnagas                              | `bichos.wav`       |
+| Bosque    | troncos, rayos de luz y hojas                              | `bosque.wav`       |
+| Noche     | luna, colinas, estrellas y luciérnagas                     | `noche.wav`        |
 
 ## Estructura
 
@@ -61,7 +65,7 @@ src/
     wake-lock.js       Screen Wake Lock API
   render/
     engine.js          canvas a pantalla completa
-    themes.js          las nueve animaciones
+    themes.js          las trece animaciones
   styles/main.css
 ```
 
@@ -87,20 +91,21 @@ Para añadir un ambiente nuevo:
 La cuadrícula, los colores del botón y el resto de la interfaz se generan
 automáticamente a partir de esa lista.
 
-### Sustituir los audios
+### Audios generados
 
-Los WAV incluidos son bucles de reemplazo generados por
-`scripts/make-placeholder-audio.mjs`, para que la app se pueda probar sin
-buscar material. Sustitúyelos por tus pistas manteniendo los nombres de
-`assets/audio` (o actualiza las rutas de la configuración). Para regenerar los
-placeholders:
+Los 13 WAV incluidos están sintetizados por
+`scripts/make-placeholder-audio.mjs`; la app no depende de grabaciones
+externas. Para regenerarlos:
 
 ```bash
 node scripts/make-placeholder-audio.mjs
 ```
 
+También puedes sustituir un WAV por una pista propia manteniendo el nombre en
+`assets/audio` (o actualizando la ruta en la configuración).
+
 También hay un modo largo que genera versiones de **10 minutos** de los mismos
-nueve ambientes (MP3 mono, 64 kbps) en `sounds/generados/`, con su propio
+trece ambientes (MP3 mono, 64 kbps) en `sounds/generados/`, con su propio
 reproductor local. Esa carpeta está ignorada por git:
 
 ```bash
