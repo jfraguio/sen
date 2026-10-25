@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 3.0<br>
+**Versión:** 3.1<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de sonido
 
@@ -21,9 +21,11 @@ La experiencia tiene tres piezas:
 3. **Laboratorio** en `/lab/` para editar la síntesis del ambiente base, mezclar
    capas y exportar los parámetros en JSON.
 
-La aplicación usa **tres escenas de audio por ambiente**. Las escenas no son
-copias: cambian el patrón del mismo sonido. Al comenzar una sesión se elige una
-al azar entre las que existan en la carpeta del ambiente.
+La aplicación usa **seis escenas de audio por ambiente**. Las escenas no son
+copias: cada una es un paisaje distinto del mismo ambiente. Las escenas 01–03
+salen de la síntesis base y las 04–06 son paisajes sonoros de alta calidad
+(más resolución, bucles más largos y modelos más realistas). Al comenzar una
+sesión se elige una al azar entre las que existan en la carpeta del ambiente.
 
 ---
 
@@ -190,8 +192,8 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 ### 5.2 Selección de escena
 
 - Cada ambiente tiene una carpeta `assets/audio/<id>/`.
-- Los nombres válidos son `01.wav`, `02.wav` y `03.wav`.
-- Al iniciar cada sesión se hacen tres peticiones `HEAD` con
+- Los nombres válidos son `01.wav` … `06.wav`.
+- Al iniciar cada sesión se hacen seis peticiones `HEAD` con
   `cache: 'no-store'`.
 - Solo se consideran las escenas que responden correctamente.
 - La elección es uniforme entre las escenas disponibles.
@@ -246,6 +248,16 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   más solapadas y regulares.
 - **Escena 03 — aguacero:** unas 131 gotas rápidas, de 1500 a 3300 Hz, con una
   capa de ráfaga filtrada que sube y baja cada 4 s.
+- **Escena 04 — lluvia sobre hojas:** unas 55 gotas por segundo sobre hojas
+  (impactos resonantes de 1,3–4,8 kHz), goterones de rama que caen en charcos
+  (uno cada ~2 s), lecho de lluvia fino y lluvia lejana muy baja. La intensidad
+  sube y baja despacio.
+- **Escena 05 — lluvia sobre el lago:** unas 85 gotas por segundo sobre agua,
+  modeladas como burbujas de Minnaert (1–4,8 kHz, con el tono que sube), plops
+  graves (~2 por segundo), siseo de superficie y reverb abierta.
+- **Escena 06 — tienda de campaña:** golpes de gota sobre la lona (resonancias
+  de 150–330 Hz, ~20 por segundo), goteo regular del borde en un charco cada
+  ~1,75 s, lluvia exterior apagada y un espacio muy pequeño.
 - **Laboratorio:** `intensity` 0.60, `drops` 0.45, `hiss` 0.55, `wind` 0.20,
   `brightness` 0.60.
 
@@ -262,6 +274,15 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   cada uno con un chasquido inicial, y lluvia más presente.
 - **Escena 03 — tormenta que pasa:** dos truenos (aprox. 3 y 10 s) y ráfagas de
   lluvia y viento que barren la escena.
+- **Escena 04 — tormenta lejana:** lluvia constante, viento suave y un trueno
+  largo (13 s) muy lejano hacia el segundo 6, con otro más débil hacia el 21.
+  Reverb grande.
+- **Escena 05 — tormenta sobre el tejado:** lluvia sobre tejas (~110 golpes por
+  segundo), un canalón que borbotea y un trueno a media distancia con chasquido
+  suave hacia el segundo 8, más otro lejano hacia el 23.
+- **Escena 06 — tormenta con viento:** ráfagas con aullido, lluvia cuya
+  intensidad sigue al viento, gotas que azotan el cristal en las rachas y dos
+  truenos lejanos (aprox. 3 y 18 s).
 - **Laboratorio:** `rain` 0.55, `thunder` 0.50, `wind` 0.45, `rumble` 0.55,
   `brightness` 0.50.
 
@@ -278,6 +299,13 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   presencia de ascuas.
 - **Escena 03 — fuego con viento:** cinco grupos de chasquidos, diez pops y dos
   ráfagas que avivan la llama. Los graves están más presentes.
+- **Escena 04 — chimenea:** rugido grave suave, siseo, racimos de chasquidos
+  (~1,3 por segundo), ticks finos, estallidos ocasionales de nudos y algún
+  silbido de savia, en una sala pequeña.
+- **Escena 05 — hoguera al aire libre:** más llama y parpadeo, chasquidos más
+  frecuentes (~2,2 por segundo), estallidos, grillos lejanos y brisa.
+- **Escena 06 — brasas:** casi sin llama: siseo, ticks escasos, tintineo de
+  ascuas (~1,4 por segundo) y dos asentamientos de leña.
 - **Laboratorio:** `intensity` 0.55, `crackle` 0.65, `rumble` 0.50, `flicker`
   0.45, `brightness` 0.55.
 
@@ -292,6 +320,13 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Escena 02 — oleaje:** olas cada 5,33 s, más profundidad y espuma.
 - **Escena 03 — mar agitado:** olas cada 4 s, una segunda serie de olas cada
   2 s, más espuma y graves.
+- **Escena 04 — playa de arena:** tres olas largas (aprox. 1,5, 11 y 21 s) con
+  crecida grave, rompiente y resaca con espuma burbujeante; rumor de fondo y
+  brisa.
+- **Escena 05 — orilla de guijarros:** cuatro olas cada ~7,5 s; en cada resaca
+  ruedan cientos de guijarros.
+- **Escena 06 — cala tranquila:** chapoteos contra las rocas (uno cada ~2 s) con
+  gorgoteos, dos olas pequeñas lejanas y un rumor grave.
 - **Laboratorio:** `speed` 0.45, `depth` 0.60, `foam` 0.50, `wind` 0.25,
   `brightness` 0.55.
 
@@ -307,6 +342,14 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   pequeñas y más aire.
 - **Escena 03 — cauce ancho:** flujo más grave y lento, cuerpo profundo, menos
   burbujas y piedras ocasionales.
+- **Escena 04 — arroyo de montaña:** dieciséis fuentes de burbujas (450–2600 Hz)
+  que repiten su gorgoteo con ritmo propio, corriente brillante y graves
+  mínimos.
+- **Escena 05 — río ancho y sereno:** siete fuentes graves (180–650 Hz) y
+  lentas, corriente profunda y chapoteos suaves en la orilla.
+- **Escena 06 — pequeña cascada:** chorro turbulento de banda ancha, golpe grave
+  del agua, veintidós fuentes de burbujas y salpicaduras, con paso bajo a 7,5
+  kHz.
 - **Laboratorio:** `flow` 0.55, `bubbles` 0.40, `width` 0.50, `air` 0.30,
   `brightness` 0.55.
 
@@ -322,6 +365,12 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   golpes de hojas.
 - **Escena 03 — viento seco:** graves más finos, doce silbidos y seis ráfagas
   de hojas; suena más alto y silbante.
+- **Escena 04 — brisa entre pinos:** soplo suave cuya frecuencia sube con cada
+  ráfaga y siseo de acículas, con momentos casi en calma.
+- **Escena 05 — viento de montaña:** viento grave y profundo con tres aullidos
+  estrechos que afinan con la velocidad del aire y eco de valle.
+- **Escena 06 — ráfagas entre las hojas:** hojas agitadas cuya densidad sigue a
+  la ráfaga, soplo medio y correteo ocasional de hojas secas.
 - **Laboratorio:** `gust` 0.55, `speed` 0.50, `air` 0.50, `brightness` 0.50.
 
 ### 6.8 Espacio · `espacio`
@@ -336,6 +385,12 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   pulso de 4 s, catorce campanas y shimmer más brillante.
 - **Escena 03 — púlsar:** drone grave con sub de 27,5 Hz, pulso de 8 s, siete
   campanas y ecos cortos y oscuros.
+- **Escena 04 — nebulosa:** pad en Re mayor con novena (73–330 Hz) cuyo timbre
+  se abre y se cierra despacio, viento solar filtrado y reverb de 6,5 s.
+- **Escena 05 — órbita:** drone en La (55, 82,5 y 110 Hz), tres barridos de
+  radio y seis destellos pentatónicos agudos en una reverb de 7 s.
+- **Escena 06 — vacío profundo:** drone subgrave en Mi (41, 62 y 82 Hz) con
+  batidos lentos, tres tonos de cristal y reverb de 9 s.
 - **Laboratorio:** `drone` 0.55, `shimmer` 0.35, `movement` 0.40, `brightness`
   0.50.
 
@@ -351,6 +406,12 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   rápidas (0,95–2 s), pads altos y destellos.
 - **Escena 03 — cuento nocturno:** registro grave (220–392 Hz), tempo lento
   (2–3,4 s), pads en 110–330 Hz y aire casi nulo.
+- **Escena 04 — caja de música:** nana original en Do mayor a 64 BPM (ocho
+  compases exactos en el bucle), caja de música con bajo y pads suaves.
+- **Escena 05 — kalimba de cuna:** vals en La menor (60 BPM, 3/4, diez compases)
+  con arpegios de kalimba y pad cálido.
+- **Escena 06 — nana de celesta:** melodía de celesta en Fa mayor a 48 BPM sobre
+  cuerdas suaves (seis compases).
 - **Laboratorio:** `pads` 0.55, `notes` 0.55, `tempo` 0.50, `sparkle` 0.40,
   `brightness` 0.55.
 
@@ -366,6 +427,13 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   muy marcada y pocos cuencos.
 - **Escena 03 — armonía:** drone en quintas (55, 110, 165 y 220 Hz),
   respiración lenta y entre 5 y 11 cuencos.
+- **Escena 04 — cuencos tibetanos:** tres cuencos (≈148, 222 y 296 Hz) con modos
+  inarmónicos y batidos, cinco golpes por bucle y un zumbido grave.
+- **Escena 05 — tanpura:** ciclo Pa–Sa–Sa–Sa en Do (ocho ciclos de 3,75 s) con
+  armónicos que barren hacia arriba como el jawari.
+- **Escena 06 — campanas de viento y respiración:** tres rachas de campanas
+  pentatónicas en Re, aire que respira cada 7,5 s (ocho respiraciones por
+  minuto) y drone en Re–La.
 - **Laboratorio:** `drone` 0.55, `breath` 0.40, `bowls` 0.45, `brightness` 0.50.
 
 ### 6.11 Pájaros · `pajaros`
@@ -379,6 +447,12 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   menos cuco.
 - **Escena 03 — bosque lejano:** entre 3 y 9 frases graves y distantes, con cuco
   y algo más de aire.
+- **Escena 04 — amanecer en el jardín:** mirlo cercano, petirrojo a media
+  distancia, carbonero lejano y gorjeos diminutos de fondo.
+- **Escena 05 — bosque en primavera:** pinzón, carbonero, mirlo y petirrojo a
+  distintas distancias, un cuco lejano y hojas.
+- **Escena 06 — palomas al sol:** paloma torcaz, tórtola turca y tórtola
+  europea, pájaros lejanos y brisa cálida.
 - **Laboratorio:** `birds` 0.60, `variety` 0.55, `wind` 0.30, `leaves` 0.40,
   `brightness` 0.55.
 
@@ -393,6 +467,13 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   cinco cigarras.
 - **Escena 03 — dúo:** alternancia de grillos graves (2,5–3,2 kHz) y agudos
   (4,7–5,4 kHz) cada 1,9–2,7 s, con tres cigarras altas.
+- **Escena 04 — pradera de grillos:** doce grillos de campo (4,1–5,2 kHz) a
+  distintas distancias y dos grillos arbóreos lejanos.
+- **Escena 05 — siesta de cigarras:** cuatro cigarras lejanas con pausas,
+  grillos al fondo y brisa, con paso bajo a 6,5 kHz para que no resulte
+  estridente.
+- **Escena 06 — grillos arbóreos:** cuatro trinos continuos (2,4–3,1 kHz), dos
+  saltamontes y grillos de campo lejanos.
 - **Laboratorio:** `crickets` 0.60, `cicadas` 0.45, `air` 0.30, `brightness`
   0.50.
 
@@ -406,6 +487,12 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   pájaros; el viento mueve la escena.
 - **Escena 03 — atardecer:** siete ráfagas, tres crujidos y siete pájaros, con
   menos viento y más presencia de aves.
+- **Escena 04 — hayedo con brisa:** hojas y viento en ráfagas, petirrojo y mirlo
+  lejanos y un pájaro carpintero hacia el segundo 14.
+- **Escena 05 — bosque después de la lluvia:** goteo de las hojas que se
+  intensifica con la brisa, gotas en charcos, un arroyo lejano y pájaros.
+- **Escena 06 — pinar al atardecer:** siseo de pinos, dos crujidos de tronco,
+  cucos lejanos y una tórtola.
 - **Laboratorio:** `wind` 0.50, `leaves` 0.55, `birds` 0.35, `rustle` 0.45,
   `brightness` 0.55.
 
@@ -420,6 +507,14 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   búho.
 - **Escena 03 — noche profunda:** cuatro llamadas, dos búhos y un drone grave
   más presente.
+- **Escena 04 — noche de verano en el campo:** coro lejano de dieciséis grillos,
+  un autillo regular cada ~2,5 s con una pausa y otro autillo lejano que
+  responde.
+- **Escena 05 — cárabo en el bosque:** dos cantos de cárabo macho (ulular y
+  trémolo), dos «ke-wick» de la hembra, grillos y viento en las hojas, con
+  reverb de bosque.
+- **Escena 06 — noche junto al lago:** cuatro sapos parteros con su nota de
+  campanita, coros de ranitas lejanas, grillos y agua que lame la orilla.
 - **Laboratorio:** `crickets` 0.55, `owl` 0.35, `wind` 0.30, `drone` 0.40,
   `brightness` 0.40.
 
@@ -434,6 +529,12 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   fizz; suena chispeante.
 - **Escena 03 — burbujas profundas:** unas 18 burbujas graves y lentas, seis
   pops y cuatro golpes profundos.
+- **Escena 04 — baño de espuma:** crepitar de espuma, pops agudos, tres
+  chapoteos con burbujas y un grifo que gotea cada ~3,3 s, en un baño alicatado.
+- **Escena 05 — burbujeo bajo el agua:** burbujeo grave (120–700 Hz) a ráfagas,
+  zumbido y movimiento del agua, todo por debajo de 1,8 kHz.
+- **Escena 06 — acuario:** corriente de burbujas de un aireador, pops en la
+  superficie y el retorno del filtro.
 - **Laboratorio:** `bubbles` 0.55, `pops` 0.50, `water` 0.50, `fizz` 0.40,
   `brightness` 0.50.
 
@@ -511,16 +612,21 @@ index.html                  Entrada de la app
 SPEC.md                     Esta especificación
 README.md                   Guía breve
 assets/
-  audio/<id>/01..03.wav     Escenas de audio
+  audio/<id>/01..06.wav     Escenas de audio
   audio/README.md           Nota sobre las escenas
   favicon.svg
 lab/
   index.html                Laboratorio
   lab.js                    Estado, audio y UI del laboratorio
   lab.css
-  synth.js                  Motor de síntesis y recetas
+  synth.js                  Motor de síntesis base y recetas (01–03)
+  dsp.js                    Núcleo DSP de alta calidad (04–06)
+  sources.js                Fuentes sonoras: agua, viento, fuego, aves…
+  soundscapes.js            Recetas de las escenas 04–06
 scripts/
-  make-audio-variants.mjs   Generador de las 42 escenas
+  make-audio-variants.mjs   Generador de las escenas 01–03
+  make-soundscapes.mjs      Generador de las escenas 04–06
+  analyze-audio.mjs         QA: formato, LUFS, picos, costura, espectrogramas
 src/
   config/ambients.js        Fuente de verdad de ambientes y APP
   config/icons.js           Iconos SVG
@@ -602,8 +708,13 @@ click nodo
 
 ### 8.5 Audio de la app
 
-- Formato: WAV PCM mono, 16 kHz, 16 bits, 16 s.
-- Peso aproximado: 500 KB por escena; 42 escenas ≈ 21 MB.
+- Formato de las escenas 01–03: WAV PCM mono, 16 kHz, 16 bits, 16 s
+  (~500 KB por escena; 42 escenas ≈ 21 MB).
+- Formato de las escenas 04–06: WAV PCM mono, 22,05 kHz, 16 bits con dither
+  TPDF, 30 s (~1,3 MB por escena; 42 escenas ≈ 54 MB).
+- Nivel: todas las escenas rondan −23 LUFS (las 04–06 se normalizan a −23,
+  o −24/−25 en las escenas musicales y espaciales) con pico ≤ −3 dBFS.
+- La app solo descarga la escena elegida en cada sesión.
 - Reproducción: `AudioBufferSourceNode` con `loop = true`.
 - Ganancia: `session.gain × fadeIn × 0.9`.
 - Fundido de entrada: 1,4 s.
@@ -645,6 +756,51 @@ Comandos:
 node scripts/make-audio-variants.mjs
 node scripts/make-audio-variants.mjs --only=lluvia
 node scripts/make-audio-variants.mjs --only=fuego,bichos
+```
+
+Los valores de “Laboratorio” de la sección 6 son los de esta síntesis base.
+
+### 8.8 Paisajes de alta calidad (escenas 04–06)
+
+`lab/soundscapes.js` define tres recetas por ambiente (`SCENES[id]`) que
+mezclan fuentes de `lab/sources.js` sobre el núcleo de `lab/dsp.js`. Son
+módulos ES sin dependencias, válidos en Node y en el navegador.
+
+- **Deterministas:** RNG `mulberry32` con semilla `<id>/<escena>`; regenerar
+  produce los mismos archivos byte a byte.
+- **Bucle sin costura por construcción:** los filtros, la reverb y el limitador
+  se procesan de forma circular (dos pasadas), los eventos que pasan del final
+  se pliegan al principio, los LFO tienen un número entero de ciclos por bucle
+  y los osciladores sostenidos se ajustan a frecuencias con ciclos enteros. No
+  hay crossfade.
+- **Modelos físicos y de especie:** burbujas de Minnaert con tono ascendente
+  (lluvia sobre agua, ríos, burbujas), lechos de miles de impactos (lluvia,
+  espuma, hojas), truenos formados por decenas de sub-ráfagas filtradas según
+  la distancia, olas con crecida, rompiente, espuma y guijarros, fuego con
+  chasquidos en racimos, viento con banda que sube con la ráfaga y aullidos
+  afinados, cantos con contornos de especies reales (mirlo, petirrojo,
+  carbonero, pinzón, palomas, cuco, autillo, cárabo), grillos con portadora
+  casi pura, cigarras, sapos parteros y ranitas, cuencos con modos inarmónicos
+  y batidos, tanpura con jawari y piezas musicales que caben exactas en 30 s.
+- **Espacio:** reverb FDN de 8 líneas con difusores y amortiguación; cada
+  fuente se aleja con pérdida de agudos, de nivel y más envío a reverb.
+- **Mezcla y masterización:** cada capa se normaliza por su nivel activo y se
+  limita su cresta; después, filtro de DC, sonoridad integrada (BS.1770
+  aproximada) a −23 LUFS por defecto, limitador con anticipación a −3 dBFS y
+  dither TPDF al escribir a 16 bits.
+
+`scripts/make-soundscapes.mjs` escribe `04.wav`, `05.wav` y `06.wav` sin tocar
+las escenas 01–03 y muestra la sonoridad y la reducción del limitador de cada
+archivo. Acepta `--only=<id>[,<id>]` y `--scene=<4|5|6>`.
+
+`scripts/analyze-audio.mjs [ruta] [--png=<carpeta>]` revisa cualquier WAV:
+frecuencia de muestreo, duración, pico, LUFS, salto en la costura (relativo a
+los saltos internos; > 1 se marca) y, opcionalmente, espectrogramas PNG.
+
+```bash
+node scripts/make-soundscapes.mjs
+node scripts/make-soundscapes.mjs --only=mar --scene=5
+node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 ```
 
 ---
@@ -710,7 +866,7 @@ node scripts/make-audio-variants.mjs --only=fuego,bichos
 
 - [ ] Cada uno de los 14 ambientes inicia una sesión.
 - [ ] La barra de progreso avanza con la duración elegida.
-- [ ] El audio carga una de las tres escenas y suena en bucle.
+- [ ] El audio carga una de las seis escenas y suena en bucle.
 - [ ] No hay controles inferiores durante la sesión.
 - [ ] Un toque termina la sesión con fundido.
 - [ ] `Escape` termina la sesión.
@@ -721,7 +877,7 @@ node scripts/make-audio-variants.mjs --only=fuego,bichos
 
 ### 11.4 Audio
 
-- [ ] Las 42 escenas existen y pesan ~500 KB.
+- [ ] Las 84 escenas existen: 01–03 pesan ~500 KB y 04–06 ~1,3 MB.
 - [ ] Si se borra una escena, deja de elegirse.
 - [ ] Si solo queda una, siempre suena esa.
 - [ ] Si no queda ninguna, aparece “Audio no disponible” y la sesión sigue.
@@ -751,8 +907,13 @@ node scripts/make-audio-variants.mjs --only=fuego,bichos
 
 - [ ] `node scripts/make-audio-variants.mjs` produce 42 WAV.
 - [ ] `--only=lluvia` solo toca `assets/audio/lluvia/`.
-- [ ] Los archivos tienen 16 s, mono, 16 kHz, 16 bits.
-- [ ] No hay NaN, clipping extremo ni saltos audibles en el bucle.
+- [ ] Los archivos 01–03 tienen 16 s, mono, 16 kHz, 16 bits.
+- [ ] `node scripts/make-soundscapes.mjs` produce 42 WAV (04–06) y regenerar
+      da archivos idénticos.
+- [ ] Los archivos 04–06 tienen 30 s, mono, 22,05 kHz, 16 bits, ≈ −23 LUFS y
+      pico ≤ −3 dBFS.
+- [ ] No hay NaN, clipping extremo ni saltos audibles en el bucle
+      (`node scripts/analyze-audio.mjs` no marca ninguna escena).
 
 ---
 
@@ -768,7 +929,9 @@ node scripts/make-audio-variants.mjs --only=fuego,bichos
 5. Añade el ambiente a `BASE_VARIANTS` y `VARIANTS` en
    `scripts/make-audio-variants.mjs`.
 6. Genera su audio: `node scripts/make-audio-variants.mjs --only=<id>`.
-7. Añade una posición en `NODE_LAYOUT` y un índice en `NODE_PATH` en
+7. Añade sus tres paisajes a `SCENES` en `lab/soundscapes.js` y genéralos con
+   `node scripts/make-soundscapes.mjs --only=<id>`.
+8. Añade una posición en `NODE_LAYOUT` y un índice en `NODE_PATH` en
    `src/main.js`.
 
 ### 12.2 Cambiar la duración
@@ -780,10 +943,13 @@ defecto, actualiza también `defaultDurationMin` y el texto inicial del botón e
 
 ### 12.3 Cambiar una escena de audio
 
-- Edita la receta en `lab/synth.js`.
-- Ajusta los parámetros de `BASE_VARIANTS` / `VARIANTS` si hace falta.
-- Regenera solo ese ambiente con `--only`.
-- Verifica que el bucle no hace clic y que el nivel está en el rango habitual.
+- Escenas 01–03: edita la receta en `lab/synth.js` y, si hace falta, los
+  parámetros de `BASE_VARIANTS` / `VARIANTS`; regenera con
+  `make-audio-variants.mjs --only=<id>`.
+- Escenas 04–06: edita la receta en `lab/soundscapes.js` (o la fuente en
+  `lab/sources.js`); regenera con `make-soundscapes.mjs --only=<id>`.
+- Verifica con `node scripts/analyze-audio.mjs assets/audio/<id>` que el bucle
+  no hace clic y que el nivel está en el rango habitual.
 
 ### 12.4 Borrar una escena
 
@@ -810,6 +976,9 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **3.1:** tres paisajes sonoros de alta calidad por ambiente (escenas 04–06,
+  22,05 kHz, 30 s, deterministas, bucle sin costura y −23 LUFS), selección
+  entre seis escenas y herramienta de análisis de audio.
 - **3.0:** selector limitado a 10/15/30, eliminación de etiquetas bajo los
   nodos, nueva síntesis de los 14 ambientes con tres escenas y fondo mínimo,
   retirada del banco largo y del generador legacy, esta especificación.

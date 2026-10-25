@@ -1,12 +1,13 @@
 /**
  * Descubre las variantes WAV disponibles en una carpeta.
  *
- * Las alternativas se llaman 01.wav, 02.wav y 03.wav. El usuario puede
+ * Las alternativas se llaman 01.wav … 06.wav (01–03: síntesis base; 04–06:
+ * paisajes de alta calidad). El usuario puede
  * borrar las que no le gusten: comprobamos con HEAD cada vez que se va a
  * iniciar una escucha para usar solo las que sigan existiendo.
  */
 
-const VARIANTS = ['01.wav', '02.wav', '03.wav'];
+const VARIANTS = ['01.wav', '02.wav', '03.wav', '04.wav', '05.wav', '06.wav'];
 
 export function resolveAudioVariants(directory, prefix = '') {
   return Promise.all(

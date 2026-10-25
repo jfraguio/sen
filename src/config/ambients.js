@@ -7,7 +7,7 @@
  *   1. Añade un objeto a `ambients` con un `id` único.
  *   2. Elige una animación existente (`animation`) o crea una nueva en
  *      `src/render/themes.js` y regístrala en `THEMES`.
- *   3. Crea `assets/audio/<id>/` con las escenas 01.wav, 02.wav y 03.wav.
+ *   3. Crea `assets/audio/<id>/` con las escenas 01.wav … 06.wav.
  *
  * `icon` es una clave de `src/config/icons.js`; `animation` es una clave de
  * `src/render/themes.js`.
@@ -30,7 +30,7 @@ export const APP = {
  *   name       nombre visible
  *   hint       descripción breve para el menú
  *   icon       clave del icono en src/config/icons.js
- *   audioDir   carpeta con las variantes WAV (01.wav, 02.wav, 03.wav…)
+ *   audioDir   carpeta con las variantes WAV (01.wav … 06.wav)
  *   animation  clave de la animación en src/render/themes.js
  *   accent     color de acento del nodo y del progreso
  *   palette    colores concretos que usa la animación

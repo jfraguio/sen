@@ -24,8 +24,9 @@ ES y el audio necesitan un servidor.
 - Menú de constelación con **14 ambientes** identificados solo por su icono.
 - Selector de duración con tres opciones: **10, 15 y 30 minutos**.
 - Sesión a pantalla completa con animación propia, progreso y fundido final.
-- **Tres escenas de audio por ambiente** (`01.wav`, `02.wav`, `03.wav`). La app
-  elige una al azar al empezar y respeta las que hayas borrado.
+- **Seis escenas de audio por ambiente** (`01.wav` … `06.wav`): tres de la
+  síntesis base y tres paisajes sonoros de alta calidad. La app elige una al
+  azar al empezar y respeta las que hayas borrado.
 - Audio sintético, sin cuentas, sin anuncios y sin peticiones a servidores.
 - Laboratorio en **`/lab/`** para editar el carácter del ambiente base, mezclar
   capas y exportar los parámetros en JSON.
@@ -39,7 +40,7 @@ ambiente están en **[`SPEC.md`](SPEC.md)**.
 index.html
 SPEC.md
 assets/
-  audio/<id>/01.wav, 02.wav, 03.wav
+  audio/<id>/01.wav … 06.wav
   audio/README.md
   favicon.svg
 lab/
@@ -47,8 +48,13 @@ lab/
   lab.js
   lab.css
   synth.js
+  dsp.js
+  sources.js
+  soundscapes.js
 scripts/
   make-audio-variants.mjs
+  make-soundscapes.mjs
+  analyze-audio.mjs
 src/
   config/ambients.js
   config/icons.js
@@ -64,17 +70,18 @@ src/
 
 ## Regenerar el audio
 
-Cada ambiente tiene tres escenas sintéticas de 16 s en mono a 16 kHz. Para
-regenerar las 42:
+Cada ambiente tiene seis escenas sintéticas:
+
+- **01–03**, síntesis base (`lab/synth.js`): 16 s, mono, 16 kHz.
+- **04–06**, paisajes de alta calidad (`lab/soundscapes.js`): 30 s, mono,
+  22,05 kHz, bucle sin costura, deterministas y a ≈ −23 LUFS.
 
 ```bash
-node scripts/make-audio-variants.mjs
-```
-
-Para regenerar solo un ambiente:
-
-```bash
+node scripts/make-audio-variants.mjs              # 01–03 de todos
 node scripts/make-audio-variants.mjs --only=lluvia
+node scripts/make-soundscapes.mjs                 # 04–06 de todos
+node scripts/make-soundscapes.mjs --only=mar,fuego
+node scripts/analyze-audio.mjs                    # nivel, picos y costura
 ```
 
 Los archivos se escriben en `assets/audio/<id>/`. La app los descubre con
