@@ -314,32 +314,6 @@ button {
   animation: duration-in 180ms ease;
 }
 
-.duration-pop__head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-bottom: 6px;
-}
-
-.duration-pop__close {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--muted);
-  font-size: 17px;
-  cursor: pointer;
-}
-
-.duration-pop__close:hover {
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.06);
-}
-
 .duration-options {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

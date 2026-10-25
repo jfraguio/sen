@@ -17,7 +17,6 @@ const els = {
   durationTrigger: document.getElementById('duration-trigger'),
   durationPop: document.getElementById('duration-pop'),
   durationOptions: document.getElementById('duration-options'),
-  durationClose: document.getElementById('duration-close'),
   trackLabel: document.getElementById('track-label'),
   sessionClose: document.getElementById('session-close'),
 };
@@ -129,14 +128,14 @@ function buildGrid() {
    -------------------------------------------------------------------------- */
 
 function durationLabel(minutes) {
-  return `${minutes} minutos`;
+  return `${minutes} MIN`;
 }
 
 function updateDurationUI() {
   els.durationTrigger.textContent = durationLabel(durationMinutes);
   els.durationTrigger.setAttribute(
     'aria-label',
-    `Duración de la sesión: ${durationLabel(durationMinutes)}`,
+    `Duración de la sesión: ${durationMinutes} ${durationMinutes === 1 ? 'minuto' : 'minutos'}`,
   );
   for (const chip of els.durationOptions.querySelectorAll('.duration-chip')) {
     chip.setAttribute('aria-pressed', String(Number(chip.dataset.minutes) === durationMinutes));
@@ -150,6 +149,7 @@ function buildDurationOptions() {
     button.className = 'duration-chip';
     button.dataset.minutes = String(minutes);
     button.textContent = durationLabel(minutes);
+    button.setAttribute('aria-label', `${minutes} minutos`);
     button.setAttribute('aria-pressed', 'false');
     button.addEventListener('click', () => setDuration(minutes));
     els.durationOptions.append(button);
@@ -174,7 +174,7 @@ function openDuration() {
   els.durationTrigger.setAttribute('aria-expanded', 'true');
   updateDurationUI();
   const selected = els.durationOptions.querySelector('.duration-chip[aria-pressed="true"]');
-  (selected || els.durationOptions.querySelector('.duration-chip') || els.durationClose)?.focus();
+  (selected || els.durationOptions.querySelector('.duration-chip'))?.focus();
 }
 
 function closeDuration({ returnFocus = true } = {}) {
@@ -411,8 +411,6 @@ els.durationTrigger.addEventListener('click', () => {
   if (els.durationPop.hidden) openDuration();
   else closeDuration();
 });
-
-els.durationClose.addEventListener('click', () => closeDuration());
 
 document.addEventListener('click', (event) => {
   if (els.durationPop.hidden) return;

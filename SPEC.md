@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 3.3<br>
+**Versión:** 3.5<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de sonido
 
@@ -85,7 +85,7 @@ Al cargar `/`:
 - El nombre y la pista del ambiente se conservan en el `aria-label` y en el
   `title` del botón.
 - El foco visible usa el color de acento del ambiente.
-- En la parte inferior hay un único botón: **`10 minutos`**.
+- En la parte inferior hay un único botón: **`10 MIN`**.
 
 Un clic o toque en un nodo inicia la sesión de ese ambiente con la duración
 seleccionada.
@@ -94,9 +94,11 @@ seleccionada.
 
 El botón inferior abre un diálogo con:
 
-- Botón de cierre **×** en la esquina superior derecha.
-- Tres opciones, y solo tres: **10 minutos**, **15 minutos**, **30 minutos**.
-- Sin título ni nota visibles.
+- Tres opciones, y solo tres: **`10 MIN`**, **`15 MIN`**, **`30 MIN`**.
+- Sin título, nota ni botón de cierre visibles.
+- Se cierra al elegir una opción, con `Escape` o tocando fuera.
+- Las etiquetas visibles usan `MIN`; los lectores de pantalla reciben el nombre
+  completo (“10 minutos”, etc.).
 
 Comportamiento:
 
@@ -829,8 +831,8 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 
 - `h1` oculto que describe la pantalla.
 - Cada nodo es un `<button>` con `aria-label` que incluye nombre, pista y acción.
-- El diálogo de duración tiene `role="dialog"`, título, cierre, `aria-expanded`
-  y foco gestionado.
+- El diálogo de duración tiene `role="dialog"`, `aria-label`, grupo de
+  opciones, `aria-expanded` y foco gestionado.
 - `#live` es una región `aria-live="polite"` que anuncia inicio, final y
   errores de audio.
 - El escenario tiene `role="dialog"`, `aria-modal="true"`, `tabindex="-1"` y
@@ -871,18 +873,18 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 - [ ] Se ven 14 nodos y una línea de constelación.
 - [ ] No hay texto visible bajo los nodos.
 - [ ] Cada nodo tiene `aria-label` con nombre y pista.
-- [ ] El botón inferior dice `10 minutos` al cargar.
+- [ ] El botón inferior dice `10 MIN` al cargar.
 - [ ] El layout se adapta a móvil vertical, móvil horizontal y escritorio.
 
 ### 11.2 Duración
 
 - [ ] Al pulsar el botón se abre el diálogo.
-- [ ] Solo aparecen `10 minutos`, `15 minutos` y `30 minutos`.
+- [ ] Solo aparecen `10 MIN`, `15 MIN` y `30 MIN`.
 - [ ] No existe campo de duración personalizada.
 - [ ] La opción activa está marcada.
 - [ ] Elegir 15 o 30 actualiza el botón y la sesión.
-- [ ] `Escape`, la × y un clic fuera cierran el diálogo.
-- [ ] El foco vuelve al botón al cerrar con teclado o con la ×.
+- [ ] `Escape` y un clic fuera cierran el diálogo.
+- [ ] El foco vuelve al botón al cerrar con teclado o al elegir una opción.
 
 ### 11.3 Sesión
 
@@ -1001,6 +1003,10 @@ la siguiente sesión.
 - **3.1:** tres paisajes sonoros de alta calidad por ambiente (escenas 04–06,
   22,05 kHz, 30 s, deterministas, bucle sin costura y −23 LUFS), selección
   entre seis escenas y herramienta de análisis de audio.
+- **3.5:** se retira la X del selector de duración; se cierra al elegir una
+  opción, con `Escape` o tocando fuera.
+- **3.4:** las etiquetas visibles de duración pasan a `10 MIN`, `15 MIN` y
+  `30 MIN`; los nombres accesibles siguen completos.
 - **3.3:** se retiran el título y la nota del selector de duración; quedan la X
   y las tres opciones.
 - **3.2:** indicador de pista `1/N` con cambio cíclico y crossfade, botón X
