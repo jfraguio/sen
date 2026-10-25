@@ -1,10 +1,13 @@
 /**
  * Audio de ambiente con Web Audio.
  *
- * Usa un AudioBufferSourceNode en bucle y un GainNode para el volumen: así el
- * fundido funciona también en iOS, donde `HTMLMediaElement.volume` no es
- * fiable. Reutiliza un único AudioContext y cachea los buffers ya descargados.
- * Si un archivo no existe, la sesión visual continúa y se avisa en pantalla.
+ * Usa un AudioBufferSourceNode en bucle y un GainNode por voz para el volumen:
+ * así el fundido funciona también en iOS, donde `HTMLMediaElement.volume` no es
+ * fiable, y se puede cambiar de pista con un crossfade corto. Reutiliza un único
+ * AudioContext y cachea los buffers ya descargados.
+ *
+ * Si un archivo no existe o falla, la sesión visual continúa. Al cambiar de
+ * pista, la voz actual sigue sonando hasta que la nueva está lista.
  */
 export class AmbientAudio {
   constructor({ onError } = {}) {
@@ -13,8 +16,7 @@ export class AmbientAudio {
     this.volume = 0;
     this.ctx = null;
     this.gain = null;
-    this.source = null;
-    this.buffer = null;
+    this.voices = new Set();
     this.cache = new Map();
     this._loadToken = 0;
   }
@@ -24,14 +26,13 @@ export class AmbientAudio {
     if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
   }
 
-  async play(src) {
+  async play(src, { fade = 0.15, onError } = {}) {
     const token = ++this._loadToken;
     this.failed = false;
-    this.stopSource();
 
     const ctx = this._ensureContext();
     if (!ctx) {
-      this._fail(new Error('Web Audio no está disponible'));
+      this._fail(new Error('Web Audio no está disponible'), onError);
       return false;
     }
 
@@ -40,11 +41,10 @@ export class AmbientAudio {
       if (ctx.state !== 'running') await ctx.resume();
       const buffer = await this._loadBuffer(src);
       if (token !== this._loadToken) return false;
-      this.buffer = buffer;
-      this._startSource();
+      this._startSource(buffer, fade);
       return true;
     } catch (error) {
-      if (token === this._loadToken) this._fail(error);
+      if (token === this._loadToken) this._fail(error, onError);
       return false;
     }
   }
@@ -58,7 +58,7 @@ export class AmbientAudio {
 
   stop() {
     this._loadToken++;
-    this.stopSource();
+    this._stopVoices();
     this.volume = 0;
     if (this.gain) this.gain.gain.value = 0;
     if (this.ctx?.state === 'running') this.ctx.suspend().catch(() => {});
@@ -91,35 +91,96 @@ export class AmbientAudio {
     return buffer;
   }
 
-  _startSource() {
-    this.stopSource();
-    if (!this.buffer || !this.ctx || !this.gain) return;
-    const source = this.ctx.createBufferSource();
-    source.buffer = this.buffer;
+  /**
+   * Arranca una voz nueva y retira las anteriores con un crossfade.
+   * La carga del buffer ocurre antes, de modo que un fallo no corta el audio
+   * que ya estaba sonando.
+   */
+  _startSource(buffer, fade = 0) {
+    if (!buffer || !this.ctx || !this.gain) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    const voiceGain = ctx.createGain();
+    voiceGain.gain.setValueAtTime(fade > 0 ? 0 : 1, now);
+    voiceGain.connect(this.gain);
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
     source.loop = true;
-    source.connect(this.gain);
-    source.start();
-    this.source = source;
+    source.connect(voiceGain);
+    source.start(now);
+
+    if (fade > 0) voiceGain.gain.linearRampToValueAtTime(1, now + fade);
+
+    const voice = { source, gain: voiceGain };
+    this.voices.add(voice);
+    source.addEventListener('ended', () => this._forgetVoice(voice), { once: true });
+
+    for (const other of [...this.voices]) {
+      if (other !== voice) this._retireVoice(other, Math.max(0.12, fade));
+    }
   }
 
-  stopSource() {
-    if (!this.source) return;
+  _retireVoice(voice, fade) {
+    if (!this.voices.has(voice)) return;
+    if (!this.ctx || fade <= 0) {
+      this._stopVoice(voice);
+      return;
+    }
+    const now = this.ctx.currentTime;
+    const param = voice.gain.gain;
     try {
-      this.source.stop();
+      param.cancelScheduledValues(now);
+      param.setValueAtTime(param.value, now);
+      param.linearRampToValueAtTime(0, now + fade);
+      voice.source.stop(now + fade + 0.03);
+    } catch {
+      this._stopVoice(voice);
+    }
+  }
+
+  _forgetVoice(voice) {
+    if (!this.voices.delete(voice)) return;
+    try {
+      voice.source.disconnect();
+    } catch {
+      /* sin conexión */
+    }
+    try {
+      voice.gain.disconnect();
+    } catch {
+      /* sin conexión */
+    }
+  }
+
+  _stopVoice(voice) {
+    if (!this.voices.has(voice)) return;
+    this.voices.delete(voice);
+    try {
+      voice.source.stop();
     } catch {
       /* ya estaba detenido */
     }
     try {
-      this.source.disconnect();
+      voice.source.disconnect();
     } catch {
       /* sin conexión */
     }
-    this.source = null;
+    try {
+      voice.gain.disconnect();
+    } catch {
+      /* sin conexión */
+    }
   }
 
-  _fail(error) {
+  _stopVoices() {
+    for (const voice of [...this.voices]) this._stopVoice(voice);
+  }
+
+  _fail(error, handler = this.onError) {
     if (this.failed) return;
     this.failed = true;
-    this.onError?.(error);
+    handler?.(error);
   }
 }

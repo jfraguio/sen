@@ -4,7 +4,7 @@ import { AmbientRenderer } from './render/engine.js';
 import { Session } from './core/session.js';
 import { AmbientAudio } from './core/audio.js';
 import { WakeLock } from './core/wake-lock.js';
-import { resolveAudioVariants, pickAudioVariant } from './core/variants.js';
+import { resolveAudioVariants } from './core/variants.js';
 
 const els = {
   grid: document.getElementById('grid'),
@@ -18,6 +18,8 @@ const els = {
   durationPop: document.getElementById('duration-pop'),
   durationOptions: document.getElementById('duration-options'),
   durationClose: document.getElementById('duration-close'),
+  trackLabel: document.getElementById('track-label'),
+  sessionClose: document.getElementById('session-close'),
 };
 
 const renderer = new AmbientRenderer(document.getElementById('canvas'));
@@ -204,13 +206,19 @@ function startSession(ambient, trigger) {
     finishing: false,
     audioFailed: false,
     noteTimer: 0,
+    tracks: [],
+    trackIndex: -1,
+    trackRequest: 0,
   };
 
   menuRenderer.pause();
 
   document.body.classList.add('is-session');
   els.stage.hidden = false;
-  els.stage.classList.remove('is-leaving');
+  els.stage.classList.remove('is-leaving', 'is-ending');
+  els.trackLabel.hidden = true;
+  els.trackLabel.disabled = true;
+  els.trackLabel.textContent = '';
   els.stage.setAttribute('aria-hidden', 'false');
   els.stage.setAttribute('aria-label', `Sesión de ${ambient.name}. Toca para volver al menú.`);
   els.stage.style.setProperty('--accent', ambient.accent);
@@ -225,12 +233,12 @@ function startSession(ambient, trigger) {
   resolveAudioVariants(ambient.audioDir)
     .then((paths) => {
       if (!active || active.token !== token) return;
-      const src = pickAudioVariant(paths);
-      if (!src) {
+      if (!paths.length) {
         notifyAudioFailure(token);
         return;
       }
-      audio.play(src);
+      active.tracks = shuffleTracks(paths);
+      playTrack(0, token, { initial: true });
     })
     .catch(() => notifyAudioFailure(token));
 
@@ -254,6 +262,60 @@ function startSession(ambient, trigger) {
   }
 }
 
+function shuffleTracks(paths) {
+  const tracks = [...paths];
+  for (let i = tracks.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
+  }
+  return tracks;
+}
+
+function updateTrackUI() {
+  if (!active || active.trackIndex < 0 || !active.tracks.length) {
+    els.trackLabel.hidden = true;
+    els.trackLabel.disabled = true;
+    return;
+  }
+
+  const total = active.tracks.length;
+  const position = active.trackIndex + 1;
+  els.trackLabel.hidden = false;
+  els.trackLabel.disabled = total < 2;
+  els.trackLabel.textContent = `${position}/${total}`;
+  els.trackLabel.setAttribute(
+    'aria-label',
+    total < 2
+      ? `Pista ${position} de ${total}`
+      : `Pista ${position} de ${total}. Pulsar para oír la siguiente`,
+  );
+}
+
+async function playTrack(index, token, { initial = false } = {}) {
+  if (!active || active.token !== token || active.ending) return;
+
+  const total = active.tracks.length;
+  if (!total) return;
+  const next = ((index % total) + total) % total;
+  const request = ++active.trackRequest;
+  const fade = active.trackIndex >= 0 ? 0.3 : 0.15;
+
+  const ok = await audio.play(active.tracks[next], {
+    fade,
+    onError: initial ? () => notifyAudioFailure(token) : () => {},
+  });
+
+  if (!active || active.token !== token || active.trackRequest !== request || active.ending) return;
+  if (!ok) {
+    if (initial) notifyAudioFailure(token);
+    return;
+  }
+
+  active.trackIndex = next;
+  updateTrackUI();
+  if (!initial) els.live.textContent = `Pista ${next + 1} de ${total}.`;
+}
+
 function updateSession(token, snapshot) {
   if (!active || active.token !== token) return;
 
@@ -268,10 +330,12 @@ function updateSession(token, snapshot) {
 
     if (snapshot.phase === 'hold') {
       active.ending = true;
+      els.stage.classList.add('is-ending');
       audio.stop();
       els.live.textContent = 'La sesión ha terminado.';
     } else if (snapshot.phase === 'manual') {
       active.ending = true;
+      els.stage.classList.add('is-ending');
       els.live.textContent = 'Terminando la sesión.';
     }
   }
@@ -306,12 +370,15 @@ function finishSession(token, reason) {
   }
 
   els.live.textContent = reason === 'manual' ? 'Sesión terminada.' : 'Sesión completada.';
+  els.trackLabel.hidden = true;
+  els.trackLabel.disabled = true;
+  els.trackLabel.textContent = '';
   els.stage.classList.add('is-leaving');
 
   window.setTimeout(() => {
     if (!active || active.token !== token) return;
     els.stage.hidden = true;
-    els.stage.classList.remove('is-leaving');
+    els.stage.classList.remove('is-leaving', 'is-ending');
     els.stage.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('is-session');
     els.dim.style.opacity = '0';
@@ -351,6 +418,17 @@ document.addEventListener('click', (event) => {
   if (els.durationPop.hidden) return;
   if (els.durationPop.contains(event.target) || els.durationTrigger.contains(event.target)) return;
   closeDuration({ returnFocus: false });
+});
+
+els.trackLabel.addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (!active || active.ending || active.tracks.length < 2) return;
+  playTrack(active.trackIndex + 1, active.token);
+});
+
+els.sessionClose.addEventListener('click', (event) => {
+  event.stopPropagation();
+  requestEnd();
 });
 
 els.stage.addEventListener('click', () => {

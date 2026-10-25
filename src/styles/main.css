@@ -495,6 +495,79 @@ button {
   will-change: opacity;
 }
 
+.stage__hud {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    max(18px, env(safe-area-inset-right))
+    max(18px, env(safe-area-inset-bottom))
+    max(18px, env(safe-area-inset-left));
+  pointer-events: none;
+  transition: opacity 420ms ease;
+}
+
+.stage__track,
+.stage__close {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.46);
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 180ms ease, opacity 180ms ease;
+}
+
+.stage__track {
+  margin: -10px 0 0 -12px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stage__close {
+  margin: -8px -10px 0 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.stage__track:hover,
+.stage__close:hover {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.stage__track:focus-visible,
+.stage__close:focus-visible {
+  border-radius: 2px;
+  outline: 1px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 4px;
+}
+
+.stage__track:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.stage__track[hidden] {
+  display: none;
+}
+
+.stage.is-ending .stage__hud {
+  opacity: 0;
+  pointer-events: none;
+}
+
 
 /* --------------------------------------------------------------------------
    Aviso de audio

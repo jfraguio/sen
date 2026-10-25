@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 3.1<br>
+**Versión:** 3.2<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de sonido
 
@@ -122,17 +122,27 @@ Al iniciar una sesión:
 5. Se prepara el contexto de audio **de forma síncrona** dentro del gesto del
    usuario, antes de cualquier petición asíncrona.
 6. Se comprueban las escenas disponibles del ambiente con peticiones `HEAD`.
-7. Se elige una escena al azar y se reproduce en bucle.
-8. Se arranca la animación del ambiente y el reloj de sesión.
+7. Se baraja el orden de las escenas disponibles y se empieza por la primera
+   (`1/N`). La primera pista sigue siendo aleatoria, pero el indicador siempre
+   arranca en `1`.
+8. Se reproduce la pista en bucle y se arranca la animación del ambiente y el
+   reloj de sesión.
 9. Se solicita el Screen Wake Lock.
 10. Se añade `#<id>` al historial mediante `pushState`.
 
 Durante la sesión:
 
-- La escena llena la pantalla; no hay botones ni controles inferiores.
+- La escena llena la pantalla; no hay controles inferiores.
+- Arriba a la izquierda hay un indicador discreto `posición/total` (por ejemplo
+  `1/6`). Al pulsarlo se pasa a la siguiente pista del ambiente, con un
+  crossfade corto y sin reiniciar la sesión ni la barra de progreso.
+- Arriba a la derecha hay una **X** discreta para cerrar el ambiente y volver al
+  menú. Hace el mismo cierre con fundido que un toque o `Escape`.
+- Los dos controles desaparecen durante el fundido final.
 - La barra superior de progreso avanza según el tiempo transcurrido y la
   duración elegida.
-- Un toque en cualquier punto de la escena termina la sesión.
+- Un toque en cualquier punto de la escena, fuera de los dos controles,
+  termina la sesión.
 - `Escape` termina la sesión.
 - El botón Atrás del navegador termina la sesión.
 - El audio entra con un fundido de 1,4 s y se mantiene en bucle.
@@ -196,9 +206,13 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - Al iniciar cada sesión se hacen seis peticiones `HEAD` con
   `cache: 'no-store'`.
 - Solo se consideran las escenas que responden correctamente.
-- La elección es uniforme entre las escenas disponibles.
+- El orden de las escenas disponibles se baraja al iniciar cada sesión
+  (Fisher-Yates). La pista inicial es uniforme entre las disponibles, pero el
+  indicador siempre muestra `1/N`.
+- Al pulsar el indicador se avanza cíclicamente por ese orden: `1/N`, `2/N`…
+  y de nuevo `1/N`. No se reinicia el reloj de la sesión.
 - Si el usuario borra una escena, deja de elegirse en la siguiente sesión.
-- Si solo queda una, siempre suena esa.
+- Si solo queda una, el indicador muestra `1/1` desactivado y siempre suena esa.
 - Si no queda ninguna, se aplica el comportamiento de “Audio no disponible”.
 - La comprobación se repite en cada sesión, no se cachea el resultado.
 
@@ -651,8 +665,9 @@ src/
   `running`, `hold`, `manual` y `done`. Emite snapshots `{ phase, elapsed,
   light, gain }`.
 - **`src/core/audio.js`**: envuelve `AudioContext`, `AudioBufferSourceNode` y
-  `GainNode`. Cachea buffers por URL, hace loop y aplica ganancia. Si falla,
-  avisa mediante `onError`.
+  un `GainNode` por voz. Cachea buffers por URL, hace loop, aplica la ganancia
+  de sesión y cruza pistas con un crossfade corto. Si falla, avisa mediante
+  `onError` sin cortar la pista que ya suena.
 - **`src/core/variants.js`**: `resolveAudioVariants(directory, prefix)` devuelve
   las rutas existentes; `pickAudioVariant(paths)` elige una al azar.
 - **`src/core/wake-lock.js`**: solicita y libera el bloqueo de pantalla; vuelve
@@ -687,7 +702,10 @@ let durationMinutes = APP.defaultDurationMin;
   ending,
   finishing,
   audioFailed,
-  noteTimer
+  noteTimer,
+  tracks,        // escenas disponibles, en orden barajado
+  trackIndex,    // posición actual (0..N-1)
+  trackRequest   // evita que una carga antigua pise a la actual
 }
 ```
 
@@ -715,8 +733,11 @@ click nodo
 - Nivel: todas las escenas rondan −23 LUFS (las 04–06 se normalizan a −23,
   o −24/−25 en las escenas musicales y espaciales) con pico ≤ −3 dBFS.
 - La app solo descarga la escena elegida en cada sesión.
-- Reproducción: `AudioBufferSourceNode` con `loop = true`.
-- Ganancia: `session.gain × fadeIn × 0.9`.
+- Reproducción: una voz `AudioBufferSourceNode` con `loop = true` y su propio
+  `GainNode`, conectada a la ganancia maestra de la sesión.
+- Ganancia maestra: `session.gain × fadeIn × 0.9`.
+- Cambio de pista: se carga la siguiente escena sin detener la actual y se hace
+  un crossfade de 0,3 s. Si la carga falla, la pista actual sigue sonando.
 - Fundido de entrada: 1,4 s.
 - Fundido final: 30 s.
 - El contexto se prepara síncronamente antes de las peticiones `HEAD` para no
@@ -818,6 +839,8 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 - Al cerrar, el foco vuelve al nodo que inició la sesión.
 - `Escape` cierra el diálogo o termina la sesión.
 - El botón Atrás termina la sesión.
+- El indicador de pista y la X son botones reales, con `aria-label`; se puede
+  llegar a ellos con `Tab` y activarlos con `Enter` o `Espacio`.
 - Se respeta `prefers-reduced-motion`.
 - Los iconos son `aria-hidden`; el nombre siempre está en el `aria-label`.
 - Los colores tienen contraste suficiente sobre fondo oscuro; el foco visible
@@ -979,6 +1002,8 @@ la siguiente sesión.
 - **3.1:** tres paisajes sonoros de alta calidad por ambiente (escenas 04–06,
   22,05 kHz, 30 s, deterministas, bucle sin costura y −23 LUFS), selección
   entre seis escenas y herramienta de análisis de audio.
+- **3.2:** indicador de pista `1/N` con cambio cíclico y crossfade, botón X
+  para cerrar la escena, orden de pistas barajado por sesión.
 - **3.0:** selector limitado a 10/15/30, eliminación de etiquetas bajo los
   nodos, nueva síntesis de los 14 ambientes con tres escenas y fondo mínimo,
   retirada del banco largo y del generador legacy, esta especificación.

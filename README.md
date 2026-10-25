@@ -27,6 +27,9 @@ ES y el audio necesitan un servidor.
 - **Seis escenas de audio por ambiente** (`01.wav` … `06.wav`): tres de la
   síntesis base y tres paisajes sonoros de alta calidad. La app elige una al
   azar al empezar y respeta las que hayas borrado.
+- **Indicador de pista discreto** arriba a la izquierda (`1/6`, `2/6`…): al
+  pulsarlo se pasa a la siguiente pista del ambiente. Arriba a la derecha hay
+  una **X** para cerrar y volver al menú.
 - Audio sintético, sin cuentas, sin anuncios y sin peticiones a servidores.
 - Laboratorio en **`/lab/`** para editar el carácter del ambiente base, mezclar
   capas y exportar los parámetros en JSON.
