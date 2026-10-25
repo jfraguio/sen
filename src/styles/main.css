@@ -154,12 +154,6 @@ button {
   filter: blur(3px);
 }
 
-.constellation__lines .branch {
-  stroke: url(#line-gradient);
-  stroke-width: 0.8;
-  opacity: 0.16;
-}
-
 .nodes {
   position: absolute;
   inset: 0;

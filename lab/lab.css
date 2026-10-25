@@ -73,7 +73,7 @@ a {
 
 .lab-head {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: clamp(16px, 3vw, 32px);
   padding-bottom: clamp(24px, 4vw, 38px);
@@ -123,20 +123,6 @@ h1 {
   color: var(--muted);
   font-size: 13.5px;
   line-height: 1.6;
-}
-
-.bank {
-  padding-top: 5px;
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: color 180ms ease;
-}
-
-.bank:hover {
-  color: var(--ink);
 }
 
 .lab-grid {
@@ -579,10 +565,6 @@ textarea::placeholder {
   .head-copy {
     grid-column: 1 / -1;
     grid-row: 2;
-  }
-
-  .bank {
-    justify-self: end;
   }
 }
 

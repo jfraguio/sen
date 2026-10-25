@@ -6,13 +6,15 @@ const smooth = (v) => {
 
 /**
  * Reloj de una sesión.
- * - Duración configurable, con fundido de luz/audio en los últimos 30 s.
- * - Al llegar al final: fase `hold` (pantalla casi negra) y después `complete`.
- * - Terminar a mano: fase `manual` con un fundido de 2 s.
- * - La pausa congela el tiempo.
  *
- * Los valores de luz (0..1) y ganancia (0..1) son aproximaciones visuales:
- * la app los aplica al velo negro y al volumen del audio.
+ * Fases:
+ * - `running`: transcurre el tiempo y se aplica el fundido final.
+ * - `hold`: los últimos segundos, con la pantalla casi negra y el audio a 0.
+ * - `manual`: el usuario termina a mano; fundido corto y vuelta al menú.
+ * - `done`: la sesión ya ha emitido su final.
+ *
+ * `light` y `gain` son valores normalizados (0..1) que la app aplica al velo
+ * negro y al volumen del audio.
  */
 export class Session {
   constructor({
@@ -32,8 +34,6 @@ export class Session {
 
     this.phase = 'idle';
     this._startedAt = 0;
-    this._pausedAt = 0;
-    this._pausedTotal = 0;
     this._frozenElapsed = 0;
     this._holdAt = 0;
     this._manualAt = 0;
@@ -51,33 +51,12 @@ export class Session {
     this._raf = requestAnimationFrame(this._frame);
     // Respaldo para pestañas en segundo plano, donde rAF se detiene.
     this._interval = window.setInterval(() => {
-      if (this.phase === 'paused' || this._done) return;
-      this._step(performance.now());
+      if (!this._done) this._step(performance.now());
     }, 1000);
   }
 
-  pause() {
-    if (this.phase !== 'running') return false;
-    this.phase = 'paused';
-    this._pausedAt = performance.now();
-    if (this._raf) cancelAnimationFrame(this._raf);
-    this._raf = 0;
-    this._emit();
-    return true;
-  }
-
-  resume() {
-    if (this.phase !== 'paused') return false;
-    this._pausedTotal += performance.now() - this._pausedAt;
-    this._pausedAt = 0;
-    this.phase = 'running';
-    this._emit();
-    this._raf = requestAnimationFrame(this._frame);
-    return true;
-  }
-
   end() {
-    if (!['running', 'paused'].includes(this.phase)) return false;
+    if (this.phase !== 'running') return false;
     const now = performance.now();
     const current = this.snapshot(now);
     this._frozenElapsed = current.elapsed;
@@ -94,20 +73,12 @@ export class Session {
     const fade = this.fadeOutMs / 1000;
     let elapsed = this._frozenElapsed;
 
-    if (this.phase === 'running') {
-      elapsed = (now - this._startedAt - this._pausedTotal) / 1000;
-    } else if (this.phase === 'paused') {
-      elapsed = (this._pausedAt - this._startedAt - this._pausedTotal) / 1000;
-    }
+    if (this.phase === 'running') elapsed = (now - this._startedAt) / 1000;
     elapsed = Math.min(Math.max(elapsed, 0), duration);
 
     const fadeProgress = smooth((elapsed - (duration - fade)) / fade);
     let light = fadeProgress * 0.9;
     let gain = 1 - fadeProgress;
-
-    if (this.phase === 'paused') {
-      light = Math.max(light, 0.42);
-    }
 
     if (this.phase === 'hold') {
       light = 0.965;
@@ -122,10 +93,7 @@ export class Session {
 
     return {
       phase: this.phase,
-      paused: this.phase === 'paused',
       elapsed,
-      remainingMs: Math.max(0, this.durationMs - elapsed * 1000),
-      fadeProgress,
       light: clamp01(light),
       gain: clamp01(gain),
     };
@@ -134,16 +102,14 @@ export class Session {
   _frame = (now) => {
     if (this._done) return;
     this._step(now);
-    if (!this._done && this.phase !== 'paused') {
-      this._raf = requestAnimationFrame(this._frame);
-    }
+    if (!this._done) this._raf = requestAnimationFrame(this._frame);
   };
 
   _step(now) {
     if (this._done) return;
 
     if (this.phase === 'running') {
-      const elapsed = (now - this._startedAt - this._pausedTotal) / 1000;
+      const elapsed = (now - this._startedAt) / 1000;
       if (elapsed >= this.durationMs / 1000) {
         this._frozenElapsed = this.durationMs / 1000;
         this.phase = 'hold';

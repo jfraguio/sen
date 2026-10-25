@@ -20,9 +20,8 @@ tocar código ni configuración. Si dejas una sola, siempre sonará esa.
 
 - Regenerar las tres escenas de todos los ambientes:
   `node scripts/make-audio-variants.mjs`
-- Regenerar solo un ambiente: `node scripts/make-audio-variants.mjs --only=lluvia`
-- Regenerar la escena 01 con el generador histórico:
-  `node scripts/make-placeholder-audio.mjs`
+- Regenerar solo un ambiente:
+  `node scripts/make-audio-variants.mjs --only=lluvia`
 
 No renombres los archivos si quieres que el frontal los descubra
 automáticamente.

@@ -578,7 +578,6 @@ function clearActivePreset() {
 }
 
 function applyPreset(preset) {
-  const previousBase = state.base;
   Object.assign(state, preset.values);
   baseParams[state.base] = {
     ...defaultBaseParams(state.base),

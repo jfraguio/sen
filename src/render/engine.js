@@ -5,7 +5,7 @@ const MAX_DPR = 1.5;
 
 /**
  * Canvas a pantalla completa. Mantiene su propio reloj de animación, de modo
- * que pausar una sesión congela también el movimiento.
+ * que pausar el renderer congela el movimiento sin detener la sesión.
  */
 export class AmbientRenderer {
   constructor(canvas) {
@@ -14,16 +14,14 @@ export class AmbientRenderer {
     this.w = 0;
     this.h = 0;
     this.dpr = 1;
-    this.ambient = null;
     this.theme = null;
     this.running = false;
     this.paused = false;
     this.time = 0;
     this.last = 0;
     this.raf = 0;
-    this.reduced = window.matchMedia(REDUCED_MOTION).matches;
-
     this.motionQuery = window.matchMedia(REDUCED_MOTION);
+    this.reduced = this.motionQuery.matches;
     this._onResize = () => this.resize();
     this._onMotionChange = (event) => {
       this.reduced = event.matches;
@@ -58,7 +56,6 @@ export class AmbientRenderer {
 
   start(ambient) {
     this.stopLoop();
-    this.ambient = ambient;
     const createTheme = THEMES[ambient.animation] || fallbackTheme;
     this.theme = createTheme(ambient);
     this.time = 0;
@@ -121,7 +118,6 @@ export class AmbientRenderer {
   stop() {
     this.stopLoop();
     this.theme = null;
-    this.ambient = null;
     const { ctx } = this;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#000';

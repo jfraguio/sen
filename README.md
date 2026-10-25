@@ -1,147 +1,71 @@
 # sen
 
-**En línea:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/> · **Laboratorio:** <https://fraguio.com/sen/lab/>
+**App:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/><br>
+**Laboratorio:** <https://fraguio.com/sen/lab/>
 
-Luz y sonido para descansar. Catorce ambientes con sesiones de 10, 15 o 30 minutos, sin cuentas, sin
-ajustes y sin distracciones: eliges un tema, la pantalla se llena de color y el
-audio suena en bucle hasta completar la sesión.
+Luz y sonido para descansar. Catorce ambientes, sesiones de **10, 15 o 30
+minutos** y ningún ajuste que distraiga: eliges un tema, la pantalla se llena
+de color y el audio suena en bucle hasta completar la sesión.
 
-Hecha como sitio estático (HTML, CSS y JavaScript sin dependencias), pensada
-para móvil y publicable directamente en GitHub Pages.
+Sitio estático hecho con HTML, CSS y JavaScript sin dependencias, pensado para
+móvil y publicado en GitHub Pages.
 
 ## Usar
 
 ```bash
-# desde la raíz del proyecto
 python3 -m http.server 4173
 ```
 
-Abre <http://localhost:4173>. También puedes usar cualquier servidor estático
-(`npx serve`, Live Server, etc.). No abras `index.html` con `file://`: los
-módulos ES y el audio necesitan un servidor.
+Abre <http://localhost:4173>. No abras `index.html` con `file://`: los módulos
+ES y el audio necesitan un servidor.
 
-## Publicar en GitHub Pages
+## Qué incluye
 
-1. Sube el proyecto a un repositorio.
-2. En GitHub: **Settings → Pages → Build and deployment**.
-3. Elige **Deploy from a branch**, rama `main` y carpeta `/ (root)`.
+- Menú de constelación con **14 ambientes** identificados solo por su icono.
+- Selector de duración con tres opciones: **10, 15 y 30 minutos**.
+- Sesión a pantalla completa con animación propia, progreso y fundido final.
+- **Tres escenas de audio por ambiente** (`01.wav`, `02.wav`, `03.wav`). La app
+  elige una al azar al empezar y respeta las que hayas borrado.
+- Audio sintético, sin cuentas, sin anuncios y sin peticiones a servidores.
+- Laboratorio en **`/lab/`** para editar el carácter del ambiente base, mezclar
+  capas y exportar los parámetros en JSON.
 
-No hace falta compilar nada. El archivo `.nojekyll` ya está incluido para que
-GitHub sirva los archivos tal cual. Todas las rutas son relativas, así que
-funciona también en `usuario.github.io/repositorio/`.
-
-## Ambientes
-
-| Ambiente  | Identidad visual                                          | Audio              |
-| --------- | --------------------------------------------------------- | ------------------ |
-| Lluvia    | azules oscuros, reflejos y caída vertical                 | `lluvia.wav`       |
-| Tormenta  | crepúsculo violeta, nubarrones y relámpagos               | `tormenta.wav`     |
-| Fuego     | rojos, naranjas y amarillos con brasas                    | `fuego.wav`        |
-| Mar       | azules y turquesas con oleaje lento                       | `mar.wav`          |
-| Río       | verdes, turquesas y destellos dorados                     | `rio.wav`          |
-| Viento    | corrientes gris azuladas y verdes pálidas                 | `viento.wav`       |
-| Espacio   | negro azulado, nebulosas, estrellas y destellos           | `espacio.wav`      |
-| Cuento    | luz cálida onírica, partículas y magia                    | `cuento.wav`       |
-| Meditación| orbe que respira, tonos profundos y suaves                | `meditacion.wav`   |
-| Pájaros   | amanecer, bandadas en silueta y polen dorado               | `pajaros.wav`      |
-| Bichos    | pradera, hierba y luciérnagas                              | `bichos.wav`       |
-| Bosque    | troncos, rayos de luz y hojas                              | `bosque.wav`       |
-| Noche     | luna, colinas, estrellas y luciérnagas                     | `noche.wav`        |
-| Burbujas  | baño de espuma, borboteo y luz sumergida                  | `burbujas.wav`     |
-
-## Laboratorio de sonido
-
-La app incluye un laboratorio en **`/lab/`** para crear variaciones de los
-ambientes sin tocar código. El ambiente base no
-es un archivo cerrado: se sintetiza en el navegador a partir de sus parámetros.
-
-- Editar el carácter del ambiente base: intensidad, chasquidos, graves,
-  parpadeo, brillo, velocidad y profundidad del oleaje, etc.
-- Añadir capas de ruido ambiente, bichos, pájaros, lluvia, viento, olas o
-  burbujas.
-- Ajustar el brillo general y el volumen.
-- Escuchar la mezcla en directo.
-- Descargar los parámetros en un JSON (`sen-lab/2`) con nombre, notas,
-  `baseParams` y mezcla de capas.
-
-Ese JSON es lo que puedes enviarme para que replique una variación en la app.
-El laboratorio está en `lab/` y el banco de versiones largas en
-`sounds/generados/`.
+La funcionalidad completa, la arquitectura y la descripción precisa de cada
+ambiente están en **[`SPEC.md`](SPEC.md)**.
 
 ## Estructura
 
 ```
 index.html
+SPEC.md
 assets/
-  audio/            tres variantes WAV por ambiente, en carpetas
+  audio/<id>/01.wav, 02.wav, 03.wav
+  audio/README.md
   favicon.svg
-scripts/
-  make-placeholder-audio.mjs
-  make-audio-variants.mjs
 lab/
-  index.html        laboratorio de mezclas
-  lab.js / lab.css
-  synth.js          síntesis paramétrica de los ambientes base
-sounds/
-  index.html        redirección al banco largo
-  generados/        versiones largas sintéticas (10 min)
+  index.html
+  lab.js
+  lab.css
+  synth.js
+scripts/
+  make-audio-variants.mjs
 src/
-  config/
-    ambients.js     ← configuración de los ambientes
-    icons.js        iconos SVG del menú
-  core/
-    session.js      duración, pausa y fundidos
-    audio.js        bucle y volumen con Web Audio
-    variants.js     elección aleatoria entre WAVs disponibles
-    wake-lock.js    Screen Wake Lock API
-  render/
-    engine.js       canvas a pantalla completa
-    themes.js       las catorce animaciones
+  config/ambients.js
+  config/icons.js
+  core/audio.js
+  core/session.js
+  core/variants.js
+  core/wake-lock.js
+  main.js
+  render/engine.js
+  render/themes.js
   styles/main.css
 ```
 
-## Cambiar o añadir ambientes
+## Regenerar el audio
 
-Todo se edita en **`src/config/ambients.js`**:
-
-- `name`: nombre visible del nodo.
-- `hint`: descripción breve que se usa en el tooltip y en la etiqueta accesible.
-- `icon`: clave del icono en `src/config/icons.js`.
-- `accent`: color del icono, del brillo y del foco.
-- `audioDir`: carpeta con las variantes WAV del ambiente
-  (por ejemplo `assets/audio/lluvia`). La app elige al azar entre las que
-  existan de `01.wav`, `02.wav` y `03.wav`.
-- `animation`: clave de la animación en `src/render/themes.js`.
-- `palette`: colores que consume esa animación.
-
-Para añadir un ambiente nuevo:
-
-1. Copia un objeto de `ambients` y cambia el `id` (único).
-2. Crea `assets/audio/<id>/` y coloca dentro `01.wav`, `02.wav` y `03.wav`.
-3. Usa una animación existente, o crea una fábrica en `src/render/themes.js`
-   y regístrala en el objeto `THEMES`.
-4. Si el menú ya tiene sus 14 nodos, añade una posición en `NODE_LAYOUT` y el
-   recorrido de la línea en `NODE_PATH`, ambos en `src/main.js`.
-
-El menú de constelación, los colores de cada nodo y el resto de la interfaz se
-generan automáticamente a partir de esa lista.
-
-### Audios generados y escenas
-
-Cada ambiente tiene su propia carpeta en `assets/audio/<id>/` con **tres
-escenas**: `01.wav`, `02.wav` y `03.wav`. No son tres copias: cada una tiene
-un patrón distinto del mismo ambiente (unas gotas más cercanas, otro oleaje,
-otros trinos…). La app comprueba cuáles existen al iniciar una sesión y
-**elige una al azar**.
-
-La síntesis prioriza el carácter de cada ambiente —las gotas, el trueno, el
-chasquido, la ola, el trino— y deja el ruido de fondo en un segundo plano.
-Puedes borrar las escenas que no te gusten: en la siguiente recarga solo se
-tendrán en cuenta las que queden. Si dejas una sola, siempre sonará esa. Si
-borras la carpeta entera, la sesión continúa solo con luz y avisa de que no
-hay audio.
-
-Para regenerar las tres escenas de todos los ambientes:
+Cada ambiente tiene tres escenas sintéticas de 16 s en mono a 16 kHz. Para
+regenerar las 42:
 
 ```bash
 node scripts/make-audio-variants.mjs
@@ -153,41 +77,26 @@ Para regenerar solo un ambiente:
 node scripts/make-audio-variants.mjs --only=lluvia
 ```
 
-La variante 01 también se puede regenerar con
-`node scripts/make-placeholder-audio.mjs`, que usa la misma síntesis del
-laboratorio. También puedes añadir tus propios WAV manteniendo los nombres
-`01.wav`, `02.wav` y `03.wav`.
+Los archivos se escriben en `assets/audio/<id>/`. La app los descubre con
+peticiones `HEAD` al iniciar cada sesión, así que puedes borrar las escenas que
+no te gusten sin tocar código.
 
-También hay un modo largo que genera versiones de **10 minutos** de los mismos
-catorce ambientes (MP3 mono, 64 kbps) en `sounds/generados/`, con su propio
-reproductor. La app usa los WAV de `assets/audio/`; este banco es la versión
-larga para escuchar y comparar. Se incluye en el repositorio y se publica en
-`/sounds/generados/`:
+## Laboratorio
 
-```bash
-node scripts/make-placeholder-audio.mjs --long
-```
+El laboratorio vive en **`/lab/`** y comparte la configuración y el motor de
+síntesis de la app. Permite:
 
-La síntesis reparte gotas, chasquidos, truenos y notas a lo largo de toda la
-pista, así que no se limita a repetir el bucle de 16 segundos.
+- Cambiar el ambiente base y editar sus parámetros.
+- Añadir capas de bichos, pájaros, lluvia, viento, olas y burbujas.
+- Ajustar ruido, brillo, velocidad de las olas y volumen general.
+- Descargar o copiar un JSON `sen-lab/2` con la mezcla.
 
-## Comportamiento de la sesión
+## Publicar en GitHub Pages
 
-- La duración se elige desde el botón **`10 min`** del menú: **10, 15 o 30
-  minutos**. Por defecto, 10.
-- En los **últimos 30 segundos** baja el volumen y se oscurece la luz de forma
-  progresiva, sea cual sea la duración elegida.
-- Al terminar, la pantalla queda casi negra unos segundos y vuelve a la
-  menú principal.
-- **Terminar a mano** aplica un fundido de unos 2 segundos.
-- Un toque en la escena termina la sesión con fundido y vuelve al menú. No hay
-  controles inferiores.
-- Durante la sesión se solicita un **Screen Wake Lock**. Si el navegador no lo
-  admite, la app funciona igual.
-- Se respeta **`prefers-reduced-motion`**: la animación se detiene en una
-  composición estática, mientras la sesión y el audio continúan.
-- `Esc` termina la sesión. El botón Atrás del móvil también la termina con
-  fundido.
+1. Sube el proyecto a un repositorio.
+2. En GitHub: **Settings → Pages → Build and deployment**.
+3. Elige **Deploy from a branch**, rama `main` y carpeta `/ (root)`.
 
-La duración por defecto, las opciones del selector y los fundidos se pueden
-ajustar en `APP`, al principio de `src/config/ambients.js`.
+No hay que compilar. `.nojekyll` ya está incluido y todas las rutas son
+relativas, así que funciona tanto en un dominio propio como en
+`usuario.github.io/repositorio/`.

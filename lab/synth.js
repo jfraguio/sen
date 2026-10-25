@@ -109,12 +109,6 @@ function addChirp(data, at, duration, startFreq, endFreq, gain, options = {}) {
   }
 }
 
-function addCrackles(data, count, gain, start = 0, end = DURATION) {
-  for (let k = 0; k < count; k++) {
-    addCrackleAt(data, rand(start, end), gain);
-  }
-}
-
 function addNoiseBurst(data, at, duration, gain) {
   const start = Math.floor(at * SAMPLE_RATE);
   const length = Math.max(1, Math.floor(duration * SAMPLE_RATE));
@@ -125,20 +119,6 @@ function addNoiseBurst(data, at, duration, gain) {
     previous = n;
     const env = Math.sin((Math.PI * j) / length) ** 2;
     data[start + j] += filtered * env * gain;
-  }
-}
-
-function addCricket(data, at, duration, freq, pulseRate, gain) {
-  const start = Math.floor(at * SAMPLE_RATE);
-  const length = Math.max(1, Math.floor(duration * SAMPLE_RATE));
-  let phase = 0;
-  for (let j = 0; j < length && start + j < data.length; j++) {
-    const t = j / SAMPLE_RATE;
-    const u = j / length;
-    const env = Math.sin(Math.PI * u) ** 0.5;
-    const pulse = Math.max(0, Math.sin(TAU * pulseRate * t)) ** 3;
-    phase += (TAU * freq * (1 + Math.sin(TAU * 1.7 * t) * 0.002)) / SAMPLE_RATE;
-    data[start + j] += Math.sin(phase) * env * pulse * gain;
   }
 }
 

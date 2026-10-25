@@ -7,10 +7,10 @@
  *   1. Añade un objeto a `ambients` con un `id` único.
  *   2. Elige una animación existente (`animation`) o crea una nueva en
  *      `src/render/themes.js` y regístrala en `THEMES`.
- *   3. Deja el audio en `assets/audio/<archivo>`.
+ *   3. Crea `assets/audio/<id>/` con las escenas 01.wav, 02.wav y 03.wav.
  *
- * Los iconos son rutas SVG de 24×24 (solo trazo, sin relleno), de modo que
- * se pueden retocar directamente aquí.
+ * `icon` es una clave de `src/config/icons.js`; `animation` es una clave de
+ * `src/render/themes.js`.
  */
 
 /** Ajustes globales de la sesión. */

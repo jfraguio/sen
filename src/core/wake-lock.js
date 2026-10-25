@@ -50,9 +50,4 @@ export class WakeLock {
     this.sentinel = null;
     sentinel.release().catch(() => {});
   }
-
-  dispose() {
-    this.release();
-    document.removeEventListener('visibilitychange', this._onVisibility);
-  }
 }

@@ -122,7 +122,6 @@ function buildGrid() {
   drawConstellationLines();
 }
 
-
 /* --------------------------------------------------------------------------
    Duración de la sesión
    -------------------------------------------------------------------------- */
@@ -135,7 +134,7 @@ function updateDurationUI() {
   els.durationTrigger.textContent = durationLabel(durationMinutes);
   els.durationTrigger.setAttribute(
     'aria-label',
-    `Duración de la sesión: ${durationMinutes} ${durationMinutes === 1 ? 'minuto' : 'minutos'}`,
+    `Duración de la sesión: ${durationLabel(durationMinutes)}`,
   );
   for (const chip of els.durationOptions.querySelectorAll('.duration-chip')) {
     chip.setAttribute('aria-pressed', String(Number(chip.dataset.minutes) === durationMinutes));
@@ -148,7 +147,7 @@ function buildDurationOptions() {
     button.type = 'button';
     button.className = 'duration-chip';
     button.dataset.minutes = String(minutes);
-    button.textContent = `${minutes} minutos`;
+    button.textContent = durationLabel(minutes);
     button.setAttribute('aria-pressed', 'false');
     button.addEventListener('click', () => setDuration(minutes));
     els.durationOptions.append(button);

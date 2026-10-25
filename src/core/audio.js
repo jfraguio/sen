@@ -9,7 +9,6 @@
 export class AmbientAudio {
   constructor({ onError } = {}) {
     this.onError = onError;
-    this.src = '';
     this.failed = false;
     this.volume = 0;
     this.ctx = null;
@@ -17,7 +16,6 @@ export class AmbientAudio {
     this.source = null;
     this.buffer = null;
     this.cache = new Map();
-    this._shouldPlay = false;
     this._loadToken = 0;
   }
 
@@ -28,8 +26,6 @@ export class AmbientAudio {
 
   async play(src) {
     const token = ++this._loadToken;
-    this._shouldPlay = true;
-    this.src = src;
     this.failed = false;
     this.stopSource();
 
@@ -60,20 +56,7 @@ export class AmbientAudio {
     if (this.gain) this.gain.gain.value = next;
   }
 
-  pause() {
-    this._shouldPlay = false;
-    if (!this.ctx) return;
-    this.ctx.suspend().catch(() => {});
-  }
-
-  resume() {
-    if (!this.src || this.failed || !this.ctx) return;
-    this._shouldPlay = true;
-    this.ctx.resume().catch(() => {});
-  }
-
   stop() {
-    this._shouldPlay = false;
     this._loadToken++;
     this.stopSource();
     this.volume = 0;
