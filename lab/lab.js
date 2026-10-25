@@ -64,6 +64,25 @@ const DEFAULTS = {
 
 const PRESETS = [
   {
+    id: 'espacio-personalizado',
+    name: 'Espacio personalizado',
+    baseParams: { drone: 0.55, shimmer: 0.35, movement: 0.4, brightness: 0.5 },
+    values: {
+      base: 'espacio',
+      baseGain: 0.56,
+      noise: 0,
+      bichos: 0,
+      pajaros: 0,
+      lluvia: 0,
+      viento: 0,
+      olas: 0,
+      burbujas: 0,
+      wavesRate: 0.5,
+      brightness: 1000,
+      master: 0.45,
+    },
+  },
+  {
     id: 'lluvia-grillos',
     name: 'Lluvia + grillos',
     baseParams: { intensity: 0.7, drops: 0.55, hiss: 0.4, wind: 0.15, brightness: 0.6 },

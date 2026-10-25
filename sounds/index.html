@@ -2,99 +2,11 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#02030a" />
-    <meta name="description" content="Laboratorio de sonido de sen: mezcla capas y guarda los parámetros de tu ambiente." />
-    <title>sen · laboratorio de sonido</title>
-    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="lab.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content="0; url=generados/" />
+    <title>sen · banco de sonidos</title>
   </head>
   <body>
-    <canvas class="lab-canvas" id="lab-canvas" aria-hidden="true"></canvas>
-    <div class="lab-shade" aria-hidden="true"></div>
-
-    <main class="lab">
-      <header class="lab-head">
-        <a class="back" href="../" aria-label="Volver a sen">← <span>sen</span></a>
-        <div class="head-copy">
-          <p class="eyebrow">estudio</p>
-          <h1>Laboratorio de sonido</h1>
-          <p class="lead">Mezcla capas, ajusta el carácter y descarga los parámetros de tu ambiente. Todo se genera a partir de los sonidos sintéticos de sen.</p>
-        </div>
-        <a class="bank" href="generados/">Versiones largas ↗</a>
-      </header>
-
-      <div class="lab-grid">
-        <section class="panel panel--mix" aria-labelledby="mix-title">
-          <div class="panel-head">
-            <h2 id="mix-title">Mezcla</h2>
-            <span id="status" class="status"><i aria-hidden="true"></i><span id="status-text">listo</span></span>
-          </div>
-
-          <div class="base-row">
-            <label for="base">Ambiente base</label>
-            <select id="base"></select>
-          </div>
-
-          <div class="transport">
-            <button id="play" class="button button--primary" type="button">
-              <span class="button__icon" aria-hidden="true">▶</span>
-              <span id="play-text">Escuchar</span>
-            </button>
-            <span class="transport__hint">Pulsa para empezar. Los cambios se aplican en directo.</span>
-          </div>
-
-          <div class="section-head">
-            <h3>Carácter de <span id="base-name">Lluvia</span></h3>
-            <span>síntesis en vivo</span>
-          </div>
-          <div class="sliders sliders--base" id="base-sliders"></div>
-
-          <div class="presets" id="presets" aria-label="Variaciones rápidas"></div>
-
-          <div class="section-head section-head--mix">
-            <h3>Capas y salida</h3>
-            <span>suma de ambientes</span>
-          </div>
-          <div class="sliders" id="sliders"></div>
-        </section>
-
-        <aside class="panel panel--export" aria-labelledby="export-title">
-          <div class="panel-head">
-            <h2 id="export-title">Tus parámetros</h2>
-            <span class="tag">sen-lab/2</span>
-          </div>
-          <p class="small">Ponle un nombre, describe la idea y descarga el JSON. Con ese archivo puedes pedirme que replique la variación en la app.</p>
-
-          <label class="field" for="preset-name">
-            <span>Nombre de la variación</span>
-            <input id="preset-name" type="text" placeholder="Lluvia con grillos" autocomplete="off" />
-          </label>
-
-          <label class="field" for="preset-notes">
-            <span>Notas</span>
-            <textarea id="preset-notes" rows="3" placeholder="Quiero que la lluvia suene más cerca y con grillos al fondo..."></textarea>
-          </label>
-
-          <div class="actions">
-            <button id="download" class="button button--primary" type="button">Descargar parámetros</button>
-            <button id="copy" class="button button--ghost" type="button">Copiar JSON</button>
-            <button id="reset" class="button button--quiet" type="button">Restablecer</button>
-          </div>
-
-          <pre class="json" id="json" aria-label="Parámetros actuales"></pre>
-          <p class="small small--foot">Los audios se reproducen en local; no se envía nada a ningún servidor. <a href="generados/">Escuchar las versiones de 10 minutos</a>.</p>
-        </aside>
-      </div>
-
-      <footer class="lab-foot">
-        <span>sen · sonido sintético</span>
-        <span aria-hidden="true">·</span>
-        <a href="../">Volver al menú</a>
-      </footer>
-    </main>
-
-    <script type="module" src="lab.js"></script>
+    <p><a href="generados/">Escuchar las versiones largas de sen</a></p>
   </body>
 </html>

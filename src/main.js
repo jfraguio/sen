@@ -12,7 +12,6 @@ const els = {
   note: document.getElementById('note'),
   live: document.getElementById('live'),
   progress: document.getElementById('progress'),
-  ambientCount: document.getElementById('ambient-count'),
   lines: document.getElementById('constellation-lines'),
 };
 
@@ -115,7 +114,6 @@ function buildGrid() {
     els.grid.append(button);
   });
 
-  els.ambientCount.textContent = `${ambients.length} ambientes`;
   drawConstellationLines();
 }
 

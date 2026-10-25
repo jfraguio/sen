@@ -614,16 +614,16 @@ function pajaros(p) {
   highpass(leaves, 260);
   lowpass(leaves, 2500);
   flicker(leaves, 0.3, [0.14, 0.31, 0.52]);
-  add(raw, leaves, 0.03 + p.leaves * 0.11);
+  add(raw, leaves, 0.01 + p.leaves * 0.04);
 
   const wind = make();
   brown(wind, 1);
   lowpass(wind, 150);
-  add(raw, wind, 0.1 + p.wind * 0.28);
+  add(raw, wind, 0.04 + p.wind * 0.12);
 
   const phrases = 3 + Math.round(p.birds * 28);
   for (let i = 0; i < phrases; i++) {
-    addBirdPhrase(raw, rand(0, DURATION - 2), map(p.variety, 1500, 3800) * rand(0.7, 1.2), rand(0.012, 0.035));
+    addBirdPhrase(raw, rand(0, DURATION - 2), map(p.variety, 1500, 3800) * rand(0.7, 1.2), rand(0.016, 0.04));
   }
 
   const cuckoo = Math.random() < 0.5;

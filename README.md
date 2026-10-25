@@ -1,6 +1,6 @@
 # sen
 
-**En línea:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/> · **Laboratorio:** <https://fraguio.com/sen/sounds/>
+**En línea:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/> · **Laboratorio:** <https://fraguio.com/sen/lab/>
 
 Luz y sonido para descansar. Catorce ambientes de diez minutos, sin cuentas, sin
 ajustes y sin distracciones: eliges un tema, la pantalla se llena de color y el
@@ -51,8 +51,8 @@ funciona también en `usuario.github.io/repositorio/`.
 
 ## Laboratorio de sonido
 
-La app incluye un laboratorio en **`/sounds/`** (también accesible por `/sound/`)
-para crear variaciones de los ambientes sin tocar código. El ambiente base no
+La app incluye un laboratorio en **`/lab/`** para crear variaciones de los
+ambientes sin tocar código. El ambiente base no
 es un archivo cerrado: se sintetiza en el navegador a partir de sus parámetros.
 
 - Editar el carácter del ambiente base: intensidad, chasquidos, graves,
@@ -65,7 +65,8 @@ es un archivo cerrado: se sintetiza en el navegador a partir de sus parámetros.
   `baseParams` y mezcla de capas.
 
 Ese JSON es lo que puedes enviarme para que replique una variación en la app.
-El laboratorio y el banco de versiones largas viven en `sounds/`.
+El laboratorio está en `lab/` y el banco de versiones largas en
+`sounds/generados/`.
 
 ## Estructura
 
@@ -76,10 +77,12 @@ assets/
   favicon.svg
 scripts/
   make-placeholder-audio.mjs
-sounds/
+lab/
   index.html        laboratorio de mezclas
   lab.js / lab.css
   synth.js          síntesis paramétrica de los ambientes base
+sounds/
+  index.html        redirección al banco largo
   generados/        versiones largas sintéticas (10 min)
 src/
   config/

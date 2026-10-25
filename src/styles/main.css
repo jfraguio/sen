@@ -300,26 +300,6 @@ button {
   text-transform: uppercase;
 }
 
-.foot__dot {
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.6;
-}
-
-.foot__lab {
-  color: var(--muted);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  transition: color 180ms ease, border-color 180ms ease;
-}
-
-.foot__lab:hover {
-  color: var(--ink);
-  border-color: var(--ink);
-}
-
 .noscript {
   position: fixed;
   inset: auto 20px 24px;
