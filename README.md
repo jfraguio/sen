@@ -79,6 +79,7 @@ scripts/
 sounds/
   index.html        laboratorio de mezclas
   lab.js / lab.css
+  synth.js          síntesis paramétrica de los ambientes base
   generados/        versiones largas sintéticas (10 min)
 src/
   config/

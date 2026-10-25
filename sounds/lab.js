@@ -184,6 +184,8 @@ const audio = {
   noiseFilter: null,
   noiseSource: null,
   baseSource: null,
+  baseMix: null,
+  baseExtras: new Set(),
   layerSources: new Map(),
   layerGains: new Map(),
   playing: false,
@@ -260,6 +262,36 @@ const audio = {
     return source;
   },
 
+  startBase(buffer, when = this.ctx.currentTime) {
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0;
+    gain.connect(this.baseGain);
+    const source = this.makeSource(
+      buffer,
+      gain,
+      state.base === 'mar' ? state.wavesRate : 1,
+    );
+    source.start(when);
+    gain.gain.setTargetAtTime(1, this.ctx.currentTime + 0.01, 0.05);
+
+    if (this.baseSource && this.baseMix) {
+      const oldSource = this.baseSource;
+      const oldGain = this.baseMix;
+      oldGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.04);
+      const extra = { source: oldSource, gain: oldGain };
+      this.baseExtras.add(extra);
+      window.setTimeout(() => {
+        try { oldSource.stop(); } catch { /* ya parado */ }
+        try { oldSource.disconnect(); } catch { /* sin conexión */ }
+        try { oldGain.disconnect(); } catch { /* sin conexión */ }
+        this.baseExtras.delete(extra);
+      }, 260);
+    }
+
+    this.baseSource = source;
+    this.baseMix = gain;
+  },
+
   setGain(node, value) {
     const now = this.ctx.currentTime;
     node.gain.setTargetAtTime(Math.max(0, value), now, 0.035);
@@ -303,12 +335,7 @@ const audio = {
       this.noiseSource = this.makeSource(this.makeNoiseBuffer(), this.noiseFilter);
       this.noiseSource.start(when);
 
-      this.baseSource = this.makeSource(
-        baseBuffer,
-        this.baseGain,
-        state.base === 'mar' ? state.wavesRate : 1,
-      );
-      this.baseSource.start(when);
+      this.startBase(baseBuffer, when);
 
       for (const layer of LAYERS) {
         const buffer = this.buffers.get(layer.ambient);
@@ -355,6 +382,16 @@ const audio = {
       try { this.baseSource.disconnect(); } catch { /* sin conexión */ }
       this.baseSource = null;
     }
+    if (this.baseMix) {
+      try { this.baseMix.disconnect(); } catch { /* sin conexión */ }
+      this.baseMix = null;
+    }
+    for (const extra of this.baseExtras) {
+      try { extra.source.stop(); } catch { /* ya parado */ }
+      try { extra.source.disconnect(); } catch { /* sin conexión */ }
+      try { extra.gain.disconnect(); } catch { /* sin conexión */ }
+    }
+    this.baseExtras.clear();
     for (const source of this.layerSources.values()) {
       try { source.stop(); } catch { /* ya parado */ }
       try { source.disconnect(); } catch { /* sin conexión */ }
@@ -375,16 +412,7 @@ const audio = {
     if (!this.playing) return;
     try {
       const baseBuffer = this.generateBaseBuffer();
-      if (this.baseSource) {
-        try { this.baseSource.stop(); } catch { /* ya parado */ }
-        try { this.baseSource.disconnect(); } catch { /* sin conexión */ }
-      }
-      this.baseSource = this.makeSource(
-        baseBuffer,
-        this.baseGain,
-        state.base === 'mar' ? state.wavesRate : 1,
-      );
-      this.baseSource.start();
+      this.startBase(baseBuffer);
       this.apply();
       setStatus('reproduciendo', true);
     } catch (error) {
