@@ -2,7 +2,7 @@
 
 **En línea:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/> · **Laboratorio:** <https://fraguio.com/sen/lab/>
 
-Luz y sonido para descansar. Catorce ambientes de diez minutos, sin cuentas, sin
+Luz y sonido para descansar. Catorce ambientes con sesiones de 1 a 120 minutos, sin cuentas, sin
 ajustes y sin distracciones: eliges un tema, la pantalla se llena de color y el
 audio suena en bucle hasta completar la sesión.
 
@@ -73,10 +73,11 @@ El laboratorio está en `lab/` y el banco de versiones largas en
 ```
 index.html
 assets/
-  audio/            audios locales (ahora: bucles sintéticos de 16 s)
+  audio/            tres variantes WAV por ambiente, en carpetas
   favicon.svg
 scripts/
   make-placeholder-audio.mjs
+  make-audio-variants.mjs
 lab/
   index.html        laboratorio de mezclas
   lab.js / lab.css
@@ -89,8 +90,9 @@ src/
     ambients.js     ← configuración de los ambientes
     icons.js        iconos SVG del menú
   core/
-    session.js      reloj de 10 min, pausa y fundidos
+    session.js      duración, pausa y fundidos
     audio.js        bucle y volumen con Web Audio
+    variants.js     elección aleatoria entre WAVs disponibles
     wake-lock.js    Screen Wake Lock API
   render/
     engine.js       canvas a pantalla completa
@@ -104,17 +106,18 @@ Todo se edita en **`src/config/ambients.js`**:
 
 - `name`: nombre visible del nodo.
 - `hint`: descripción breve que se usa en el tooltip y en la etiqueta accesible.
-- `icon`: rutas SVG de 24×24 (solo trazo).
+- `icon`: clave del icono en `src/config/icons.js`.
 - `accent`: color del icono, del brillo y del foco.
-- `audio`: ruta local al bucle. Cambia el archivo por un MP3/OGG y actualiza
-  esta ruta (por ejemplo `assets/audio/lluvia.mp3`).
+- `audioDir`: carpeta con las variantes WAV del ambiente
+  (por ejemplo `assets/audio/lluvia`). La app elige al azar entre las que
+  existan de `01.wav`, `02.wav` y `03.wav`.
 - `animation`: clave de la animación en `src/render/themes.js`.
 - `palette`: colores que consume esa animación.
 
 Para añadir un ambiente nuevo:
 
 1. Copia un objeto de `ambients` y cambia el `id` (único).
-2. Deja el audio en `assets/audio/` con el nombre que indiques.
+2. Crea `assets/audio/<id>/` y coloca dentro `01.wav`, `02.wav` y `03.wav`.
 3. Usa una animación existente, o crea una fábrica en `src/render/themes.js`
    y regístrala en el objeto `THEMES`.
 4. Si el menú ya tiene sus 14 nodos, añade una posición en `NODE_LAYOUT` y el
@@ -123,18 +126,31 @@ Para añadir un ambiente nuevo:
 El menú de constelación, los colores de cada nodo y el resto de la interfaz se
 generan automáticamente a partir de esa lista.
 
-### Audios generados
+### Audios generados y variantes
 
-Los 14 WAV incluidos están sintetizados por
-`scripts/make-placeholder-audio.mjs`; la app no depende de grabaciones
-externas. Para regenerarlos:
+Cada ambiente tiene su propia carpeta en `assets/audio/<id>/` con **tres
+alternativas**: `01.wav`, `02.wav` y `03.wav`. La variante 01 conserva el
+sonido principal; 02 y 03 son variaciones sintéticas. La app comprueba cuáles
+existen al iniciar una sesión y **elige una al azar**.
+
+Puedes borrar las que no te gusten: en la siguiente recarga solo se tendrán en
+cuenta las que queden. Si dejas una sola, siempre sonará esa. Si borras la
+carpeta entera, la sesión continúa solo con luz y avisa de que no hay audio.
+
+Para regenerar la variante 01:
 
 ```bash
 node scripts/make-placeholder-audio.mjs
 ```
 
-También puedes sustituir un WAV por una pista propia manteniendo el nombre en
-`assets/audio` (o actualizando la ruta en la configuración).
+Para regenerar las variantes 02 y 03:
+
+```bash
+node scripts/make-audio-variants.mjs
+```
+
+También puedes añadir tus propios WAV manteniendo los nombres `01.wav`,
+`02.wav` y `03.wav`.
 
 También hay un modo largo que genera versiones de **10 minutos** de los mismos
 catorce ambientes (MP3 mono, 64 kbps) en `sounds/generados/`, con su propio
@@ -151,9 +167,10 @@ pista, así que no se limita a repetir el bucle de 16 segundos.
 
 ## Comportamiento de la sesión
 
-- Cada sesión dura exactamente **10 minutos**.
+- La duración se elige desde el botón **`10 min`** del menú: opciones rápidas
+  de 5 a 60 minutos o una duración personalizada de 1 a 120. Por defecto, 10.
 - En los **últimos 30 segundos** baja el volumen y se oscurece la luz de forma
-  progresiva.
+  progresiva, sea cual sea la duración elegida.
 - Al terminar, la pantalla queda casi negra unos segundos y vuelve a la
   menú principal.
 - **Terminar a mano** aplica un fundido de unos 2 segundos.
@@ -166,5 +183,5 @@ pista, así que no se limita a repetir el bucle de 16 segundos.
 - `Esc` termina la sesión. El botón Atrás del móvil también la termina con
   fundido.
 
-La duración y los fundidos se pueden ajustar en `APP`, al principio de
-`src/config/ambients.js`.
+La duración por defecto, las opciones del selector y los fundidos se pueden
+ajustar en `APP`, al principio de `src/config/ambients.js`.

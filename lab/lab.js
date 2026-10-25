@@ -1,6 +1,7 @@
 import { ambients } from '../src/config/ambients.js';
 import { AmbientRenderer } from '../src/render/engine.js';
 import { BASE_CONTROLS, defaultBaseParams, renderAmbient, SAMPLE_RATE } from './synth.js';
+import { resolveAudioVariants, pickAudioVariant } from '../src/core/variants.js';
 
 /* --------------------------------------------------------------------------
    Fondo
@@ -190,7 +191,6 @@ const baseSliderInputs = new Map();
    Audio
    -------------------------------------------------------------------------- */
 
-const assetUrl = (src) => new URL(`../${src}`, document.baseURI).href;
 const layerAmbientIds = [...new Set(LAYERS.map((layer) => layer.ambient))];
 
 const audio = {
@@ -245,7 +245,10 @@ const audio = {
     if (this.buffers.has(id)) return this.buffers.get(id);
     const ambient = ambientById.get(id);
     if (!ambient) throw new Error(`Ambiente desconocido: ${id}`);
-    const response = await fetch(assetUrl(ambient.audio), { cache: 'force-cache' });
+    const paths = await resolveAudioVariants(ambient.audioDir, '../');
+    const src = pickAudioVariant(paths);
+    if (!src) throw new Error(`No hay audio para ${ambient.name}`);
+    const response = await fetch(src, { cache: 'force-cache' });
     if (!response.ok) throw new Error(`No se pudo cargar ${ambient.name}`);
     const data = await response.arrayBuffer();
     const buffer = await this.ctx.decodeAudioData(data);

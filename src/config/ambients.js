@@ -15,9 +15,11 @@
 
 /** Ajustes globales de la sesión. */
 export const APP = {
-  durationMs: 10 * 60 * 1000, // duración exacta: 10 minutos
+  defaultDurationMin: 10,
+  durationOptions: [5, 10, 15, 20, 30, 45, 60],
+  maxDurationMin: 120,
   fadeOutMs: 30 * 1000, // fundido de audio y luz en los últimos 30 s
-  holdAfterEndMs: 4000, // pantalla casi negra antes de volver a la cuadrícula
+  holdAfterEndMs: 4000, // pantalla casi negra antes de volver al menú
   manualFadeMs: 2000, // fundido al terminar a mano
   audioVolume: 0.9,
   audioFadeInMs: 1400,
@@ -29,7 +31,7 @@ export const APP = {
  *   name       nombre visible
  *   hint       descripción breve para el menú
  *   icon       clave del icono en src/config/icons.js
- *   audio      ruta local al archivo de audio en bucle
+ *   audioDir   carpeta con las variantes WAV (01.wav, 02.wav, 03.wav…)
  *   animation  clave de la animación en src/render/themes.js
  *   accent     color de acento del nodo y del progreso
  *   palette    colores concretos que usa la animación
@@ -40,7 +42,7 @@ export const ambients = [
     name: 'Lluvia',
     hint: 'agua y ventana',
     icon: 'lluvia',
-    audio: 'assets/audio/lluvia.wav',
+    audioDir: 'assets/audio/lluvia',
     animation: 'rain',
     accent: '#8fbdff',
     palette: {
@@ -54,7 +56,7 @@ export const ambients = [
     name: 'Tormenta',
     hint: 'truenos y viento',
     icon: 'tormenta',
-    audio: 'assets/audio/tormenta.wav',
+    audioDir: 'assets/audio/tormenta',
     animation: 'storm',
     accent: '#a99bff',
     palette: {
@@ -69,7 +71,7 @@ export const ambients = [
     name: 'Fuego',
     hint: 'brasas y calor',
     icon: 'fuego',
-    audio: 'assets/audio/fuego.wav',
+    audioDir: 'assets/audio/fuego',
     animation: 'fire',
     accent: '#ffa45c',
     palette: {
@@ -82,7 +84,7 @@ export const ambients = [
     name: 'Mar',
     hint: 'olas y espuma',
     icon: 'mar',
-    audio: 'assets/audio/mar.wav',
+    audioDir: 'assets/audio/mar',
     animation: 'sea',
     accent: '#5cebd5',
     palette: {
@@ -97,7 +99,7 @@ export const ambients = [
     name: 'Río',
     hint: 'corriente y piedras',
     icon: 'rio',
-    audio: 'assets/audio/rio.wav',
+    audioDir: 'assets/audio/rio',
     animation: 'river',
     accent: '#79e8b7',
     palette: {
@@ -112,7 +114,7 @@ export const ambients = [
     name: 'Viento',
     hint: 'ráfagas y hojas',
     icon: 'viento',
-    audio: 'assets/audio/viento.wav',
+    audioDir: 'assets/audio/viento',
     animation: 'wind',
     accent: '#b7d8d3',
     palette: {
@@ -127,7 +129,7 @@ export const ambients = [
     name: 'Espacio',
     hint: 'deriva y estrellas',
     icon: 'espacio',
-    audio: 'assets/audio/espacio.wav',
+    audioDir: 'assets/audio/espacio',
     animation: 'space',
     accent: '#a48bff',
     palette: {
@@ -141,7 +143,7 @@ export const ambients = [
     name: 'Cuento',
     hint: 'imaginar',
     icon: 'cuento',
-    audio: 'assets/audio/cuento.wav',
+    audioDir: 'assets/audio/cuento',
     animation: 'story',
     accent: '#ffd08a',
     palette: {
@@ -154,7 +156,7 @@ export const ambients = [
     name: 'Meditación',
     hint: 'respirar',
     icon: 'meditacion',
-    audio: 'assets/audio/meditacion.wav',
+    audioDir: 'assets/audio/meditacion',
     animation: 'meditation',
     accent: '#9dded8',
     palette: {
@@ -167,7 +169,7 @@ export const ambients = [
     name: 'Pájaros',
     hint: 'amanecer',
     icon: 'pajaros',
-    audio: 'assets/audio/pajaros.wav',
+    audioDir: 'assets/audio/pajaros',
     animation: 'birds',
     accent: '#e6d891',
     palette: {
@@ -182,7 +184,7 @@ export const ambients = [
     name: 'Bichos',
     hint: 'grillos y luciérnagas',
     icon: 'bichos',
-    audio: 'assets/audio/bichos.wav',
+    audioDir: 'assets/audio/bichos',
     animation: 'bugs',
     accent: '#d7e08f',
     palette: {
@@ -197,7 +199,7 @@ export const ambients = [
     name: 'Bosque',
     hint: 'hojarasca',
     icon: 'bosque',
-    audio: 'assets/audio/bosque.wav',
+    audioDir: 'assets/audio/bosque',
     animation: 'forest',
     accent: '#9ed6a0',
     palette: {
@@ -212,7 +214,7 @@ export const ambients = [
     name: 'Noche',
     hint: 'luna y luciérnagas',
     icon: 'noche',
-    audio: 'assets/audio/noche.wav',
+    audioDir: 'assets/audio/noche',
     animation: 'night',
     accent: '#9fb2d9',
     palette: {
@@ -227,7 +229,7 @@ export const ambients = [
     name: 'Burbujas',
     hint: 'baño de espuma',
     icon: 'burbujas',
-    audio: 'assets/audio/burbujas.wav',
+    audioDir: 'assets/audio/burbujas',
     animation: 'bubbles',
     accent: '#8fe9e3',
     palette: {

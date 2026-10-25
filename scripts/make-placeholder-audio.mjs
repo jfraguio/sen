@@ -837,7 +837,9 @@ for (const [name, create] of Object.entries(tracks)) {
   const samples = create();
 
   if (!LONG) {
-    const file = path.join(outDir, `${name}.wav`);
+    const themeDir = path.join(outDir, name);
+    fs.mkdirSync(themeDir, { recursive: true });
+    const file = path.join(themeDir, '01.wav');
     writeWav(file, samples);
     console.log(`${name.padEnd(11)} ${(fs.statSync(file).size / 1024).toFixed(0)} KB`);
     continue;
@@ -972,9 +974,8 @@ node scripts/make-placeholder-audio.mjs --long
 \`\`\`
 
 La carpeta \`sounds/generados/\` se incluye en el repositorio y se publica con
-la app. Para usar uno de estos MP3 en la app, copia el archivo a
-\`assets/audio/\` y apunta el ambiente correspondiente en
-\`src/config/ambients.js\`.
+la app. Para probar una de estas versiones en la app, recórtala a 16 s y
+guárdala como \`assets/audio/<tema>/01.wav\`.
 
 ## Pistas
 

@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#07080a" />
     <meta
       name="description"
-      content="sen: catorce ambientes de luz y sonido para descansar. Sesiones de diez minutos."
+      content="sen: catorce ambientes de luz y sonido para descansar. Sesiones de 1 a 120 minutos."
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -26,7 +26,7 @@
         <span class="brand__mark">sen</span>
       </header>
 
-      <h1 class="sr-only">sen — elige un ambiente de luz y sonido para diez minutos</h1>
+      <h1 class="sr-only">sen — elige un ambiente de luz y sonido y la duración de tu sesión</h1>
 
       <div class="constellation" id="constellation">
         <svg class="constellation__lines" id="constellation-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -34,8 +34,30 @@
       </div>
 
       <footer class="foot">
-        <span>10 min</span>
+        <button
+          class="foot__duration"
+          id="duration-trigger"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="duration-pop"
+          aria-label="Duración de la sesión: 10 minutos"
+        >10 min</button>
       </footer>
+
+      <section class="duration-pop" id="duration-pop" role="dialog" aria-label="Duración de la sesión" hidden>
+        <div class="duration-pop__head">
+          <h2>Duración de la sesión</h2>
+          <button class="duration-pop__close" id="duration-close" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <div class="duration-options" id="duration-options" role="group" aria-label="Minutos"></div>
+        <label class="duration-custom" for="duration-custom">
+          <span>Otro</span>
+          <input id="duration-custom" type="number" min="1" max="120" step="1" inputmode="numeric" />
+          <span>min</span>
+        </label>
+        <p class="duration-note">La sesión termina con un fundido de 30 segundos.</p>
+      </section>
 
       <noscript>
         <p class="noscript">sen necesita JavaScript para reproducir luz y sonido.</p>

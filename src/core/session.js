@@ -6,7 +6,7 @@ const smooth = (v) => {
 
 /**
  * Reloj de una sesión.
- * - 10 minutos exactos, con fundido de luz/audio en los últimos 30 s.
+ * - Duración configurable, con fundido de luz/audio en los últimos 30 s.
  * - Al llegar al final: fase `hold` (pantalla casi negra) y después `complete`.
  * - Terminar a mano: fase `manual` con un fundido de 2 s.
  * - La pausa congela el tiempo.

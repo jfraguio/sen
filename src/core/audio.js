@@ -21,6 +21,11 @@ export class AmbientAudio {
     this._loadToken = 0;
   }
 
+  prepare() {
+    const ctx = this._ensureContext();
+    if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
+  }
+
   async play(src) {
     const token = ++this._loadToken;
     this._shouldPlay = true;

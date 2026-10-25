@@ -4,6 +4,7 @@ import { AmbientRenderer } from './render/engine.js';
 import { Session } from './core/session.js';
 import { AmbientAudio } from './core/audio.js';
 import { WakeLock } from './core/wake-lock.js';
+import { resolveAudioVariants, pickAudioVariant } from './core/variants.js';
 
 const els = {
   grid: document.getElementById('grid'),
@@ -13,6 +14,11 @@ const els = {
   live: document.getElementById('live'),
   progress: document.getElementById('progress'),
   lines: document.getElementById('constellation-lines'),
+  durationTrigger: document.getElementById('duration-trigger'),
+  durationPop: document.getElementById('duration-pop'),
+  durationOptions: document.getElementById('duration-options'),
+  durationCustom: document.getElementById('duration-custom'),
+  durationClose: document.getElementById('duration-close'),
 };
 
 const renderer = new AmbientRenderer(document.getElementById('canvas'));
@@ -51,6 +57,7 @@ const NODE_LAYOUT = [
 const NODE_PATH = [0, 1, 2, 4, 3, 5, 6, 7, 10, 9, 8, 11, 12, 13];
 
 let active = null;
+let durationMinutes = APP.defaultDurationMin;
 
 /* --------------------------------------------------------------------------
    Cuadrícula
@@ -105,7 +112,7 @@ function buildGrid() {
     button.style.setProperty('--accent-glow', `rgba(${r}, ${g}, ${b}, 0.32)`);
     button.style.setProperty('--i', String(index));
     button.title = ambient.hint;
-    button.setAttribute('aria-label', `${ambient.name}: ${ambient.hint}. Comenzar una sesión de diez minutos`);
+    button.setAttribute('aria-label', `${ambient.name}: ${ambient.hint}. Comenzar una sesión`);
     button.innerHTML = `
       <span class="node__icon" aria-hidden="true">${iconSvg(ambient.icon)}</span>
       <span class="node__label">${ambient.name}</span>
@@ -117,6 +124,68 @@ function buildGrid() {
   drawConstellationLines();
 }
 
+
+/* --------------------------------------------------------------------------
+   Duración de la sesión
+   -------------------------------------------------------------------------- */
+
+function durationLabel(minutes) {
+  return `${minutes} min`;
+}
+
+function updateDurationUI() {
+  els.durationTrigger.textContent = durationLabel(durationMinutes);
+  els.durationTrigger.setAttribute(
+    'aria-label',
+    `Duración de la sesión: ${durationMinutes} ${durationMinutes === 1 ? 'minuto' : 'minutos'}`,
+  );
+  els.durationCustom.value = String(durationMinutes);
+  for (const chip of els.durationOptions.querySelectorAll('.duration-chip')) {
+    chip.setAttribute('aria-pressed', String(Number(chip.dataset.minutes) === durationMinutes));
+  }
+}
+
+function buildDurationOptions() {
+  for (const minutes of APP.durationOptions) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'duration-chip';
+    button.dataset.minutes = String(minutes);
+    button.textContent = durationLabel(minutes);
+    button.setAttribute('aria-pressed', 'false');
+    button.addEventListener('click', () => setDuration(minutes));
+    els.durationOptions.append(button);
+  }
+  updateDurationUI();
+}
+
+function setDuration(value) {
+  const minutes = Math.round(Number(value));
+  if (!Number.isFinite(minutes) || minutes < 1) {
+    updateDurationUI();
+    return;
+  }
+  durationMinutes = Math.min(APP.maxDurationMin, minutes);
+  updateDurationUI();
+  closeDuration();
+}
+
+function openDuration() {
+  if (active) return;
+  els.durationPop.hidden = false;
+  els.durationTrigger.setAttribute('aria-expanded', 'true');
+  updateDurationUI();
+  const selected = els.durationOptions.querySelector('.duration-chip[aria-pressed="true"]');
+  (selected || els.durationOptions.querySelector('.duration-chip') || els.durationClose)?.focus();
+}
+
+function closeDuration({ returnFocus = true } = {}) {
+  if (els.durationPop.hidden) return;
+  els.durationPop.hidden = true;
+  els.durationTrigger.setAttribute('aria-expanded', 'false');
+  if (returnFocus) els.durationTrigger.focus();
+}
+
 /* --------------------------------------------------------------------------
    Sesión
    -------------------------------------------------------------------------- */
@@ -124,11 +193,15 @@ function buildGrid() {
 function startSession(ambient, trigger) {
   if (active) return;
 
+  closeDuration({ returnFocus: false });
+
   const token = {};
+  const durationMs = durationMinutes * 60 * 1000;
   active = {
     token,
     ambient,
     trigger,
+    durationMs,
     session: null,
     phase: 'idle',
     ending: false,
@@ -148,16 +221,28 @@ function startSession(ambient, trigger) {
   els.dim.style.opacity = '0';
   els.progress.style.width = '0%';
   els.note.hidden = true;
-  els.live.textContent = `Sesión de ${ambient.name}. Diez minutos.`;
+  els.live.textContent = `Sesión de ${ambient.name}. ${durationMinutes} ${durationMinutes === 1 ? 'minuto' : 'minutos'}.`;
 
   els.stage.focus({ preventScroll: true });
 
-  audio.play(ambient.audio);
+  audio.prepare();
+  resolveAudioVariants(ambient.audioDir)
+    .then((paths) => {
+      if (!active || active.token !== token) return;
+      const src = pickAudioVariant(paths);
+      if (!src) {
+        notifyAudioFailure(token);
+        return;
+      }
+      audio.play(src);
+    })
+    .catch(() => notifyAudioFailure(token));
+
   renderer.start(ambient);
   wakeLock.request();
 
   active.session = new Session({
-    durationMs: APP.durationMs,
+    durationMs: active.durationMs,
     fadeOutMs: APP.fadeOutMs,
     holdMs: APP.holdAfterEndMs,
     manualFadeMs: APP.manualFadeMs,
@@ -180,7 +265,7 @@ function updateSession(token, snapshot) {
   const easedIn = fadeIn * fadeIn * (3 - 2 * fadeIn);
   audio.setGain(snapshot.gain * easedIn * APP.audioVolume);
   els.dim.style.opacity = snapshot.light.toFixed(4);
-  els.progress.style.width = `${Math.min(100, (snapshot.elapsed / (APP.durationMs / 1000)) * 100).toFixed(2)}%`;
+  els.progress.style.width = `${Math.min(100, (snapshot.elapsed / (active.durationMs / 1000)) * 100).toFixed(2)}%`;
 
   if (snapshot.phase !== active.phase) {
     active.phase = snapshot.phase;
@@ -259,12 +344,40 @@ function notifyAudioFailure(token) {
    Eventos globales
    -------------------------------------------------------------------------- */
 
+els.durationTrigger.addEventListener('click', () => {
+  if (els.durationPop.hidden) openDuration();
+  else closeDuration();
+});
+
+els.durationClose.addEventListener('click', () => closeDuration());
+
+els.durationCustom.addEventListener('change', () => setDuration(els.durationCustom.value));
+els.durationCustom.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    setDuration(els.durationCustom.value);
+  }
+});
+
+document.addEventListener('click', (event) => {
+  if (els.durationPop.hidden) return;
+  if (els.durationPop.contains(event.target) || els.durationTrigger.contains(event.target)) return;
+  closeDuration({ returnFocus: false });
+});
+
 els.stage.addEventListener('click', () => {
   if (!active || active.ending) return;
   requestEnd();
 });
 
 document.addEventListener('keydown', (event) => {
+  if (!els.durationPop.hidden) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDuration();
+    }
+    return;
+  }
   if (!active) return;
   if (event.key === 'Escape') {
     event.preventDefault();
@@ -277,4 +390,5 @@ window.addEventListener('popstate', () => {
 });
 
 buildGrid();
+buildDurationOptions();
 menuRenderer.start(MENU_BACKDROP);
