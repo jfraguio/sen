@@ -1,13 +1,13 @@
 # Ambientes sintéticos largos
 
-Versiones de 10 minutos de los 13 ambientes generados con
+Versiones de 10 minutos de los 14 ambientes generados con
 `scripts/make-placeholder-audio.mjs --long`. Son las mismas texturas que los
 placeholders de 16 s, pero con eventos y modulaciones repartidos a lo largo de
 toda la pista para evitar que se note el bucle.
 
 - Formato: MP3 mono, 64 kbps, 16000 Hz.
 - Duración: 10:00 por pista.
-- Peso total: 60 MB.
+- Peso total: 64 MB.
 - Carácter: ruido filtrado, drones, gotas, chasquidos y melodías sintetizadas.
 
 ## Escuchar
@@ -42,6 +42,7 @@ la app. Para usar uno de estos MP3 en la app, copia el archivo a
 - `espacio.mp3` — Espacio: Drones graves, polvo estelar y destellos.
 - `cuento.mp3` — Cuento: Kalimba, pads y melodías oníricas.
 - `meditacion.mp3` — Meditación: Drone profundo, respiración y cuencos.
+- `burbujas.mp3` — Burbujas: Baño de espuma, borboteo y agua cálida.
 - `pajaros.mp3` — Pájaros: Trinos, hojas y luz de amanecer.
 - `bichos.mp3` — Bichos: Grillos, cigarras y luciérnagas.
 - `bosque.mp3` — Bosque: Hojas, ramas y sombra verde.

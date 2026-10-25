@@ -1499,17 +1499,20 @@ function constellation(ambient) {
         const x = w * (0.08 + u * 0.86) + Math.sin(t * 0.025 + i) * w * 0.012;
         const y = h * (0.02 + u * 0.92);
         const size = Math.max(w, h) * (0.55 + (i % 3) * 0.16);
+        const nebulaPulse = 0.82 + 0.18 * Math.sin(t * 0.08 + i * 0.7);
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(0.62);
-        ctx.scale(1.7, 0.48);
-        ctx.globalAlpha = 0.07 + (i % 3) * 0.025;
+        ctx.scale(1.7 * (0.96 + 0.04 * Math.sin(t * 0.045 + i)), 0.48);
+        ctx.globalAlpha = (0.07 + (i % 3) * 0.025) * nebulaPulse;
         ctx.drawImage(sprites[i % sprites.length], -size / 2, -size / 2, size, size);
         ctx.restore();
       }
 
-      glow(ctx, w * 0.52, h * 0.42, Math.max(w, h) * 0.9, p.nebula[1], 0.055);
-      glow(ctx, w * 0.35, h * 0.22, Math.max(w, h) * 0.55, p.nebula[0], 0.065);
+      const glowPulse = 0.5 + 0.5 * Math.sin(t * 0.11);
+      glow(ctx, w * 0.52, h * 0.42, Math.max(w, h) * 0.9, p.nebula[1], 0.04 + glowPulse * 0.025);
+      glow(ctx, w * 0.35, h * 0.22, Math.max(w, h) * 0.55, p.nebula[0], 0.05 + glowPulse * 0.02);
+      glow(ctx, w * 0.68, h * 0.72, Math.max(w, h) * 0.55, p.nebula[0], 0.02 + glowPulse * 0.012);
 
       // polvo estelar
       for (const mote of dust) {
@@ -1519,8 +1522,8 @@ function constellation(ambient) {
 
       // estrellas
       for (const star of stars) {
-        star.x -= 0.0005 * star.depth * dt;
-        star.y += 0.00025 * star.depth * dt;
+        star.x -= 0.0018 * star.depth * dt;
+        star.y += 0.0006 * star.depth * dt;
         if (star.x < -0.01) star.x = 1.01;
         if (star.y > 1.01) star.y = -0.01;
         const twinkle = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * star.speed + star.phase));
@@ -1533,6 +1536,134 @@ function constellation(ambient) {
           ctx.fillStyle = p.star;
           ctx.fillRect(star.x * w, star.y * h, star.size, star.size);
         }
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    },
+  };
+}
+
+
+/* --------------------------------------------------------------------------
+   Burbujas · baño de espuma y luz sumergida
+   -------------------------------------------------------------------------- */
+
+function bubbles(ambient) {
+  const p = ambient.palette;
+  const rimColors = p.bubble;
+  const light = p.light;
+
+  const bubbles = Array.from({ length: 34 }, (_, index) => ({
+    x: rand(0.05, 0.95),
+    y: rand(0.15, 1.1),
+    size: rand(0.025, 0.11),
+    speed: rand(0.018, 0.06),
+    sway: rand(0.004, 0.018),
+    phase: rand(0, TAU),
+    wobble: rand(0.4, 1.4),
+    color: rimColors[index % rimColors.length],
+    alpha: rand(0.22, 0.55),
+    depth: rand(0.4, 1),
+  }));
+
+  const foam = Array.from({ length: 70 }, () => ({
+    x: rand(0, 1),
+    y: rand(0.88, 1.03),
+    size: rand(0.006, 0.022),
+    speed: rand(0.004, 0.014),
+    phase: rand(0, TAU),
+    alpha: rand(0.05, 0.2),
+  }));
+
+  return {
+    draw(ctx, t, dt, w, h) {
+      background(ctx, w, h, p.water);
+      const unit = Math.min(w, h);
+
+      ctx.globalCompositeOperation = 'lighter';
+      glow(ctx, w * 0.3, h * 0.08, Math.max(w, h) * 0.9, p.light, 0.09);
+      glow(ctx, w * 0.82, h * 0.3, Math.max(w, h) * 0.8, p.bubble[1], 0.05);
+      glow(ctx, w * 0.5, h * 1.02, w * 1.4, p.bubble[1], 0.1);
+
+      // haces de luz que atraviesan el agua
+      for (let i = 0; i < 3; i++) {
+        const x = w * (0.18 + i * 0.3) + Math.sin(t * 0.06 + i) * w * 0.025;
+        const beam = ctx.createLinearGradient(x, 0, x + w * 0.12, h);
+        beam.addColorStop(0, rgba(light, 0));
+        beam.addColorStop(0.36, rgba(light, 0.045));
+        beam.addColorStop(1, rgba(light, 0));
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = beam;
+        ctx.beginPath();
+        ctx.moveTo(x - w * 0.035, 0);
+        ctx.lineTo(x + w * 0.035, 0);
+        ctx.lineTo(x + w * 0.16, h);
+        ctx.lineTo(x + w * 0.04, h);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // burbujas
+      ctx.globalCompositeOperation = 'source-over';
+      for (const bubble of bubbles) {
+        bubble.y -= bubble.speed * dt;
+        bubble.phase += bubble.wobble * dt;
+        if (bubble.y < -0.12) {
+          bubble.y = rand(1.02, 1.16);
+          bubble.x = rand(0.05, 0.95);
+          bubble.size = rand(0.025, 0.11);
+          bubble.alpha = rand(0.22, 0.55);
+        }
+        if (bubble.x < 0.02) bubble.x = 0.98;
+        if (bubble.x > 0.98) bubble.x = 0.02;
+        const x = (bubble.x + Math.sin(bubble.phase) * bubble.sway) * w;
+        const y = bubble.y * h;
+        const radius = Math.max(2, unit * bubble.size);
+
+        ctx.globalAlpha = bubble.alpha * 0.35;
+        glow(ctx, x, y, radius * 3.4, bubble.color, 0.12);
+        ctx.globalAlpha = 1;
+
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, TAU);
+        ctx.fillStyle = rgba(bubble.color, 0.035);
+        ctx.fill();
+        ctx.strokeStyle = rgba(bubble.color, bubble.alpha);
+        ctx.lineWidth = Math.max(1, radius * 0.035);
+        ctx.stroke();
+
+        // reflejo interior
+        ctx.beginPath();
+        ctx.arc(x - radius * 0.26, y - radius * 0.28, radius * 0.62, Math.PI * 1.02, Math.PI * 1.55);
+        ctx.strokeStyle = rgba(light, bubble.alpha * 0.9);
+        ctx.lineWidth = Math.max(0.8, radius * 0.025);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(x - radius * 0.3, y - radius * 0.34, Math.max(0.8, radius * 0.07), 0, TAU);
+        ctx.fillStyle = rgba(light, bubble.alpha * 0.9);
+        ctx.fill();
+      }
+
+      // espuma y microburbujas en la superficie inferior
+      ctx.globalCompositeOperation = 'lighter';
+      for (const mote of foam) {
+        mote.y -= mote.speed * dt;
+        if (mote.y < 0.82) {
+          mote.y = rand(0.9, 1.05);
+          mote.x = rand(0, 1);
+        }
+        const x = (mote.x + Math.sin(t * 0.45 + mote.phase) * 0.006) * w;
+        const y = mote.y * h;
+        ctx.globalAlpha = mote.alpha * (0.5 + 0.5 * Math.sin(t * 0.8 + mote.phase));
+        ctx.fillStyle = light;
+        const s = Math.max(1, unit * mote.size);
+        ctx.beginPath();
+        ctx.arc(x, y, s, 0, TAU);
+        ctx.strokeStyle = rgba(light, 0.18);
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
       }
 
       ctx.globalAlpha = 1;
@@ -1556,6 +1687,7 @@ export const THEMES = {
   forest,
   night,
   constellation,
+  bubbles,
 };
 
 /** Tema de reserva si la animación configurada no existe. */

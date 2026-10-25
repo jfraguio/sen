@@ -1,8 +1,8 @@
 # sen
 
-**En línea:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/>
+**En línea:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/> · **Laboratorio:** <https://fraguio.com/sen/sounds/>
 
-Luz y sonido para descansar. Trece ambientes de diez minutos, sin cuentas, sin
+Luz y sonido para descansar. Catorce ambientes de diez minutos, sin cuentas, sin
 ajustes y sin distracciones: eliges un tema, la pantalla se llena de color y el
 audio suena en bucle hasta completar la sesión.
 
@@ -47,6 +47,22 @@ funciona también en `usuario.github.io/repositorio/`.
 | Bichos    | pradera, hierba y luciérnagas                              | `bichos.wav`       |
 | Bosque    | troncos, rayos de luz y hojas                              | `bosque.wav`       |
 | Noche     | luna, colinas, estrellas y luciérnagas                     | `noche.wav`        |
+| Burbujas  | baño de espuma, borboteo y luz sumergida                  | `burbujas.wav`     |
+
+## Laboratorio de sonido
+
+La app incluye un laboratorio en **`/sounds/`** (también accesible por `/sound/`)
+para crear variaciones de los ambientes sin tocar código:
+
+- subir o bajar el ruido ambiente,
+- añadir bichos, pájaros, lluvia, viento, olas o burbujas,
+- cambiar la velocidad de las olas,
+- ajustar el brillo y el volumen general,
+- escuchar la mezcla en directo,
+- descargar los parámetros en un JSON (`sen-lab/1`) con nombre y notas.
+
+Ese JSON es lo que puedes enviarme para que replique una variación en la app.
+El laboratorio y el banco de versiones largas viven en `sounds/`.
 
 ## Estructura
 
@@ -57,15 +73,21 @@ assets/
   favicon.svg
 scripts/
   make-placeholder-audio.mjs
+sounds/
+  index.html        laboratorio de mezclas
+  lab.js / lab.css
+  generados/        versiones largas sintéticas (10 min)
 src/
-  config/ambients.js   ← toda la configuración de los ambientes
+  config/
+    ambients.js     ← configuración de los ambientes
+    icons.js        iconos SVG del menú
   core/
-    session.js         reloj de 10 min, pausa y fundidos
-    audio.js           bucle y volumen con Web Audio
-    wake-lock.js       Screen Wake Lock API
+    session.js      reloj de 10 min, pausa y fundidos
+    audio.js        bucle y volumen con Web Audio
+    wake-lock.js    Screen Wake Lock API
   render/
-    engine.js          canvas a pantalla completa
-    themes.js          las trece animaciones
+    engine.js       canvas a pantalla completa
+    themes.js       las catorce animaciones
   styles/main.css
 ```
 
@@ -88,7 +110,7 @@ Para añadir un ambiente nuevo:
 2. Deja el audio en `assets/audio/` con el nombre que indiques.
 3. Usa una animación existente, o crea una fábrica en `src/render/themes.js`
    y regístrala en el objeto `THEMES`.
-4. Si el menú ya tiene sus 13 nodos, añade una posición en `NODE_LAYOUT` y el
+4. Si el menú ya tiene sus 14 nodos, añade una posición en `NODE_LAYOUT` y el
    recorrido de la línea en `NODE_PATH`, ambos en `src/main.js`.
 
 El menú de constelación, los colores de cada nodo y el resto de la interfaz se
@@ -96,7 +118,7 @@ generan automáticamente a partir de esa lista.
 
 ### Audios generados
 
-Los 13 WAV incluidos están sintetizados por
+Los 14 WAV incluidos están sintetizados por
 `scripts/make-placeholder-audio.mjs`; la app no depende de grabaciones
 externas. Para regenerarlos:
 
@@ -108,7 +130,7 @@ También puedes sustituir un WAV por una pista propia manteniendo el nombre en
 `assets/audio` (o actualizando la ruta en la configuración).
 
 También hay un modo largo que genera versiones de **10 minutos** de los mismos
-trece ambientes (MP3 mono, 64 kbps) en `sounds/generados/`, con su propio
+catorce ambientes (MP3 mono, 64 kbps) en `sounds/generados/`, con su propio
 reproductor. La app usa los WAV de `assets/audio/`; este banco es la versión
 larga para escuchar y comparar. Se incluye en el repositorio y se publica en
 `/sounds/generados/`:
@@ -128,15 +150,14 @@ pista, así que no se limita a repetir el bucle de 16 segundos.
 - Al terminar, la pantalla queda casi negra unos segundos y vuelve a la
   menú principal.
 - **Terminar a mano** aplica un fundido de unos 2 segundos.
-- Un toque en la escena muestra los controles (tiempo restante, pausa/reanudar
-  y terminar); se ocultan solos a los 4 segundos.
+- Un toque en la escena termina la sesión con fundido y vuelve al menú. No hay
+  controles inferiores.
 - Durante la sesión se solicita un **Screen Wake Lock**. Si el navegador no lo
   admite, la app funciona igual.
 - Se respeta **`prefers-reduced-motion`**: la animación se detiene en una
   composición estática, mientras la sesión y el audio continúan.
-- Atajos cuando no hay un botón enfocado: `Espacio` pausa/reanuda y `Esc`
-  termina la sesión. El botón Atrás del móvil también termina la sesión con
+- `Esc` termina la sesión. El botón Atrás del móvil también la termina con
   fundido.
 
-La duración, los fundidos y el tiempo de ocultación de los controles se pueden
-ajustar en `APP`, al principio de `src/config/ambients.js`.
+La duración y los fundidos se pueden ajustar en `APP`, al principio de
+`src/config/ambients.js`.

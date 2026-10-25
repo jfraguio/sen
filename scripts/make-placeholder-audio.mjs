@@ -554,6 +554,59 @@ function meditacion() {
   return master(raw, 0.38);
 }
 
+function burbujas() {
+  const raw = make();
+
+  const water = make();
+  mixNoise(water, 1);
+  lowpass(water, 900);
+  highpass(water, 90);
+  breathe(water, LONG ? 1 / 21 : 1 / 5, 0.4, 0.3);
+  add(raw, water, 0.2);
+
+  const low = make();
+  brown(low, 1.1);
+  lowpass(low, 180);
+  add(raw, low, 0.28);
+
+  const bubbles = LONG ? Math.round(70 * SCALE) : 70;
+  for (let i = 0; i < bubbles; i++) {
+    const at = rand(0, SECONDS - 0.4);
+    const startFreq = rand(250, 900);
+    const duration = rand(0.05, 0.2);
+    addChirp(raw, at, duration, startFreq, startFreq * rand(1.3, 2.3), rand(0.022, 0.052), {
+      decay: rand(2.4, 4.4),
+      harmonic: 0.14,
+    });
+    if (Math.random() < 0.18) {
+      addChirp(raw, at + rand(0.02, 0.09), duration * 1.4, startFreq * 0.4, startFreq * 0.75, rand(0.01, 0.022), {
+        decay: 3.2,
+        harmonic: 0.08,
+      });
+    }
+  }
+
+  const fizz = make();
+  mixNoise(fizz, 1);
+  highpass(fizz, 2400);
+  breathe(fizz, LONG ? 1 / 34 : 1 / 7, 0.5, 1.4);
+  add(raw, fizz, 0.028);
+
+  const pops = LONG ? Math.round(24 * SCALE) : 24;
+  for (let i = 0; i < pops; i++) {
+    const at = rand(0, SECONDS - 0.2);
+    const freq = rand(900, 1900);
+    addChirp(raw, at, rand(0.025, 0.07), freq, freq * rand(1.1, 1.8), rand(0.012, 0.03), {
+      decay: 4,
+      harmonic: 0.1,
+    });
+  }
+
+  breathe(raw, LONG ? 1 / 47 : 1 / 9, 0.18);
+  lowpass(raw, 6800);
+  return master(raw, 0.42);
+}
+
 function pajaros() {
   const raw = make();
 
@@ -748,6 +801,7 @@ const tracks = {
   espacio,
   cuento,
   meditacion,
+  burbujas,
   pajaros,
   bichos,
   bosque,
@@ -764,6 +818,7 @@ const longInfo = {
   espacio: { title: 'Espacio', description: 'Drones graves, polvo estelar y destellos.', accent: '#a48bff' },
   cuento: { title: 'Cuento', description: 'Kalimba, pads y melodías oníricas.', accent: '#ffd08a' },
   meditacion: { title: 'Meditación', description: 'Drone profundo, respiración y cuencos.', accent: '#9dded8' },
+  burbujas: { title: 'Burbujas', description: 'Baño de espuma, borboteo y agua cálida.', accent: '#8fe9e3' },
   pajaros: { title: 'Pájaros', description: 'Trinos, hojas y luz de amanecer.', accent: '#e6d891' },
   bichos: { title: 'Bichos', description: 'Grillos, cigarras y luciérnagas.', accent: '#d7e08f' },
   bosque: { title: 'Bosque', description: 'Hojas, ramas y sombra verde.', accent: '#9ed6a0' },

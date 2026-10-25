@@ -19,7 +19,6 @@ export const APP = {
   fadeOutMs: 30 * 1000, // fundido de audio y luz en los últimos 30 s
   holdAfterEndMs: 4000, // pantalla casi negra antes de volver a la cuadrícula
   manualFadeMs: 2000, // fundido al terminar a mano
-  controlsHideMs: 4000, // ocultación automática de los controles
   audioVolume: 0.9,
   audioFadeInMs: 1400,
 };
@@ -29,10 +28,10 @@ export const APP = {
  *   id         identificador estable (también se usa en el hash de la URL)
  *   name       nombre visible
  *   hint       descripción breve para el menú
- *   icon       rutas SVG (viewBox 0 0 24 24)
+ *   icon       clave del icono en src/config/icons.js
  *   audio      ruta local al archivo de audio en bucle
  *   animation  clave de la animación en src/render/themes.js
- *   accent     color de acento para el botón y los controles
+ *   accent     color de acento del nodo y del progreso
  *   palette    colores concretos que usa la animación
  */
 export const ambients = [
@@ -40,10 +39,7 @@ export const ambients = [
     id: 'lluvia',
     name: 'Lluvia',
     hint: 'agua y ventana',
-    icon: [
-      'M7 15h9.5a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 6.3 9.2 3.4 3.4 0 0 0 7 15Z',
-      'M8.5 18.5l-.7 2.2M12 18.5l-.7 2.2M15.5 18.5l-.7 2.2',
-    ],
+    icon: 'lluvia',
     audio: 'assets/audio/lluvia.wav',
     animation: 'rain',
     accent: '#8fbdff',
@@ -57,10 +53,7 @@ export const ambients = [
     id: 'tormenta',
     name: 'Tormenta',
     hint: 'truenos y viento',
-    icon: [
-      'M7 14.5h9.5a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 6.3 8.7 3.4 3.4 0 0 0 7 14.5Z',
-      'M12.8 16l-2.6 3.6h3L12 23',
-    ],
+    icon: 'tormenta',
     audio: 'assets/audio/tormenta.wav',
     animation: 'storm',
     accent: '#a99bff',
@@ -75,9 +68,7 @@ export const ambients = [
     id: 'fuego',
     name: 'Fuego',
     hint: 'brasas y calor',
-    icon: [
-      'M12 3.2c2.6 3.4 5 5.5 5 9.1a5 5 0 0 1-10 0c0-2 .9-3.6 2.4-5.2.2 1.7 1 2.8 2.1 3.3.1-2.7.3-4.7.5-7.2Z',
-    ],
+    icon: 'fuego',
     audio: 'assets/audio/fuego.wav',
     animation: 'fire',
     accent: '#ffa45c',
@@ -90,10 +81,7 @@ export const ambients = [
     id: 'mar',
     name: 'Mar',
     hint: 'olas y espuma',
-    icon: [
-      'M2.5 9.5c2-2.4 4-2.4 6 0s4 2.4 6 0 4-2.4 4 0',
-      'M2.5 15c2-2.4 4-2.4 6 0s4 2.4 6 0 4-2.4 4 0',
-    ],
+    icon: 'mar',
     audio: 'assets/audio/mar.wav',
     animation: 'sea',
     accent: '#5cebd5',
@@ -108,11 +96,7 @@ export const ambients = [
     id: 'rio',
     name: 'Río',
     hint: 'corriente y piedras',
-    icon: [
-      'M10 3c0 5 6 5 6 9s-6 4-6 9',
-      'M17.5 5.5l.01 0',
-      'M6.5 18.5l.01 0',
-    ],
+    icon: 'rio',
     audio: 'assets/audio/rio.wav',
     animation: 'river',
     accent: '#79e8b7',
@@ -127,11 +111,7 @@ export const ambients = [
     id: 'viento',
     name: 'Viento',
     hint: 'ráfagas y hojas',
-    icon: [
-      'M3 8.5h9.5a2.8 2.8 0 1 0-2.8-2.8',
-      'M3 12.5h13.5a2.8 2.8 0 1 1-2.8 2.8',
-      'M3 16.5h6',
-    ],
+    icon: 'viento',
     audio: 'assets/audio/viento.wav',
     animation: 'wind',
     accent: '#b7d8d3',
@@ -146,11 +126,7 @@ export const ambients = [
     id: 'espacio',
     name: 'Espacio',
     hint: 'deriva y estrellas',
-    icon: [
-      'M15.6 4.2a7.6 7.6 0 1 0 4.2 10.9 6.6 6.6 0 0 1-4.2-10.9Z',
-      'M6 4.5v2.6M4.7 5.8h2.6',
-      'M18.6 15.4v2.4M17.4 16.6h2.4',
-    ],
+    icon: 'espacio',
     audio: 'assets/audio/espacio.wav',
     animation: 'space',
     accent: '#a48bff',
@@ -164,11 +140,7 @@ export const ambients = [
     id: 'cuento',
     name: 'Cuento',
     hint: 'imaginar',
-    icon: [
-      'M12 6.6C10 4.9 7.5 4.6 4.4 4.9v13.4c3.1-.3 5.6 0 7.6 1.7 2-1.7 4.5-2 7.6-1.7V4.9c-3.1-.3-5.6 0-7.6 1.7Z',
-      'M12 6.6v13.4',
-      'M17.5 2.8v2.4M16.3 4h2.4',
-    ],
+    icon: 'cuento',
     audio: 'assets/audio/cuento.wav',
     animation: 'story',
     accent: '#ffd08a',
@@ -181,11 +153,7 @@ export const ambients = [
     id: 'meditacion',
     name: 'Meditación',
     hint: 'respirar',
-    icon: [
-      'M12 4a8 8 0 1 1 0 16 8 8 0 0 1 0-16Z',
-      'M12 8.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6Z',
-      'M12 12h.01',
-    ],
+    icon: 'meditacion',
     audio: 'assets/audio/meditacion.wav',
     animation: 'meditation',
     accent: '#9dded8',
@@ -198,13 +166,7 @@ export const ambients = [
     id: 'pajaros',
     name: 'Pájaros',
     hint: 'amanecer',
-    icon: [
-      'M6.5 14.8c1.8-4 4.2-6 7.2-6 2.4 0 4 1.5 4 3.4 0 2.9-3.4 5.5-7.2 5.5-1.6 0-3-.3-4-1.1v-1.8Z',
-      'M17.7 9.9l2.8-1.2-2 2.6',
-      'M14.6 10.8h.01',
-      'M9.4 17.7v2.1M13 17.7v2.1',
-      'M7.5 13.6 4.8 12l1.2 3.2',
-    ],
+    icon: 'pajaros',
     audio: 'assets/audio/pajaros.wav',
     animation: 'birds',
     accent: '#e6d891',
@@ -219,13 +181,7 @@ export const ambients = [
     id: 'bichos',
     name: 'Bichos',
     hint: 'grillos y luciérnagas',
-    icon: [
-      'M12 8.2a5 5 0 0 1 5 5v1.6a4.2 4.2 0 0 1-4.2 4.2h-1.6A4.2 4.2 0 0 1 7 14.8v-1.6a5 5 0 0 1 5-5Z',
-      'M12 8.2v10.8',
-      'M9.6 8.1C8.6 6 7.5 5.4 6.2 5.5M14.4 8.1c1-2.1 2.1-2.7 3.4-2.6',
-      'M7 12H4M7 16.5H4M17 12h3M17 16.5h3',
-      'M9.7 10.7h.01M14.3 10.7h.01',
-    ],
+    icon: 'bichos',
     audio: 'assets/audio/bichos.wav',
     animation: 'bugs',
     accent: '#d7e08f',
@@ -240,11 +196,7 @@ export const ambients = [
     id: 'bosque',
     name: 'Bosque',
     hint: 'hojarasca',
-    icon: [
-      'M12 3l6 9h-4l3.5 5h-11L10 12H6l6-9Z',
-      'M12 17v4',
-      'M3 21c3-1.5 5.5-1.5 9 0 3.5-1.5 6-1.5 9 0',
-    ],
+    icon: 'bosque',
     audio: 'assets/audio/bosque.wav',
     animation: 'forest',
     accent: '#9ed6a0',
@@ -259,11 +211,7 @@ export const ambients = [
     id: 'noche',
     name: 'Noche',
     hint: 'luna y luciérnagas',
-    icon: [
-      'M15.8 4.4a6.4 6.4 0 1 0 4 10.6 7.2 7.2 0 0 1-4-10.6Z',
-      'M17.5 4v2M16.5 5h2',
-      'M3 20c3-4 5.5-4 8.5 0 2.5-3 5-3 7.5 0',
-    ],
+    icon: 'noche',
     audio: 'assets/audio/noche.wav',
     animation: 'night',
     accent: '#9fb2d9',
@@ -272,6 +220,20 @@ export const ambients = [
       moon: '#e6ecff',
       hill: '#010307',
       firefly: '#ffdf9a',
+    },
+  },
+  {
+    id: 'burbujas',
+    name: 'Burbujas',
+    hint: 'baño de espuma',
+    icon: 'burbujas',
+    audio: 'assets/audio/burbujas.wav',
+    animation: 'bubbles',
+    accent: '#8fe9e3',
+    palette: {
+      water: ['#031218', '#06363f', '#02080c'],
+      bubble: ['#c7fbff', '#7fe8e0', '#ffd6f5'],
+      light: '#eaffff',
     },
   },
 ];

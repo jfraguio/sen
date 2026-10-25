@@ -1,4 +1,5 @@
 import { APP, ambients, hexToRgb } from './config/ambients.js';
+import { iconSvg } from './config/icons.js';
 import { AmbientRenderer } from './render/engine.js';
 import { Session } from './core/session.js';
 import { AmbientAudio } from './core/audio.js';
@@ -8,13 +9,8 @@ const els = {
   grid: document.getElementById('grid'),
   stage: document.getElementById('stage'),
   dim: document.getElementById('dim'),
-  controls: document.getElementById('controls'),
-  time: document.getElementById('time'),
-  pause: document.getElementById('pause'),
-  end: document.getElementById('end'),
   note: document.getElementById('note'),
   live: document.getElementById('live'),
-  ambientName: document.getElementById('ambient-name'),
   progress: document.getElementById('progress'),
   ambientCount: document.getElementById('ambient-count'),
   lines: document.getElementById('constellation-lines'),
@@ -47,25 +43,19 @@ const NODE_LAYOUT = [
   [27, 63],
   [59, 61],
   [87, 66],
-  [37, 81],
-  [69, 84],
+  [18, 80],
+  [50, 82],
+  [82, 84],
 ];
 
 /* Índices en el orden en que se dibuja la línea que une los nodos. */
-const NODE_PATH = [0, 1, 2, 4, 3, 5, 6, 7, 10, 9, 8, 11, 12];
+const NODE_PATH = [0, 1, 2, 4, 3, 5, 6, 7, 10, 9, 8, 11, 12, 13];
 
 let active = null;
-let hideTimer = 0;
 
 /* --------------------------------------------------------------------------
    Cuadrícula
    -------------------------------------------------------------------------- */
-
-function iconMarkup(paths) {
-  return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths
-    .map((d) => `<path d="${d}"></path>`)
-    .join('')}</svg>`;
-}
 
 function smoothPath(points) {
   if (points.length < 2) return '';
@@ -118,7 +108,7 @@ function buildGrid() {
     button.title = ambient.hint;
     button.setAttribute('aria-label', `${ambient.name}: ${ambient.hint}. Comenzar una sesión de diez minutos`);
     button.innerHTML = `
-      <span class="node__icon" aria-hidden="true">${iconMarkup(ambient.icon)}</span>
+      <span class="node__icon" aria-hidden="true">${iconSvg(ambient.icon)}</span>
       <span class="node__label">${ambient.name}</span>
     `;
     button.addEventListener('click', () => startSession(ambient, button));
@@ -143,11 +133,9 @@ function startSession(ambient, trigger) {
     trigger,
     session: null,
     phase: 'idle',
-    paused: false,
     ending: false,
     finishing: false,
     audioFailed: false,
-    lastTime: '',
     noteTimer: 0,
   };
 
@@ -155,18 +143,13 @@ function startSession(ambient, trigger) {
 
   document.body.classList.add('is-session');
   els.stage.hidden = false;
-  els.stage.classList.remove('is-leaving', 'is-clean', 'is-paused');
+  els.stage.classList.remove('is-leaving');
   els.stage.setAttribute('aria-hidden', 'false');
-  els.stage.setAttribute('aria-label', `Sesión de ${ambient.name}`);
+  els.stage.setAttribute('aria-label', `Sesión de ${ambient.name}. Toca para volver al menú.`);
   els.stage.style.setProperty('--accent', ambient.accent);
   els.dim.style.opacity = '0';
   els.progress.style.width = '0%';
-  els.ambientName.textContent = ambient.name;
-  els.time.textContent = formatTime(APP.durationMs);
   els.note.hidden = true;
-  els.pause.disabled = false;
-  els.end.disabled = false;
-  els.pause.setAttribute('aria-label', 'Pausar');
   els.live.textContent = `Sesión de ${ambient.name}. Diez minutos.`;
 
   els.stage.focus({ preventScroll: true });
@@ -190,8 +173,6 @@ function startSession(ambient, trigger) {
   } catch {
     /* sites embebidos o file:// pueden bloquear el historial */
   }
-
-  showControls();
 }
 
 function updateSession(token, snapshot) {
@@ -203,45 +184,15 @@ function updateSession(token, snapshot) {
   els.dim.style.opacity = snapshot.light.toFixed(4);
   els.progress.style.width = `${Math.min(100, (snapshot.elapsed / (APP.durationMs / 1000)) * 100).toFixed(2)}%`;
 
-  const label = formatTime(snapshot.remainingMs);
-  if (label !== active.lastTime) {
-    active.lastTime = label;
-    els.time.textContent = label;
-  }
-
-  if (snapshot.paused !== active.paused) {
-    active.paused = snapshot.paused;
-    els.stage.classList.toggle('is-paused', snapshot.paused);
-    if (snapshot.paused) {
-      audio.pause();
-      renderer.pause();
-      els.pause.setAttribute('aria-label', 'Reanudar');
-      els.live.textContent = 'Sesión en pausa.';
-      showControls();
-    } else {
-      audio.resume();
-      renderer.resume();
-      els.pause.setAttribute('aria-label', 'Pausar');
-      els.live.textContent = 'Sesión reanudada.';
-      showControls();
-    }
-  }
-
   if (snapshot.phase !== active.phase) {
     active.phase = snapshot.phase;
 
     if (snapshot.phase === 'hold') {
       active.ending = true;
       audio.stop();
-      hideControls();
-      els.pause.disabled = true;
-      els.end.disabled = true;
       els.live.textContent = 'La sesión ha terminado.';
     } else if (snapshot.phase === 'manual') {
       active.ending = true;
-      hideControls();
-      els.pause.disabled = true;
-      els.end.disabled = true;
       els.live.textContent = 'Terminando la sesión.';
     }
   }
@@ -252,9 +203,6 @@ function requestEnd() {
   const started = active.session.end();
   if (!started) return;
   active.ending = true;
-  els.pause.disabled = true;
-  els.end.disabled = true;
-  hideControls();
   els.live.textContent = 'Terminando la sesión.';
 }
 
@@ -267,9 +215,7 @@ function finishSession(token, reason) {
   wakeLock.release();
   active.session?.dispose();
   active.session = null;
-  window.clearTimeout(hideTimer);
   window.clearTimeout(active.noteTimer);
-  hideControls();
   els.note.hidden = true;
 
   if (history.state && history.state.sen) {
@@ -286,44 +232,16 @@ function finishSession(token, reason) {
   window.setTimeout(() => {
     if (!active || active.token !== token) return;
     els.stage.hidden = true;
-    els.stage.classList.remove('is-leaving', 'is-paused');
+    els.stage.classList.remove('is-leaving');
     els.stage.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('is-session');
     els.dim.style.opacity = '0';
     els.progress.style.width = '0%';
-    els.ambientName.textContent = '—';
     renderer.stop();
     menuRenderer.resume();
     active = null;
     trigger?.focus?.({ preventScroll: true });
   }, 440);
-}
-
-/* --------------------------------------------------------------------------
-   Controles
-   -------------------------------------------------------------------------- */
-
-function showControls({ autoHide = true } = {}) {
-  if (!active || active.ending) return;
-  window.clearTimeout(hideTimer);
-  els.controls.classList.add('is-visible');
-  els.controls.removeAttribute('inert');
-  els.controls.setAttribute('aria-hidden', 'false');
-  els.stage.classList.remove('is-clean');
-  if (autoHide && !active.paused) {
-    hideTimer = window.setTimeout(() => hideControls(), APP.controlsHideMs);
-  }
-}
-
-function hideControls() {
-  window.clearTimeout(hideTimer);
-  els.controls.classList.remove('is-visible');
-  els.controls.setAttribute('aria-hidden', 'true');
-  els.controls.setAttribute('inert', '');
-  if (els.controls.contains(document.activeElement)) {
-    els.stage.focus({ preventScroll: true });
-  }
-  els.stage.classList.add('is-clean');
 }
 
 function notifyAudioFailure(token) {
@@ -339,47 +257,20 @@ function notifyAudioFailure(token) {
   }, 8000);
 }
 
-function formatTime(ms) {
-  const total = Math.ceil(Math.max(0, ms) / 1000);
-  const minutes = Math.floor(total / 60);
-  const seconds = total % 60;
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
-
 /* --------------------------------------------------------------------------
    Eventos globales
    -------------------------------------------------------------------------- */
 
-els.stage.addEventListener('click', (event) => {
+els.stage.addEventListener('click', () => {
   if (!active || active.ending) return;
-  if (event.target.closest('.controls')) return;
-  if (els.controls.classList.contains('is-visible')) hideControls();
-  else showControls();
+  requestEnd();
 });
-
-els.controls.addEventListener('click', (event) => event.stopPropagation());
-
-els.pause.addEventListener('click', () => {
-  if (!active || active.ending || !active.session) return;
-  if (active.paused) active.session.resume();
-  else active.session.pause();
-  showControls();
-});
-
-els.end.addEventListener('click', () => requestEnd());
 
 document.addEventListener('keydown', (event) => {
   if (!active) return;
   if (event.key === 'Escape') {
     event.preventDefault();
     requestEnd();
-    return;
-  }
-  if (event.code === 'Space') {
-    const focused = document.activeElement;
-    if (focused && (focused.tagName === 'BUTTON' || focused.tagName === 'A')) return;
-    event.preventDefault();
-    if (!active.ending) els.pause.click();
   }
 });
 

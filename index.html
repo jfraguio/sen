@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#07080a" />
     <meta
       name="description"
-      content="sen: trece ambientes de luz y sonido para descansar. Sesiones de diez minutos."
+      content="sen: catorce ambientes de luz y sonido para descansar. Sesiones de diez minutos."
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -34,9 +34,11 @@
       </div>
 
       <footer class="foot">
-        <span id="ambient-count">13 ambientes</span>
+        <span id="ambient-count">14 ambientes</span>
         <span class="foot__dot" aria-hidden="true"></span>
         <span>10 min</span>
+        <span class="foot__dot" aria-hidden="true"></span>
+        <a class="foot__lab" href="sounds/">laboratorio</a>
       </footer>
 
       <noscript>
@@ -58,25 +60,6 @@
       <div class="stage__vignette" aria-hidden="true"></div>
       <div class="stage__progress" aria-hidden="true"><span id="progress"></span></div>
       <div class="stage__dim" id="dim" aria-hidden="true"></div>
-
-      <div class="controls" id="controls" role="group" aria-label="Controles de la sesión" aria-hidden="true" inert>
-        <span class="controls__ambient" id="ambient-name">—</span>
-        <span class="controls__time" id="time">10:00</span>
-        <span class="controls__rule" aria-hidden="true"></span>
-        <button class="ctrl" id="pause" type="button" aria-label="Pausar">
-          <svg class="ctrl__icon ctrl__icon--pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <path d="M9.5 6.5v11M14.5 6.5v11" />
-          </svg>
-          <svg class="ctrl__icon ctrl__icon--play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M9 6.4a.6.6 0 0 1 .9-.5l8 5.6a.6.6 0 0 1 0 1l-8 5.6a.6.6 0 0 1-.9-.5Z" />
-          </svg>
-        </button>
-        <button class="ctrl" id="end" type="button" aria-label="Terminar sesión">
-          <svg class="ctrl__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <path d="M7.5 7.5l9 9M16.5 7.5l-9 9" />
-          </svg>
-        </button>
-      </div>
 
       <p class="stage__note" id="note" hidden>Audio no disponible</p>
       <p class="sr-only" id="live" aria-live="polite"></p>
