@@ -1,8 +1,10 @@
 /**
- * Genera dos variantes sintéticas (02.wav y 03.wav) para cada ambiente.
- * La variante 01 es el WAV principal que ya vive en la carpeta.
+ * Genera las tres variantes (01.wav, 02.wav y 03.wav) de cada ambiente.
+ * Cada escena prioriza el carácter del sonido y deja un fondo mínimo.
  *
- * Uso: node scripts/make-audio-variants.mjs
+ * Uso:
+ *   node scripts/make-audio-variants.mjs
+ *   node scripts/make-audio-variants.mjs --only=bichos
  */
 
 import fs from 'node:fs';
@@ -10,95 +12,85 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderAmbient, SAMPLE_RATE } from '../lab/synth.js';
 
-const VARIANTS = {
-  lluvia: [
-    { intensity: 0.75, drops: 0.5, hiss: 0.45, wind: 0.15, brightness: 0.7 },
-    { intensity: 0.45, drops: 0.65, hiss: 0.65, wind: 0.35, brightness: 0.45 },
-  ],
-  tormenta: [
-    { rain: 0.7, thunder: 0.7, wind: 0.55, rumble: 0.65, brightness: 0.55 },
-    { rain: 0.4, thunder: 0.35, wind: 0.3, rumble: 0.75, brightness: 0.4 },
-  ],
-  fuego: [
-    { intensity: 0.75, crackle: 0.8, rumble: 0.4, flicker: 0.6, brightness: 0.65 },
-    { intensity: 0.35, crackle: 0.5, rumble: 0.7, flicker: 0.25, brightness: 0.4 },
-  ],
-  mar: [
-    { speed: 0.7, depth: 0.75, foam: 0.6, wind: 0.35, brightness: 0.65 },
-    { speed: 0.25, depth: 0.55, foam: 0.35, wind: 0.1, brightness: 0.4 },
-  ],
-  rio: [
-    { flow: 0.7, bubbles: 0.65, width: 0.6, air: 0.35, brightness: 0.65 },
-    { flow: 0.4, bubbles: 0.25, width: 0.4, air: 0.5, brightness: 0.45 },
-  ],
-  viento: [
-    { gust: 0.75, speed: 0.7, air: 0.6, brightness: 0.6 },
-    { gust: 0.3, speed: 0.3, air: 0.4, brightness: 0.4 },
-  ],
-  espacio: [
-    { drone: 0.62, shimmer: 0.3, movement: 0.45, brightness: 0.45, filterHz: 1000 },
-    { drone: 0.48, shimmer: 0.42, movement: 0.35, brightness: 0.55, filterHz: 1000 },
-  ],
-  cuento: [
-    { pads: 0.65, notes: 0.75, tempo: 0.65, sparkle: 0.55, brightness: 0.65 },
-    { pads: 0.4, notes: 0.35, tempo: 0.35, sparkle: 0.25, brightness: 0.45 },
-  ],
-  meditacion: [
-    { drone: 0.65, breath: 0.6, bowls: 0.65, brightness: 0.6 },
-    { drone: 0.4, breath: 0.25, bowls: 0.25, brightness: 0.4 },
-  ],
-  pajaros: [
-    { birds: 0.8, variety: 0.7, wind: 0.2, leaves: 0.3, brightness: 0.6 },
-    { birds: 0.4, variety: 0.35, wind: 0.45, leaves: 0.6, brightness: 0.45 },
-  ],
-  bichos: [
-    { crickets: 0.8, cicadas: 0.6, air: 0.25, brightness: 0.6 },
-    { crickets: 0.4, cicadas: 0.2, air: 0.5, brightness: 0.4 },
-  ],
-  bosque: [
-    { wind: 0.6, leaves: 0.7, birds: 0.55, rustle: 0.6, brightness: 0.6 },
-    { wind: 0.35, leaves: 0.4, birds: 0.2, rustle: 0.25, brightness: 0.4 },
-  ],
-  noche: [
-    { crickets: 0.75, owl: 0.5, wind: 0.25, drone: 0.55, brightness: 0.5 },
-    { crickets: 0.35, owl: 0.2, wind: 0.45, drone: 0.25, brightness: 0.3 },
-  ],
-  burbujas: [
-    { bubbles: 0.75, pops: 0.7, water: 0.6, fizz: 0.55, brightness: 0.6 },
-    { bubbles: 0.35, pops: 0.3, water: 0.4, fizz: 0.2, brightness: 0.4 },
-  ],
+const onlyArg = process.argv.find((arg) => arg.startsWith('--only='));
+const ONLY = onlyArg ? onlyArg.slice('--only='.length).split(',').map((id) => id.trim()) : null;
+
+/* Cada ambiente tiene tres escenas: 01, 02 y 03. */
+const BASE_VARIANTS = {
+  lluvia: { scene: 0 },
+  tormenta: { scene: 0 },
+  fuego: { scene: 0 },
+  mar: { scene: 0 },
+  rio: { scene: 0 },
+  viento: { scene: 0 },
+  espacio: { scene: 0 },
+  cuento: { scene: 0 },
+  meditacion: { scene: 0 },
+  pajaros: { scene: 0 },
+  bichos: { scene: 0 },
+  bosque: { scene: 0 },
+  noche: { scene: 0 },
+  burbujas: { scene: 0 },
 };
 
-function lowpass(data, freq, q = 0.707) {
-  const sampleRate = SAMPLE_RATE;
-  const w0 = (2 * Math.PI * freq) / sampleRate;
-  const cos = Math.cos(w0);
-  const sin = Math.sin(w0);
-  const alpha = sin / (2 * q);
-  const b0 = (1 - cos) / 2;
-  const b1 = 1 - cos;
-  const b2 = (1 - cos) / 2;
-  const a0 = 1 + alpha;
-  const a1 = -2 * cos;
-  const a2 = 1 - alpha;
-  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
-  for (let i = 0; i < data.length; i++) {
-    const x = data[i];
-    const y = (b0 / a0) * x + (b1 / a0) * x1 + (b2 / a0) * x2 - (a1 / a0) * y1 - (a2 / a0) * y2;
-    data[i] = y;
-    x2 = x1; x1 = x;
-    y2 = y1; y1 = y;
-  }
-  const cross = Math.floor(1.2 * sampleRate);
-  for (let i = 0; i < cross; i++) {
-    const w = i / cross;
-    data[i] = data[i] * w + data[data.length - cross + i] * (1 - w);
-  }
-  let peak = 0;
-  for (const sample of data) peak = Math.max(peak, Math.abs(sample));
-  const gain = peak > 0 ? 0.4 / peak : 1;
-  for (let i = 0; i < data.length; i++) data[i] *= gain;
-}
+const VARIANTS = {
+  lluvia: [
+    { scene: 1, intensity: 0.72, drops: 0.55, hiss: 0.4, brightness: 0.68 },
+    { scene: 2, intensity: 0.9, drops: 0.6, hiss: 0.45, wind: 0.4, brightness: 0.48 },
+  ],
+  tormenta: [
+    { scene: 1, rain: 0.7, thunder: 0.7, wind: 0.5, rumble: 0.65, brightness: 0.52 },
+    { scene: 2, rain: 0.5, thunder: 0.55, wind: 0.7, rumble: 0.5, brightness: 0.4 },
+  ],
+  fuego: [
+    { scene: 1, intensity: 0.75, crackle: 0.85, flicker: 0.65, brightness: 0.65 },
+    { scene: 2, intensity: 0.55, crackle: 0.6, rumble: 0.6, flicker: 0.4, brightness: 0.42 },
+  ],
+  mar: [
+    { scene: 1, speed: 0.65, depth: 0.78, foam: 0.6, wind: 0.25, brightness: 0.6 },
+    { scene: 2, speed: 0.45, depth: 0.95, foam: 0.85, wind: 0.4, brightness: 0.48 },
+  ],
+  rio: [
+    { scene: 1, flow: 0.8, bubbles: 0.75, width: 0.55, air: 0.25, brightness: 0.68 },
+    { scene: 2, flow: 0.5, bubbles: 0.4, width: 0.8, air: 0.2, brightness: 0.4 },
+  ],
+  viento: [
+    { scene: 1, gust: 0.8, speed: 0.7, air: 0.6, brightness: 0.55 },
+    { scene: 2, gust: 0.6, speed: 0.35, air: 0.7, brightness: 0.68 },
+  ],
+  espacio: [
+    { scene: 1, drone: 0.55, shimmer: 0.65, movement: 0.7, brightness: 0.55 },
+    { scene: 2, drone: 0.8, shimmer: 0.25, movement: 0.4, brightness: 0.35 },
+  ],
+  cuento: [
+    { scene: 1, pads: 0.5, notes: 0.8, tempo: 0.75, sparkle: 0.6, brightness: 0.65 },
+    { scene: 2, pads: 0.7, notes: 0.45, tempo: 0.3, sparkle: 0.2, brightness: 0.4 },
+  ],
+  meditacion: [
+    { scene: 1, drone: 0.6, breath: 0.7, bowls: 0.35, brightness: 0.5 },
+    { scene: 2, drone: 0.75, breath: 0.4, bowls: 0.8, brightness: 0.4 },
+  ],
+  pajaros: [
+    { scene: 1, birds: 0.9, variety: 0.8, leaves: 0.3, wind: 0.15, brightness: 0.6 },
+    { scene: 2, birds: 0.4, variety: 0.45, leaves: 0.45, wind: 0.4, brightness: 0.4 },
+  ],
+  bichos: [
+    { scene: 1, crickets: 0.78, cicadas: 0.32, air: 0.18, brightness: 0.58 },
+    { scene: 2, crickets: 0.72, cicadas: 0.5, air: 0.12, brightness: 0.44 },
+  ],
+  bosque: [
+    { scene: 1, wind: 0.7, leaves: 0.8, rustle: 0.7, birds: 0.2, brightness: 0.55 },
+    { scene: 2, wind: 0.25, leaves: 0.4, rustle: 0.3, birds: 0.75, brightness: 0.62 },
+  ],
+  noche: [
+    { scene: 1, crickets: 0.85, owl: 0.25, wind: 0.15, drone: 0.25, brightness: 0.5 },
+    { scene: 2, crickets: 0.4, owl: 0.7, wind: 0.25, drone: 0.6, brightness: 0.35 },
+  ],
+  burbujas: [
+    { scene: 1, bubbles: 0.85, pops: 0.8, fizz: 0.7, water: 0.4, brightness: 0.65 },
+    { scene: 2, bubbles: 0.5, pops: 0.25, water: 0.7, fizz: 0.15, brightness: 0.35 },
+  ],
+};
 
 function writeWav(file, samples) {
   const buffer = Buffer.alloc(44 + samples.length * 2);
@@ -126,16 +118,22 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const audioRoot = path.join(here, '..', 'assets', 'audio');
 
 for (const [id, variants] of Object.entries(VARIANTS)) {
+  if (ONLY && !ONLY.includes(id)) continue;
   const dir = path.join(audioRoot, id);
   fs.mkdirSync(dir, { recursive: true });
+
+  if (BASE_VARIANTS[id]) {
+    const file = path.join(dir, '01.wav');
+    writeWav(file, renderAmbient(id, BASE_VARIANTS[id]));
+    console.log(`${id}/01.wav ${(fs.statSync(file).size / 1024).toFixed(0)} KB`);
+  }
+
   variants.forEach((variant, index) => {
     const file = path.join(dir, `${String(index + 2).padStart(2, '0')}.wav`);
-    const { filterHz, ...params } = variant;
-    const samples = renderAmbient(id, params);
-    if (filterHz) lowpass(samples, filterHz);
+    const samples = renderAmbient(id, variant);
     writeWav(file, samples);
     console.log(`${id}/${path.basename(file)} ${(fs.statSync(file).size / 1024).toFixed(0)} KB`);
   });
 }
 
-console.log('\nListo: variantes 02 y 03 generadas.');
+console.log('\nListo: las tres variantes están generadas.');

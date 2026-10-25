@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#07080a" />
     <meta
       name="description"
-      content="sen: catorce ambientes de luz y sonido para descansar. Sesiones de 1 a 120 minutos."
+      content="sen: catorce ambientes de luz y sonido para descansar. Sesiones de 10, 15 o 30 minutos."
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -42,7 +42,7 @@
           aria-expanded="false"
           aria-controls="duration-pop"
           aria-label="Duración de la sesión: 10 minutos"
-        >10 min</button>
+        >10 minutos</button>
       </footer>
 
       <section class="duration-pop" id="duration-pop" role="dialog" aria-label="Duración de la sesión" hidden>
@@ -51,11 +51,6 @@
           <button class="duration-pop__close" id="duration-close" type="button" aria-label="Cerrar">×</button>
         </div>
         <div class="duration-options" id="duration-options" role="group" aria-label="Minutos"></div>
-        <label class="duration-custom" for="duration-custom">
-          <span>Otro</span>
-          <input id="duration-custom" type="number" min="1" max="120" step="1" inputmode="numeric" />
-          <span>min</span>
-        </label>
         <p class="duration-note">La sesión termina con un fundido de 30 segundos.</p>
       </section>
 

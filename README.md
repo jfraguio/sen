@@ -2,7 +2,7 @@
 
 **En línea:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/> · **Laboratorio:** <https://fraguio.com/sen/lab/>
 
-Luz y sonido para descansar. Catorce ambientes con sesiones de 1 a 120 minutos, sin cuentas, sin
+Luz y sonido para descansar. Catorce ambientes con sesiones de 10, 15 o 30 minutos, sin cuentas, sin
 ajustes y sin distracciones: eliges un tema, la pantalla se llena de color y el
 audio suena en bucle hasta completar la sesión.
 
@@ -126,31 +126,37 @@ Para añadir un ambiente nuevo:
 El menú de constelación, los colores de cada nodo y el resto de la interfaz se
 generan automáticamente a partir de esa lista.
 
-### Audios generados y variantes
+### Audios generados y escenas
 
 Cada ambiente tiene su propia carpeta en `assets/audio/<id>/` con **tres
-alternativas**: `01.wav`, `02.wav` y `03.wav`. La variante 01 conserva el
-sonido principal; 02 y 03 son variaciones sintéticas. La app comprueba cuáles
-existen al iniciar una sesión y **elige una al azar**.
+escenas**: `01.wav`, `02.wav` y `03.wav`. No son tres copias: cada una tiene
+un patrón distinto del mismo ambiente (unas gotas más cercanas, otro oleaje,
+otros trinos…). La app comprueba cuáles existen al iniciar una sesión y
+**elige una al azar**.
 
-Puedes borrar las que no te gusten: en la siguiente recarga solo se tendrán en
-cuenta las que queden. Si dejas una sola, siempre sonará esa. Si borras la
-carpeta entera, la sesión continúa solo con luz y avisa de que no hay audio.
+La síntesis prioriza el carácter de cada ambiente —las gotas, el trueno, el
+chasquido, la ola, el trino— y deja el ruido de fondo en un segundo plano.
+Puedes borrar las escenas que no te gusten: en la siguiente recarga solo se
+tendrán en cuenta las que queden. Si dejas una sola, siempre sonará esa. Si
+borras la carpeta entera, la sesión continúa solo con luz y avisa de que no
+hay audio.
 
-Para regenerar la variante 01:
-
-```bash
-node scripts/make-placeholder-audio.mjs
-```
-
-Para regenerar las variantes 02 y 03:
+Para regenerar las tres escenas de todos los ambientes:
 
 ```bash
 node scripts/make-audio-variants.mjs
 ```
 
-También puedes añadir tus propios WAV manteniendo los nombres `01.wav`,
-`02.wav` y `03.wav`.
+Para regenerar solo un ambiente:
+
+```bash
+node scripts/make-audio-variants.mjs --only=lluvia
+```
+
+La variante 01 también se puede regenerar con
+`node scripts/make-placeholder-audio.mjs`, que usa la misma síntesis del
+laboratorio. También puedes añadir tus propios WAV manteniendo los nombres
+`01.wav`, `02.wav` y `03.wav`.
 
 También hay un modo largo que genera versiones de **10 minutos** de los mismos
 catorce ambientes (MP3 mono, 64 kbps) en `sounds/generados/`, con su propio
@@ -167,8 +173,8 @@ pista, así que no se limita a repetir el bucle de 16 segundos.
 
 ## Comportamiento de la sesión
 
-- La duración se elige desde el botón **`10 min`** del menú: opciones rápidas
-  de 5 a 60 minutos o una duración personalizada de 1 a 120. Por defecto, 10.
+- La duración se elige desde el botón **`10 min`** del menú: **10, 15 o 30
+  minutos**. Por defecto, 10.
 - En los **últimos 30 segundos** baja el volumen y se oscurece la luz de forma
   progresiva, sea cual sea la duración elegida.
 - Al terminar, la pantalla queda casi negra unos segundos y vuelve a la

@@ -17,7 +17,6 @@ const els = {
   durationTrigger: document.getElementById('duration-trigger'),
   durationPop: document.getElementById('duration-pop'),
   durationOptions: document.getElementById('duration-options'),
-  durationCustom: document.getElementById('duration-custom'),
   durationClose: document.getElementById('duration-close'),
 };
 
@@ -115,7 +114,6 @@ function buildGrid() {
     button.setAttribute('aria-label', `${ambient.name}: ${ambient.hint}. Comenzar una sesión`);
     button.innerHTML = `
       <span class="node__icon" aria-hidden="true">${iconSvg(ambient.icon)}</span>
-      <span class="node__label">${ambient.name}</span>
     `;
     button.addEventListener('click', () => startSession(ambient, button));
     els.grid.append(button);
@@ -130,7 +128,7 @@ function buildGrid() {
    -------------------------------------------------------------------------- */
 
 function durationLabel(minutes) {
-  return `${minutes} min`;
+  return `${minutes} minutos`;
 }
 
 function updateDurationUI() {
@@ -139,7 +137,6 @@ function updateDurationUI() {
     'aria-label',
     `Duración de la sesión: ${durationMinutes} ${durationMinutes === 1 ? 'minuto' : 'minutos'}`,
   );
-  els.durationCustom.value = String(durationMinutes);
   for (const chip of els.durationOptions.querySelectorAll('.duration-chip')) {
     chip.setAttribute('aria-pressed', String(Number(chip.dataset.minutes) === durationMinutes));
   }
@@ -151,7 +148,7 @@ function buildDurationOptions() {
     button.type = 'button';
     button.className = 'duration-chip';
     button.dataset.minutes = String(minutes);
-    button.textContent = durationLabel(minutes);
+    button.textContent = `${minutes} minutos`;
     button.setAttribute('aria-pressed', 'false');
     button.addEventListener('click', () => setDuration(minutes));
     els.durationOptions.append(button);
@@ -161,11 +158,11 @@ function buildDurationOptions() {
 
 function setDuration(value) {
   const minutes = Math.round(Number(value));
-  if (!Number.isFinite(minutes) || minutes < 1) {
+  if (!APP.durationOptions.includes(minutes)) {
     updateDurationUI();
     return;
   }
-  durationMinutes = Math.min(APP.maxDurationMin, minutes);
+  durationMinutes = minutes;
   updateDurationUI();
   closeDuration();
 }
@@ -350,14 +347,6 @@ els.durationTrigger.addEventListener('click', () => {
 });
 
 els.durationClose.addEventListener('click', () => closeDuration());
-
-els.durationCustom.addEventListener('change', () => setDuration(els.durationCustom.value));
-els.durationCustom.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    setDuration(els.durationCustom.value);
-  }
-});
 
 document.addEventListener('click', (event) => {
   if (els.durationPop.hidden) return;

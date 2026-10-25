@@ -16,8 +16,7 @@
 /** Ajustes globales de la sesión. */
 export const APP = {
   defaultDurationMin: 10,
-  durationOptions: [5, 10, 15, 20, 30, 45, 60],
-  maxDurationMin: 120,
+  durationOptions: [10, 15, 30],
   fadeOutMs: 30 * 1000, // fundido de audio y luz en los últimos 30 s
   holdAfterEndMs: 4000, // pantalla casi negra antes de volver al menú
   manualFadeMs: 2000, // fundido al terminar a mano

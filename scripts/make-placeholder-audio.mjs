@@ -2,7 +2,8 @@
  * Genera los audios sintéticos de sen.
  *
  * Sin argumentos:
- *   9 bucles de 16 s en WAV para `assets/audio` (los placeholders de la app).
+ *   14 bucles de 16 s en WAV para `assets/audio` (la variante 01 de la app),
+ *   generados con la misma síntesis que el laboratorio.
  *
  * Con `--long`:
  *   versiones de 10 minutos en MP3 para `sounds/generados` (incluida en el
@@ -19,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { renderAmbient } from '../lab/synth.js';
 
 const args = process.argv.slice(2);
 const LONG = args.includes('--long');
@@ -644,14 +646,14 @@ function bichos() {
 
   const air = make();
   mixNoise(air, 1);
-  highpass(air, 180);
-  lowpass(air, 1200);
-  add(raw, air, 0.12);
+  highpass(air, 500);
+  lowpass(air, 2400);
+  add(raw, air, 0.02);
 
   const low = make();
   brown(low, 1.1);
   lowpass(low, 190);
-  add(raw, low, 0.28);
+  add(raw, low, 0.03);
 
   const crickets = LONG ? Math.round(16 * SCALE) : 16;
   for (let i = 0; i < crickets; i++) {
@@ -834,17 +836,16 @@ fs.mkdirSync(outDir, { recursive: true });
 const made = [];
 
 for (const [name, create] of Object.entries(tracks)) {
-  const samples = create();
-
   if (!LONG) {
     const themeDir = path.join(outDir, name);
     fs.mkdirSync(themeDir, { recursive: true });
     const file = path.join(themeDir, '01.wav');
-    writeWav(file, samples);
+    writeWav(file, renderAmbient(name));
     console.log(`${name.padEnd(11)} ${(fs.statSync(file).size / 1024).toFixed(0)} KB`);
     continue;
   }
 
+  const samples = create();
   const wavFile = path.join(outDir, `${name}.wav`);
   const mp3File = path.join(outDir, `${name}.mp3`);
   writeWav(wavFile, samples);
