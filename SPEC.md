@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 3.2<br>
+**Versión:** 3.3<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de sonido
 
@@ -94,10 +94,9 @@ seleccionada.
 
 El botón inferior abre un diálogo con:
 
-- Título **“Duración de la sesión”**.
-- Botón de cierre **×**.
+- Botón de cierre **×** en la esquina superior derecha.
 - Tres opciones, y solo tres: **10 minutos**, **15 minutos**, **30 minutos**.
-- Una nota: “La sesión termina con un fundido de 30 segundos”.
+- Sin título ni nota visibles.
 
 Comportamiento:
 
@@ -1002,6 +1001,8 @@ la siguiente sesión.
 - **3.1:** tres paisajes sonoros de alta calidad por ambiente (escenas 04–06,
   22,05 kHz, 30 s, deterministas, bucle sin costura y −23 LUFS), selección
   entre seis escenas y herramienta de análisis de audio.
+- **3.3:** se retiran el título y la nota del selector de duración; quedan la X
+  y las tres opciones.
 - **3.2:** indicador de pista `1/N` con cambio cíclico y crossfade, botón X
   para cerrar la escena, orden de pistas barajado por sesión.
 - **3.0:** selector limitado a 10/15/30, eliminación de etiquetas bajo los
