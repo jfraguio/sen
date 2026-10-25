@@ -52,14 +52,17 @@ funciona también en `usuario.github.io/repositorio/`.
 ## Laboratorio de sonido
 
 La app incluye un laboratorio en **`/sounds/`** (también accesible por `/sound/`)
-para crear variaciones de los ambientes sin tocar código:
+para crear variaciones de los ambientes sin tocar código. El ambiente base no
+es un archivo cerrado: se sintetiza en el navegador a partir de sus parámetros.
 
-- subir o bajar el ruido ambiente,
-- añadir bichos, pájaros, lluvia, viento, olas o burbujas,
-- cambiar la velocidad de las olas,
-- ajustar el brillo y el volumen general,
-- escuchar la mezcla en directo,
-- descargar los parámetros en un JSON (`sen-lab/1`) con nombre y notas.
+- Editar el carácter del ambiente base: intensidad, chasquidos, graves,
+  parpadeo, brillo, velocidad y profundidad del oleaje, etc.
+- Añadir capas de ruido ambiente, bichos, pájaros, lluvia, viento, olas o
+  burbujas.
+- Ajustar el brillo general y el volumen.
+- Escuchar la mezcla en directo.
+- Descargar los parámetros en un JSON (`sen-lab/2`) con nombre, notas,
+  `baseParams` y mezcla de capas.
 
 Ese JSON es lo que puedes enviarme para que replique una variación en la app.
 El laboratorio y el banco de versiones largas viven en `sounds/`.

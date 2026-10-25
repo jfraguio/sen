@@ -1,5 +1,6 @@
 import { ambients } from '../src/config/ambients.js';
 import { AmbientRenderer } from '../src/render/engine.js';
+import { BASE_CONTROLS, defaultBaseParams, renderAmbient, SAMPLE_RATE } from './synth.js';
 
 /* --------------------------------------------------------------------------
    Fondo
@@ -31,7 +32,7 @@ const LAYERS = [
 ];
 
 const SLIDERS = [
-  { key: 'baseGain', label: 'Ambiente base', min: 0, max: 1, step: 0.01, format: 'percent' },
+  { key: 'baseGain', label: 'Volumen base', min: 0, max: 1, step: 0.01, format: 'percent' },
   { key: 'noise', label: 'Ruido ambiente', min: 0, max: 1, step: 0.01, format: 'percent' },
   { key: 'bichos', label: 'Bichos', min: 0, max: 1, step: 0.01, format: 'percent' },
   { key: 'pajaros', label: 'Pájaros', min: 0, max: 1, step: 0.01, format: 'percent' },
@@ -40,7 +41,7 @@ const SLIDERS = [
   { key: 'olas', label: 'Olas', min: 0, max: 1, step: 0.01, format: 'percent' },
   { key: 'burbujas', label: 'Burbujas', min: 0, max: 1, step: 0.01, format: 'percent' },
   { key: 'wavesRate', label: 'Velocidad de las olas', min: 0.5, max: 2, step: 0.05, format: 'rate' },
-  { key: 'brightness', label: 'Brillo', min: 1000, max: 16000, step: 100, format: 'hz' },
+  { key: 'brightness', label: 'Brillo general', min: 1000, max: 16000, step: 100, format: 'hz' },
   { key: 'master', label: 'Volumen general', min: 0, max: 1, step: 0.01, format: 'percent' },
 ];
 
@@ -65,6 +66,7 @@ const PRESETS = [
   {
     id: 'lluvia-grillos',
     name: 'Lluvia + grillos',
+    baseParams: { intensity: 0.7, drops: 0.55, hiss: 0.4, wind: 0.15, brightness: 0.6 },
     values: {
       base: 'lluvia',
       baseGain: 0.9,
@@ -83,6 +85,7 @@ const PRESETS = [
   {
     id: 'olas-amanecer',
     name: 'Olas al amanecer',
+    baseParams: { speed: 0.7, depth: 0.7, foam: 0.55, wind: 0.2, brightness: 0.6 },
     values: {
       base: 'mar',
       baseGain: 0.9,
@@ -101,6 +104,7 @@ const PRESETS = [
   {
     id: 'bano-burbujas',
     name: 'Baño de burbujas',
+    baseParams: { bubbles: 0.75, pops: 0.6, water: 0.6, fizz: 0.5, brightness: 0.5 },
     values: {
       base: 'burbujas',
       baseGain: 0.9,
@@ -119,6 +123,7 @@ const PRESETS = [
   {
     id: 'bosque-noche',
     name: 'Bosque nocturno',
+    baseParams: { wind: 0.6, leaves: 0.65, birds: 0.75, rustle: 0.5, brightness: 0.55 },
     values: {
       base: 'bosque',
       baseGain: 0.9,
@@ -137,6 +142,8 @@ const PRESETS = [
 ];
 
 const state = { ...DEFAULTS };
+const baseParams = Object.fromEntries(ambients.map((ambient) => [ambient.id, defaultBaseParams(ambient.id)]));
+let baseRegenTimer = 0;
 
 const els = {
   base: document.getElementById('base'),
@@ -147,6 +154,8 @@ const els = {
   statusText: document.getElementById('status-text'),
   presets: document.getElementById('presets'),
   sliders: document.getElementById('sliders'),
+  baseSliders: document.getElementById('base-sliders'),
+  baseName: document.getElementById('base-name'),
   name: document.getElementById('preset-name'),
   notes: document.getElementById('preset-notes'),
   json: document.getElementById('json'),
@@ -156,6 +165,7 @@ const els = {
 };
 
 const sliderInputs = new Map();
+const baseSliderInputs = new Map();
 
 /* --------------------------------------------------------------------------
    Audio
@@ -222,6 +232,13 @@ const audio = {
     return buffer;
   },
 
+  generateBaseBuffer() {
+    const samples = renderAmbient(state.base, baseParams[state.base]);
+    const buffer = this.ctx.createBuffer(1, samples.length, SAMPLE_RATE);
+    buffer.copyToChannel(samples, 0);
+    return buffer;
+  },
+
   makeNoiseBuffer() {
     const seconds = 3;
     const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * seconds, this.ctx.sampleRate);
@@ -276,9 +293,9 @@ const audio = {
     try {
       const ctx = this.ensureContext();
       if (ctx.state !== 'running') await ctx.resume();
-      const baseBuffer = await this.loadAmbient(state.base);
       await Promise.all(layerAmbientIds.map((id) => this.loadAmbient(id)));
       if (generation !== this.generation) return;
+      const baseBuffer = this.generateBaseBuffer();
 
       this.stopSources();
 
@@ -354,27 +371,25 @@ const audio = {
     }
   },
 
-  async changeBase() {
+  changeBase() {
     if (!this.playing) return;
-    const generation = this.generation;
-    const targetId = state.base;
     try {
-      const buffer = await this.loadAmbient(targetId);
-      if (!this.playing || generation !== this.generation || state.base !== targetId) return;
+      const baseBuffer = this.generateBaseBuffer();
       if (this.baseSource) {
         try { this.baseSource.stop(); } catch { /* ya parado */ }
         try { this.baseSource.disconnect(); } catch { /* sin conexión */ }
       }
       this.baseSource = this.makeSource(
-        buffer,
+        baseBuffer,
         this.baseGain,
-        targetId === 'mar' ? state.wavesRate : 1,
+        state.base === 'mar' ? state.wavesRate : 1,
       );
       this.baseSource.start();
       this.apply();
+      setStatus('reproduciendo', true);
     } catch (error) {
       console.error(error);
-      setStatus(error.message || 'error', true, true);
+      setStatus(error.message || 'error de síntesis', true, true);
     }
   },
 };
@@ -404,6 +419,56 @@ function buildBaseSelect() {
     .map((ambient) => `<option value="${ambient.id}">${ambient.name}</option>`)
     .join('');
   els.base.value = state.base;
+}
+
+function buildBaseControls() {
+  els.baseName.textContent = baseName(state.base);
+  els.baseSliders.replaceChildren();
+  baseSliderInputs.clear();
+  const controls = BASE_CONTROLS[state.base] || [];
+
+  for (const config of controls) {
+    const row = document.createElement('div');
+    row.className = 'slider';
+    row.innerHTML = `
+      <label for="base-${config.key}">${config.label}</label>
+      <input id="base-${config.key}" type="range" min="0" max="1" step="0.01" value="${baseParams[state.base][config.key]}" />
+      <output for="base-${config.key}"></output>
+    `;
+    const input = row.querySelector('input');
+    const output = row.querySelector('output');
+    baseSliderInputs.set(config.key, { input, output, config });
+    input.addEventListener('input', () => {
+      baseParams[state.base][config.key] = Number(input.value);
+      updateBaseSlider(config.key);
+      updateJson();
+      clearActivePreset();
+      scheduleBaseChange();
+    });
+    els.baseSliders.append(row);
+  }
+
+  syncBaseSliders();
+}
+
+function updateBaseSlider(key) {
+  const entry = baseSliderInputs.get(key);
+  if (!entry) return;
+  const { input, output, config } = entry;
+  const value = baseParams[state.base][key];
+  input.value = String(value);
+  input.style.setProperty('--fill', `${value * 100}%`);
+  output.textContent = formatValue(value, 'percent');
+}
+
+function syncBaseSliders() {
+  for (const key of baseSliderInputs.keys()) updateBaseSlider(key);
+}
+
+function scheduleBaseChange() {
+  if (!audio.playing) return;
+  window.clearTimeout(baseRegenTimer);
+  baseRegenTimer = window.setTimeout(() => audio.changeBase(), 180);
 }
 
 function buildSliders() {
@@ -465,7 +530,12 @@ function clearActivePreset() {
 function applyPreset(preset) {
   const previousBase = state.base;
   Object.assign(state, preset.values);
+  baseParams[state.base] = {
+    ...defaultBaseParams(state.base),
+    ...(preset.baseParams || {}),
+  };
   els.base.value = state.base;
+  buildBaseControls();
   syncSliders();
   updateJson();
   clearActivePreset();
@@ -473,18 +543,19 @@ function applyPreset(preset) {
     (item) => item.textContent === preset.name,
   );
   button?.classList.add('is-active');
-  if (audio.playing) {
-    if (previousBase !== state.base) audio.changeBase();
-    else audio.apply();
-  }
+  if (audio.playing) audio.changeBase();
 }
 
 function paramsObject(withDate = false) {
   const data = {
-    schema: 'sen-lab/1',
+    schema: 'sen-lab/2',
+    engine: 'synth/1',
     name: state.name.trim() || `${baseName(state.base)} personalizado`,
     base: state.base,
     baseName: baseName(state.base),
+    baseParams: Object.fromEntries(
+      Object.entries(baseParams[state.base]).map(([key, value]) => [key, Number(value.toFixed(2))]),
+    ),
     mix: {
       base: Number(state.baseGain.toFixed(2)),
       noise: Number(state.noise.toFixed(2)),
@@ -520,6 +591,7 @@ function slug(text) {
 
 els.base.addEventListener('change', () => {
   state.base = els.base.value;
+  buildBaseControls();
   updateJson();
   clearActivePreset();
   if (audio.playing) audio.changeBase();
@@ -572,16 +644,17 @@ els.copy.addEventListener('click', async () => {
 
 els.reset.addEventListener('click', () => {
   Object.assign(state, DEFAULTS);
+  for (const ambient of ambients) {
+    baseParams[ambient.id] = defaultBaseParams(ambient.id);
+  }
   els.base.value = state.base;
   els.name.value = '';
   els.notes.value = '';
+  buildBaseControls();
   syncSliders();
   updateJson();
   clearActivePreset();
-  if (audio.playing) {
-    audio.changeBase();
-    audio.apply();
-  }
+  if (audio.playing) audio.changeBase();
 });
 
 window.addEventListener('beforeunload', () => {
@@ -590,6 +663,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 buildBaseSelect();
+buildBaseControls();
 buildSliders();
 buildPresets();
 updateJson();
