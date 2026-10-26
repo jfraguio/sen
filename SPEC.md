@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 4.1<br>
+**Versión:** 4.2<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de música ambiental
 
@@ -23,12 +23,12 @@ La experiencia tiene tres piezas:
    notas puntuales, ruidos y simulaciones de naturaleza y descargarlos como WAV
    (sección 7).
 
-El motor genera **hasta seis escenas de audio por ambiente**. Las escenas no
-son copias: cada una es un paisaje distinto del mismo ambiente. Las escenas
-01–03 salen de la síntesis base y las 04–06 son paisajes sonoros de alta
-calidad (más resolución, bucles más largos y modelos más realistas). **El
-repositorio actual conserva dos por ambiente**; al comenzar una sesión se elige
-una al azar entre las que existan en la carpeta del ambiente.
+El motor puede generar **hasta seis escenas de audio por ambiente**. Las
+escenas no son copias: cada una es un paisaje distinto del mismo ambiente. Las
+escenas 01–03 salen de la síntesis base y las 04–06 son paisajes sonoros de
+alta calidad (más resolución, bucles más largos y modelos más realistas). **El
+repositorio conserva dos por ambiente, renombradas `01.wav` y `02.wav`**. Al
+comenzar una sesión suena siempre `01.wav`; `02.wav` queda como alternativa.
 
 ---
 
@@ -142,20 +142,21 @@ Al iniciar una sesión:
 5. Se prepara el contexto de audio **de forma síncrona** dentro del gesto del
    usuario, antes de cualquier petición asíncrona.
 6. Se comprueban las escenas disponibles del ambiente con peticiones `HEAD`.
-7. Se baraja el orden de las escenas disponibles y se empieza por la primera
-   (`1/N`). La primera pista sigue siendo aleatoria, pero el indicador siempre
-   arranca en `1`.
+7. El orden es siempre `01.wav`, `02.wav`. Se empieza por `01.wav`; si no
+   existe, por la primera disponible. El indicador arranca en `1/N`.
 8. Se reproduce la pista en bucle y se arranca la animación del ambiente y el
    reloj de sesión.
 9. Se solicita el Screen Wake Lock.
-10. Se añade `#<id>` al historial mediante `pushState`.
+10. Se añade `#<id>/<pista>` al historial mediante `pushState`, por ejemplo
+    `#mar/01`.
 
 Durante la sesión:
 
 - La escena llena la pantalla; no hay controles inferiores.
 - Arriba a la izquierda hay un indicador discreto `posición/total` (por ejemplo
   `1/2`). Al pulsarlo se pasa a la siguiente pista del ambiente, con un
-  crossfade corto y sin reiniciar la sesión ni la barra de progreso.
+  crossfade corto y sin reiniciar la sesión ni la barra de progreso. El hash de
+  la URL se actualiza a `#<id>/<pista>` (`#mar/02`) con `replaceState`.
 - Arriba a la derecha hay una **X** discreta para cerrar el ambiente y volver al
   menú. Hace el mismo cierre con fundido que un toque o `Escape`.
 - Los dos controles desaparecen durante el fundido final.
@@ -204,8 +205,10 @@ Si el usuario tiene activado `prefers-reduced-motion: reduce`:
 
 Al iniciar la sesión se solicita un **Screen Wake Lock** si el navegador lo
 admite. Si la pestaña pasa a segundo plano, el sistema puede liberar el bloqueo;
-al volver a la pestaña visible, se solicita de nuevo si la sesión sigue activa.
-Si la API no está disponible no se muestra ningún error: la app funciona igual.
+al volver a la pestaña visible o recuperar el foco, se solicita de nuevo si la
+sesión sigue activa. Si el sistema libera el bloqueo sin ocultar la página, o la
+petición falla, se reintenta con una espera creciente. Si la API no está
+disponible no se muestra ningún error: la app funciona igual.
 
 ---
 
@@ -222,15 +225,17 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 ### 5.2 Selección de escena
 
 - Cada ambiente tiene una carpeta `assets/audio/<id>/`.
-- Los nombres válidos son `01.wav` … `06.wav`.
-- Al iniciar cada sesión se hacen seis peticiones `HEAD` con
+- Los nombres válidos son `01.wav` y `02.wav`.
+- Al iniciar cada sesión se hacen dos peticiones `HEAD` con
   `cache: 'no-store'`.
 - Solo se consideran las escenas que responden correctamente.
-- El orden de las escenas disponibles se baraja al iniciar cada sesión
-  (Fisher-Yates). La pista inicial es uniforme entre las disponibles, pero el
-  indicador siempre muestra `1/N`.
+- El orden es fijo: `01.wav` y después `02.wav`. La sesión empieza siempre por
+  `01.wav`; si no existe, por la primera disponible (`02.wav`). El indicador
+  siempre muestra `1/N`.
 - Al pulsar el indicador se avanza cíclicamente por ese orden: `1/N`, `2/N`…
   y de nuevo `1/N`. No se reinicia el reloj de la sesión.
+- El hash de la URL indica el número real del archivo que está sonando, por
+  ejemplo `#mar/01` o `#mar/02`.
 - Si el usuario borra una escena, deja de elegirse en la siguiente sesión.
 - Si solo queda una, el indicador muestra `1/1` desactivado y siempre suena esa.
 - Si no queda ninguna, se aplica el comportamiento de “Audio no disponible”.
@@ -252,8 +257,9 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 ### 6.1 Nota sobre las escenas
 
 Las fichas de este apartado describen las seis escenas que puede generar el
-motor. El repositorio actual conserva solo dos por ambiente, elegidas
-manualmente; las demás pueden regenerarse con los scripts de audio.
+motor. El repositorio actual conserva solo dos por ambiente, renombradas
+`01.wav` y `02.wav`, elegidas manualmente; las demás pueden regenerarse con los
+scripts de audio.
 
 ### 6.2 Tabla general
 
@@ -1644,7 +1650,7 @@ index.html                  Entrada de la app
 SPEC.md                     Esta especificación
 README.md                   Guía breve
 assets/
-  audio/<id>/01..06.wav     Escenas de audio
+  audio/<id>/01..02.wav     Escenas de audio
   audio/README.md           Nota sobre las escenas
   favicon.svg
 lab/                        Laboratorio (editor); estructura detallada en 7.13
@@ -1690,9 +1696,11 @@ laboratorio (`lab/engine/`) son independientes: no comparten código.
   de sesión y cruza pistas con un crossfade corto. Si falla, avisa mediante
   `onError` sin cortar la pista que ya suena.
 - **`src/core/variants.js`**: `resolveAudioVariants(directory, prefix)` devuelve
-  las rutas existentes; `pickAudioVariant(paths)` elige una al azar.
+  las rutas `01.wav` y `02.wav` que existan, en ese orden. La sesión empieza
+  siempre por la primera.
 - **`src/core/wake-lock.js`**: solicita y libera el bloqueo de pantalla; vuelve
-  a solicitarlo al recuperar visibilidad.
+  a solicitarlo al recuperar visibilidad o foco, cuando el sistema libera el
+  sentinel y, si la petición falla, reintenta con espera creciente.
 - **`src/render/engine.js`**: renderer de canvas con resize, DPR máximo 1,5,
   pausa/reanudación, `prefers-reduced-motion` y limpieza.
 - **`src/render/themes.js`**: fábricas de animación. Cada una recibe el
@@ -1724,7 +1732,7 @@ let durationMinutes = APP.defaultDurationMin;
   finishing,
   audioFailed,
   noteTimer,
-  tracks,        // escenas disponibles, en orden barajado
+  tracks,        // escenas disponibles, en orden fijo 01, 02
   trackIndex,    // posición actual (0..N-1)
   trackRequest   // evita que una carga antigua pise a la actual
 }
@@ -1747,12 +1755,12 @@ click nodo
 
 ### 8.5 Audio de la app
 
-- Formato de las escenas 01–03: WAV PCM mono, 16 kHz, 16 bits, 16 s
-  (~500 KB por escena; 42 escenas ≈ 21 MB).
-- Formato de las escenas 04–06: WAV PCM mono, 22,05 kHz, 16 bits con dither
-  TPDF, 30 s (~1,3 MB por escena; 42 escenas ≈ 54 MB).
-- Nivel: todas las escenas rondan −23 LUFS (las 04–06 se normalizan a −23,
-  o −24/−25 en las escenas musicales y espaciales) con pico ≤ −3 dBFS.
+- `01.wav` es la escena por defecto y `02.wav` la alternativa. Según el ambiente,
+  pueden proceder de la síntesis base (WAV PCM mono, 16 kHz, 16 bits, 16 s) o de
+  los paisajes de alta calidad (WAV PCM mono, 22,05 kHz, 16 bits con dither TPDF,
+  30 s).
+- Nivel: todas las escenas rondan −23 LUFS (las de alta calidad se normalizan a
+  −23, o −24/−25 en las escenas musicales y espaciales) con pico ≤ −3 dBFS.
 - La app solo descarga la escena elegida en cada sesión.
 - Reproducción: una voz `AudioBufferSourceNode` con `loop = true` y su propio
   `GainNode`, conectada a la ganancia maestra de la sesión.
@@ -1802,6 +1810,10 @@ node scripts/make-audio-variants.mjs --only=fuego,bichos
 
 Los valores de “Síntesis base” de la sección 6 son los parámetros por defecto
 de esta síntesis (`BASE_CONTROLS`).
+
+Los scripts mantienen su numeración de generación (`01`–`06`). La app solo lee
+`01.wav` y `02.wav`: para publicar otra escena, renómbrala o cópiala con uno de
+esos dos nombres.
 
 ### 8.8 Paisajes de alta calidad (escenas 04–06)
 
@@ -1911,8 +1923,10 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 
 - [ ] Cada uno de los 14 ambientes inicia una sesión.
 - [ ] La barra de progreso avanza con la duración elegida.
-- [ ] El audio carga una de las escenas disponibles (dos por ambiente en el
-  repositorio actual) y suena en bucle.
+- [ ] El audio carga siempre `01.wav` por defecto (dos escenas por ambiente en
+  el repositorio actual) y suena en bucle.
+- [ ] La URL muestra `#<id>/<pista>` (por ejemplo `#mar/01`) y cambia al pasar
+  de pista.
 - [ ] No hay controles inferiores durante la sesión.
 - [ ] Un toque termina la sesión con fundido.
 - [ ] `Escape` termina la sesión.
@@ -1923,7 +1937,7 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 
 ### 11.4 Audio
 
-- [ ] Las 84 escenas existen: 01–03 pesan ~500 KB y 04–06 ~1,3 MB.
+- [ ] Las 28 escenas existen: `01.wav` y `02.wav` en cada ambiente.
 - [ ] Si se borra una escena, deja de elegirse.
 - [ ] Si solo queda una, siempre suena esa.
 - [ ] Si no queda ninguna, aparece “Audio no disponible” y la sesión sigue.
@@ -2034,6 +2048,10 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **4.2:** las escenas de cada ambiente se renombran a `01.wav` y `02.wav`; la
+  sesión empieza siempre por `01.wav`; la URL indica el ambiente y la pista
+  (`#mar/01`) y se actualiza al cambiar de pista; el Wake Lock se readquiere al
+  recuperar visibilidad o foco y reintenta si falla.
 - **4.1:** instrucciones del laboratorio (`lab/guia.html`), enlazadas desde la
   cabecera, el diálogo de inicio y el atajo `?`; menú rediseñado (cielo místico, sigilos alquímicos con anillo
   rúnico, paralaje, animación de invocación con portal de luz y retorno

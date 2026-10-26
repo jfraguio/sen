@@ -323,7 +323,7 @@ function startSession(ambient, trigger) {
         notifyAudioFailure(token);
         return;
       }
-      active.tracks = shuffleTracks(paths);
+      active.tracks = paths;
       playTrack(0, token, { initial: true });
     })
     .catch(() => notifyAudioFailure(token));
@@ -341,20 +341,24 @@ function startSession(ambient, trigger) {
   });
   active.session.start();
 
+  setSessionUrl(ambient, '01');
+}
+
+function trackNumber(path, index) {
+  const match = /(\d{2})\.wav$/i.exec(path);
+  return match ? match[1] : String(index + 1).padStart(2, '0');
+}
+
+function setSessionUrl(ambient, number, { replace = false } = {}) {
+  if (history.state && history.state.sen === ambient.id && history.state.track === number) return;
+  const state = { sen: ambient.id, track: number };
+  const url = `#${ambient.id}/${number}`;
   try {
-    history.pushState({ sen: ambient.id }, '', `#${ambient.id}`);
+    if (replace) history.replaceState(state, '', url);
+    else history.pushState(state, '', url);
   } catch {
     /* sites embebidos o file:// pueden bloquear el historial */
   }
-}
-
-function shuffleTracks(paths) {
-  const tracks = [...paths];
-  for (let i = tracks.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
-  }
-  return tracks;
 }
 
 function updateTrackUI() {
@@ -399,6 +403,7 @@ async function playTrack(index, token, { initial = false } = {}) {
 
   active.trackIndex = next;
   updateTrackUI();
+  setSessionUrl(active.ambient, trackNumber(active.tracks[next], next), { replace: true });
   if (!initial) els.live.textContent = `Pista ${next + 1} de ${total}.`;
 }
 

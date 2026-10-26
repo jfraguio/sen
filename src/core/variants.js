@@ -1,13 +1,13 @@
 /**
- * Descubre las variantes WAV disponibles en una carpeta.
+ * Descubre las escenas WAV disponibles en una carpeta.
  *
- * Las alternativas se llaman 01.wav … 06.wav (01–03: síntesis base; 04–06:
- * paisajes de alta calidad). El usuario puede
- * borrar las que no le gusten: comprobamos con HEAD cada vez que se va a
- * iniciar una escucha para usar solo las que sigan existiendo.
+ * El repositorio conserva dos escenas por ambiente: `01.wav` (la que suena por
+ * defecto) y `02.wav`. El usuario puede borrar la segunda sin tocar código;
+ * comprobamos con HEAD cada vez que se inicia una escucha para usar solo las
+ * que sigan existiendo.
  */
 
-const VARIANTS = ['01.wav', '02.wav', '03.wav', '04.wav', '05.wav', '06.wav'];
+const VARIANTS = ['01.wav', '02.wav'];
 
 export function resolveAudioVariants(directory, prefix = '') {
   return Promise.all(
@@ -24,9 +24,4 @@ export function resolveAudioVariants(directory, prefix = '') {
       }
     }),
   ).then((paths) => paths.filter(Boolean));
-}
-
-export function pickAudioVariant(paths) {
-  if (!paths.length) return null;
-  return paths[Math.floor(Math.random() * paths.length)];
 }
