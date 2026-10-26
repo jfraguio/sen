@@ -247,8 +247,8 @@ button {
     transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity 600ms ease,
     filter 600ms ease;
-  animation: node-in 1400ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
-  animation-delay: calc(var(--i) * 70ms + 150ms);
+  animation: node-in 700ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  animation-delay: calc(var(--i) * 30ms + 80ms);
 }
 
 /* Halo que respira. */
@@ -335,8 +335,8 @@ button {
 .node__icon svg :is(path, circle, ellipse) {
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
-  animation: draw 2.2s cubic-bezier(0.6, 0, 0.2, 1) backwards;
-  animation-delay: calc(var(--i) * 70ms + 400ms);
+  animation: draw 750ms cubic-bezier(0.6, 0, 0.2, 1) backwards;
+  animation-delay: calc(var(--i) * 30ms + 140ms);
 }
 
 @keyframes draw {
@@ -440,30 +440,6 @@ button {
 @keyframes halo-burst {
   from { transform: scale(1); }
   to { transform: scale(2.4); opacity: 0; }
-}
-
-/* Regreso desde una sesión: los nodos vuelven a aparecer. */
-.app.is-returning .node {
-  animation: node-return 1200ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
-  animation-delay: calc(var(--i) * 40ms);
-}
-
-.app.is-returning .node__icon svg :is(path, circle, ellipse) {
-  animation: draw 1.6s cubic-bezier(0.6, 0, 0.2, 1) backwards;
-  animation-delay: calc(var(--i) * 40ms + 200ms);
-}
-
-@keyframes node-return {
-  from {
-    opacity: 0;
-    filter: blur(8px);
-    scale: 0.7;
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    scale: 1;
-  }
 }
 
 /* Portal de luz desde el nodo elegido. */

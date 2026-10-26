@@ -472,10 +472,6 @@ function finishSession(token, reason) {
     renderer.stop();
     menuRenderer.resume();
     active = null;
-    els.app.classList.remove('is-returning');
-    void els.app.offsetWidth;
-    els.app.classList.add('is-returning');
-    window.setTimeout(() => els.app.classList.remove('is-returning'), 1600);
     trigger?.focus?.({ preventScroll: true });
   }, 440);
 }

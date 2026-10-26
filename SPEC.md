@@ -88,7 +88,8 @@ Al cargar `/`:
 - Se generan catorce botones circulares, uno por ambiente, en las posiciones
   definidas en `NODE_LAYOUT`. Cada nodo tiene un halo, un anillo rúnico
   (`ringSvg()`: marcas, arco y gemas) que gira despacio y un sigilo de estilo
-  alquímico que se dibuja trazo a trazo al entrar.
+  alquímico que se dibuja trazo a trazo al entrar. La entrada escalonada de
+  nodos e iconos dura ~1,2 s y solo se ejecuta al cargar la página.
 - Se dibuja una línea suave que une los nodos en el orden de `NODE_PATH`, con
   un flujo de luz que la recorre.
 - La constelación y el título se desplazan ligeramente con el puntero
@@ -105,8 +106,8 @@ elegido, salen ondas desde él y una luz de su color de acento crece hasta cubri
 la pantalla (`#portal`) mientras un velo oscurece el menú; la escena aparece al
 cabo de ~1 s. El audio se arranca dentro del gesto, y el escenario permanece
 oculto (`.stage.is-awaiting`) hasta que termina la transición. Al volver de una
-sesión los nodos reaparecen escalonados. Con `prefers-reduced-motion` no hay
-portal, ondas ni paralaje.
+sesión los nodos permanecen como estaban y no repiten la animación de entrada.
+Con `prefers-reduced-motion` no hay portal, ondas ni paralaje.
 
 ### 4.2 Selector de duración
 
