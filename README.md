@@ -24,10 +24,11 @@ ES y el audio necesitan un servidor.
 - Menú de constelación con **14 ambientes** identificados solo por su icono.
 - Selector de duración con tres opciones: **10, 15 y 30 minutos**.
 - Sesión a pantalla completa con animación propia, progreso y fundido final.
-- **Seis escenas de audio por ambiente** (`01.wav` … `06.wav`): tres de la
-  síntesis base y tres paisajes sonoros de alta calidad. La app elige una al
-  azar al empezar y respeta las que hayas borrado.
-- **Indicador de pista discreto** arriba a la izquierda (`1/6`, `2/6`…): al
+- **Escenas de audio por ambiente**: el motor genera hasta seis
+  (`01.wav` … `06.wav`), tres de síntesis base y tres paisajes de alta calidad.
+  **El repositorio conserva dos por ambiente**; la app elige una al azar entre
+  las que existan.
+- **Indicador de pista discreto** arriba a la izquierda (`1/2`, `2/2`…): al
   pulsarlo se pasa a la siguiente pista del ambiente. Arriba a la derecha hay
   una **X** para cerrar y volver al menú.
 - Audio sintético, sin cuentas, sin anuncios y sin peticiones a servidores.
@@ -43,7 +44,7 @@ ambiente están en **[`SPEC.md`](SPEC.md)**.
 index.html
 SPEC.md
 assets/
-  audio/<id>/01.wav … 06.wav
+  audio/<id>/<escena>.wav (dos por ambiente)
   audio/README.md
   favicon.svg
 lab/
@@ -73,7 +74,8 @@ src/
 
 ## Regenerar el audio
 
-Cada ambiente tiene seis escenas sintéticas:
+El motor genera seis escenas sintéticas por ambiente; el repositorio conserva
+solo dos de ellas. Las otras cuatro se pueden regenerar:
 
 - **01–03**, síntesis base (`lab/synth.js`): 16 s, mono, 16 kHz.
 - **04–06**, paisajes de alta calidad (`lab/soundscapes.js`): 30 s, mono,

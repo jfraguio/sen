@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 3.5<br>
+**Versión:** 3.6<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de sonido
 
@@ -21,11 +21,12 @@ La experiencia tiene tres piezas:
 3. **Laboratorio** en `/lab/` para editar la síntesis del ambiente base, mezclar
    capas y exportar los parámetros en JSON.
 
-La aplicación usa **seis escenas de audio por ambiente**. Las escenas no son
-copias: cada una es un paisaje distinto del mismo ambiente. Las escenas 01–03
-salen de la síntesis base y las 04–06 son paisajes sonoros de alta calidad
-(más resolución, bucles más largos y modelos más realistas). Al comenzar una
-sesión se elige una al azar entre las que existan en la carpeta del ambiente.
+El motor genera **hasta seis escenas de audio por ambiente**. Las escenas no
+son copias: cada una es un paisaje distinto del mismo ambiente. Las escenas
+01–03 salen de la síntesis base y las 04–06 son paisajes sonoros de alta
+calidad (más resolución, bucles más largos y modelos más realistas). **El
+repositorio actual conserva dos por ambiente**; al comenzar una sesión se elige
+una al azar entre las que existan en la carpeta del ambiente.
 
 ---
 
@@ -135,7 +136,7 @@ Durante la sesión:
 
 - La escena llena la pantalla; no hay controles inferiores.
 - Arriba a la izquierda hay un indicador discreto `posición/total` (por ejemplo
-  `1/6`). Al pulsarlo se pasa a la siguiente pista del ambiente, con un
+  `1/2`). Al pulsarlo se pasa a la siguiente pista del ambiente, con un
   crossfade corto y sin reiniciar la sesión ni la barra de progreso.
 - Arriba a la derecha hay una **X** discreta para cerrar el ambiente y volver al
   menú. Hace el mismo cierre con fundido que un toque o `Escape`.
@@ -230,7 +231,13 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 
 ## 6. Ambientes
 
-### 6.1 Tabla general
+### 6.1 Nota sobre las escenas
+
+Las fichas de este apartado describen las seis escenas que puede generar el
+motor. El repositorio actual conserva solo dos por ambiente, elegidas
+manualmente; las demás pueden regenerarse con los scripts de audio.
+
+### 6.2 Tabla general
 
 | # | id | Nombre | Pista | Icono | Animación | Acento |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -249,7 +256,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 | 13 | `noche` | Noche | luna y luciérnagas | `noche` | `night` | `#9fb2d9` |
 | 14 | `burbujas` | Burbujas | baño de espuma | `burbujas` | `bubbles` | `#8fe9e3` |
 
-### 6.2 Lluvia · `lluvia`
+### 6.3 Lluvia · `lluvia`
 
 - **Sensación:** lluvia tranquila vista desde una ventana, con gotas cercanas
   sobre el cristal y un fondo azul profundo.
@@ -276,7 +283,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `intensity` 0.60, `drops` 0.45, `hiss` 0.55, `wind` 0.20,
   `brightness` 0.60.
 
-### 6.3 Tormenta · `tormenta`
+### 6.4 Tormenta · `tormenta`
 
 - **Sensación:** tormenta de crepúsculo, con lluvia, viento y descargas
   lejanas o cercanas.
@@ -301,7 +308,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `rain` 0.55, `thunder` 0.50, `wind` 0.45, `rumble` 0.55,
   `brightness` 0.50.
 
-### 6.4 Fuego · `fuego`
+### 6.5 Fuego · `fuego`
 
 - **Sensación:** hoguera íntima, con brasas, chasquidos y un resplandor cálido
   irregular.
@@ -324,7 +331,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `intensity` 0.55, `crackle` 0.65, `rumble` 0.50, `flicker`
   0.45, `brightness` 0.55.
 
-### 6.5 Mar · `mar`
+### 6.6 Mar · `mar`
 
 - **Sensación:** oleaje lento, espuma y aire salado, con el sol bajo sobre el
   agua.
@@ -345,7 +352,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `speed` 0.45, `depth` 0.60, `foam` 0.50, `wind` 0.25,
   `brightness` 0.55.
 
-### 6.6 Río · `rio`
+### 6.7 Río · `rio`
 
 - **Sensación:** agua clara entre piedras, con remolinos y destellos dorados.
 - **Visual:** tres cintas de corriente con tres pasadas de distinto grosor, 54
@@ -368,7 +375,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `flow` 0.55, `bubbles` 0.40, `width` 0.50, `air` 0.30,
   `brightness` 0.55.
 
-### 6.7 Viento · `viento`
+### 6.8 Viento · `viento`
 
 - **Sensación:** ráfagas que atraviesan un paisaje abierto, con hojas y algún
   silbido.
@@ -388,7 +395,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   la ráfaga, soplo medio y correteo ocasional de hojas secas.
 - **Laboratorio:** `gust` 0.55, `speed` 0.50, `air` 0.50, `brightness` 0.50.
 
-### 6.8 Espacio · `espacio`
+### 6.9 Espacio · `espacio`
 
 - **Sensación:** deriva sideral, vasta y lenta, con drones graves y destellos
   lejanos.
@@ -409,7 +416,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `drone` 0.55, `shimmer` 0.35, `movement` 0.40, `brightness`
   0.50.
 
-### 6.9 Cuento · `cuento`
+### 6.10 Cuento · `cuento`
 
 - **Sensación:** música de caja de música y pads cálidos, como un cuento antes
   de dormir.
@@ -430,7 +437,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `pads` 0.55, `notes` 0.55, `tempo` 0.50, `sparkle` 0.40,
   `brightness` 0.55.
 
-### 6.10 Meditación · `meditacion`
+### 6.11 Meditación · `meditacion`
 
 - **Sensación:** respiración profunda, cuencos lejanos y un orbe que se expande
   y contrae.
@@ -451,7 +458,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
   minuto) y drone en Re–La.
 - **Laboratorio:** `drone` 0.55, `breath` 0.40, `bowls` 0.45, `brightness` 0.50.
 
-### 6.11 Pájaros · `pajaros`
+### 6.12 Pájaros · `pajaros`
 
 - **Sensación:** amanecer en un bosque, con pájaros claros y aire limpio.
 - **Visual:** cinco bandadas en silueta, 40 motas de polen dorado, sol naciente,
@@ -471,7 +478,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `birds` 0.60, `variety` 0.55, `wind` 0.30, `leaves` 0.40,
   `brightness` 0.55.
 
-### 6.12 Bichos · `bichos`
+### 6.13 Bichos · `bichos`
 
 - **Sensación:** pradera de noche, con grillos, cigarras y luciérnagas.
 - **Visual:** 56 briznas de hierba en silueta, 42 luciérnagas que parpadean y
@@ -492,7 +499,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `crickets` 0.60, `cicadas` 0.45, `air` 0.30, `brightness`
   0.50.
 
-### 6.13 Bosque · `bosque`
+### 6.14 Bosque · `bosque`
 
 - **Sensación:** sombra verde, hojas que se mueven y ramas que crujen.
 - **Visual:** siete árboles con copas difusas, tres haces de luz entre troncos y
@@ -511,7 +518,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `wind` 0.50, `leaves` 0.55, `birds` 0.35, `rustle` 0.45,
   `brightness` 0.55.
 
-### 6.14 Noche · `noche`
+### 6.15 Noche · `noche`
 
 - **Sensación:** noche quieta, con grillos, un búho y luciérnagas bajo la luna.
 - **Visual:** luna en la esquina superior derecha, 140 estrellas, colinas en
@@ -533,7 +540,7 @@ Si la API no está disponible no se muestra ningún error: la app funciona igual
 - **Laboratorio:** `crickets` 0.55, `owl` 0.35, `wind` 0.30, `drone` 0.40,
   `brightness` 0.40.
 
-### 6.15 Burbujas · `burbujas`
+### 6.16 Burbujas · `burbujas`
 
 - **Sensación:** baño de espuma, con burbujas que suben y estallan en agua
   cálida.
@@ -890,7 +897,8 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 
 - [ ] Cada uno de los 14 ambientes inicia una sesión.
 - [ ] La barra de progreso avanza con la duración elegida.
-- [ ] El audio carga una de las seis escenas y suena en bucle.
+- [ ] El audio carga una de las escenas disponibles (dos por ambiente en el
+  repositorio actual) y suena en bucle.
 - [ ] No hay controles inferiores durante la sesión.
 - [ ] Un toque termina la sesión con fundido.
 - [ ] `Escape` termina la sesión.
@@ -1003,6 +1011,8 @@ la siguiente sesión.
 - **3.1:** tres paisajes sonoros de alta calidad por ambiente (escenas 04–06,
   22,05 kHz, 30 s, deterministas, bucle sin costura y −23 LUFS), selección
   entre seis escenas y herramienta de análisis de audio.
+- **3.6:** el repositorio conserva dos escenas por ambiente; la app sigue
+  eligiendo al azar entre las disponibles y muestra `1/2`.
 - **3.5:** se retira la X del selector de duración; se cierra al elegir una
   opción, con `Escape` o tocando fuera.
 - **3.4:** las etiquetas visibles de duración pasan a `10 MIN`, `15 MIN` y

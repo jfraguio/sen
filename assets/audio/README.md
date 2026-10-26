@@ -1,16 +1,10 @@
 # Escenas de audio
 
-Cada ambiente tiene su propia carpeta con seis escenas en WAV:
+El motor genera hasta seis escenas en WAV por ambiente (`01.wav` … `06.wav`).
+**Este repositorio conserva dos escenas por ambiente**, las elegidas
+manualmente. Las demás se pueden regenerar con los scripts.
 
-```
-assets/audio/lluvia/01.wav
-...
-assets/audio/lluvia/06.wav
-assets/audio/fuego/01.wav
-...
-```
-
-Los archivos no son copias: cada uno es una escena distinta del mismo ambiente.
+Cada archivo es una escena distinta del mismo ambiente.
 
 - **01–03 · síntesis base** (`lab/synth.js`): 16 s, mono, 16 kHz. Cambian el
   patrón del sonido y dejan el fondo en un plano mínimo.
@@ -20,8 +14,8 @@ Los archivos no son copias: cada uno es una escena distinta del mismo ambiente.
   batidos…), reverb, bucle sin costura y sonoridad ≈ −23 LUFS.
 
 La aplicación comprueba al iniciar la sesión qué archivos siguen existiendo y
-elige uno al azar. Puedes borrar las escenas que no te gusten; no hace falta
-tocar código ni configuración. Si dejas una sola, siempre sonará esa.
+elige uno al azar. Puedes borrar más escenas; no hace falta tocar código ni
+configuración. Si dejas una sola, siempre sonará esa.
 
 - Regenerar las escenas 01–03: `node scripts/make-audio-variants.mjs`
 - Regenerar las escenas 04–06: `node scripts/make-soundscapes.mjs`
