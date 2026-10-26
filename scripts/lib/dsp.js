@@ -704,7 +704,10 @@ export function encodeWav(samples, sampleRate = SR) {
   return bytes;
 }
 
-/** Decodifica un WAV PCM de 16 bits (mono o estéreo, se mezcla a mono). */
+/**
+ * Decodifica un WAV PCM de 16 o 24 bits, o IEEE float de 32 bits (mono o
+ * estéreo; se mezcla a mono).
+ */
 export function decodeWav(bytes) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let p = 12;
@@ -714,17 +717,24 @@ export function decodeWav(bytes) {
     const size = view.getUint32(p + 4, true);
     if (id === 'fmt ') {
       fmt = {
+        format: view.getUint16(p + 8, true),
         channels: view.getUint16(p + 10, true),
         sampleRate: view.getUint32(p + 12, true),
         bits: view.getUint16(p + 22, true),
       };
     } else if (id === 'data' && fmt) {
-      const frames = size / (2 * fmt.channels);
+      const bytesPer = fmt.bits / 8;
+      const frames = Math.floor(size / (bytesPer * fmt.channels));
+      const read = fmt.format === 3
+        ? (o) => view.getFloat32(o, true)
+        : fmt.bits === 24
+          ? (o) => ((view.getUint8(o) | (view.getUint8(o + 1) << 8) | (view.getInt8(o + 2) << 16)) / 8388608)
+          : (o) => view.getInt16(o, true) / 32768;
       const out = new Float32Array(frames);
       for (let i = 0; i < frames; i++) {
         let s = 0;
-        for (let c = 0; c < fmt.channels; c++) s += view.getInt16(p + 8 + (i * fmt.channels + c) * 2, true);
-        out[i] = s / fmt.channels / 32768;
+        for (let c = 0; c < fmt.channels; c++) s += read(p + 8 + (i * fmt.channels + c) * bytesPer);
+        out[i] = s / fmt.channels;
       }
       return { ...fmt, samples: out };
     }

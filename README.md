@@ -32,8 +32,8 @@ ES y el audio necesitan un servidor.
   pulsarlo se pasa a la siguiente pista del ambiente. Arriba a la derecha hay
   una **X** para cerrar y volver al menú.
 - Audio sintético, sin cuentas, sin anuncios y sin peticiones a servidores.
-- Laboratorio en **`/lab/`** para editar el carácter del ambiente base, mezclar
-  capas y exportar los parámetros en JSON.
+- **Laboratorio** en **`/lab/`**: un editor de música ambiental sintética para
+  componer temas propios y descargarlos como WAV (ver más abajo).
 
 La funcionalidad completa, la arquitectura y la descripción precisa de cada
 ambiente están en **[`SPEC.md`](SPEC.md)**.
@@ -48,17 +48,18 @@ assets/
   audio/README.md
   favicon.svg
 lab/
-  index.html
-  lab.js
-  lab.css
-  synth.js
-  dsp.js
-  sources.js
-  soundscapes.js
+  index.html, lab.css
+  worker.js, export-worker.js, overview-worker.js, player-worklet.js
+  app/        interfaz del editor
+  engine/     motor de síntesis del laboratorio (sin DOM, también en Node)
+  templates/  plantillas de inicio (.sen.json)
 scripts/
+  lib/        generadores de escenas (synth, dsp, sources, soundscapes)
   make-audio-variants.mjs
   make-soundscapes.mjs
   analyze-audio.mjs
+  render-lab.mjs
+  test-lab.mjs
 src/
   config/ambients.js
   config/icons.js
@@ -77,8 +78,8 @@ src/
 El motor genera seis escenas sintéticas por ambiente; el repositorio conserva
 solo dos de ellas. Las otras cuatro se pueden regenerar:
 
-- **01–03**, síntesis base (`lab/synth.js`): 16 s, mono, 16 kHz.
-- **04–06**, paisajes de alta calidad (`lab/soundscapes.js`): 30 s, mono,
+- **01–03**, síntesis base (`scripts/lib/synth.js`): 16 s, mono, 16 kHz.
+- **04–06**, paisajes de alta calidad (`scripts/lib/soundscapes.js`): 30 s, mono,
   22,05 kHz, bucle sin costura, deterministas y a ≈ −23 LUFS.
 
 ```bash
@@ -95,13 +96,31 @@ no te gusten sin tocar código.
 
 ## Laboratorio
 
-El laboratorio vive en **`/lab/`** y comparte la configuración y el motor de
-síntesis de la app. Permite:
+**`/lab/`** es un editor de música ambiental sintética, independiente de los
+ambientes de la app y con su propio motor:
 
-- Cambiar el ambiente base y editar sus parámetros.
-- Añadir capas de bichos, pájaros, lluvia, viento, olas y burbujas.
-- Ajustar ruido, brillo, velocidad de las olas y volumen general.
-- Descargar o copiar un JSON `sen-lab/2` con la mezcla.
+- **Línea de tiempo** con pistas y elementos: notas sostenidas (pad, drone,
+  cuerdas, coro, vidrio, seno), notas puntuales (campana, cuenco, kalimba,
+  caja de música, celesta, marimba, cuerda pulsada, gota tonal) como golpes,
+  frases o nubes generativas, ruido de color y **simulaciones** (grillos,
+  cigarras, pájaros por especie, ranas, gotas, lluvia, arroyo, olas, viento,
+  fuego, campanillas).
+- **Escucha en directo** mientras editas; región de escucha en bucle.
+- Tonalidad, tempo opcional, reverb y eco maestros, automatización por pista,
+  deshacer, autoguardado, plantillas, modo compacto en móvil e importación MIDI.
+- **Exportar → WAV** directamente desde el navegador (48 kHz/24 bits,
+  44,1 kHz/16 bits o «Escena para sen»), con final con cola, exacto o en bucle
+  sin costura, y sonoridad normalizada. Cada WAV lleva el proyecto dentro y se
+  puede volver a abrir.
+
+El mismo motor genera el WAV en local, byte a byte igual que Chrome:
+
+```bash
+node scripts/render-lab.mjs tema.sen.json                 # opciones del proyecto
+node scripts/render-lab.mjs tema.wav --rate 44100 --bits 16 --end loop
+node tema.render.mjs                                      # script autónomo descargado
+node scripts/test-lab.mjs --full                          # pruebas del motor
+```
 
 ## Publicar en GitHub Pages
 

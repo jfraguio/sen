@@ -4,96 +4,167 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#02030a" />
-    <meta name="description" content="Laboratorio de sonido de sen: mezcla capas y guarda los parámetros de tu ambiente." />
-    <title>sen · laboratorio de sonido</title>
+    <meta name="theme-color" content="#05060b" />
+    <meta name="description" content="sen lab: editor de música ambiental sintética. Compón con notas, ruidos y simulaciones de naturaleza y descarga el WAV." />
+    <title>sen · lab</title>
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="lab.css" />
   </head>
   <body>
-    <canvas class="lab-canvas" id="lab-canvas" aria-hidden="true"></canvas>
-    <div class="lab-shade" aria-hidden="true"></div>
+    <div class="boot" id="boot">sen · lab</div>
 
-    <main class="lab">
-      <header class="lab-head">
+    <section class="unsupported" id="unsupported" hidden>
+      <h1>sen · lab</h1>
+      <p>Este navegador no puede ejecutar el editor. Falta:</p>
+      <ul id="unsupported-list"></ul>
+      <p class="muted">Usa Chrome o Edge 91+, Firefox 114+ o Safari 15+, desde HTTPS o <code>localhost</code>.</p>
+      <p><a href="../">← Volver a sen</a></p>
+    </section>
+
+    <div class="lab" id="app" hidden>
+      <header class="topbar">
         <a class="back" href="../" aria-label="Volver a sen">← <span>sen</span></a>
-        <div class="head-copy">
-          <p class="eyebrow">estudio</p>
-          <h1>Laboratorio de sonido</h1>
-          <p class="lead">Mezcla capas, ajusta el carácter y descarga los parámetros de tu ambiente. Todo se genera a partir de los sonidos sintéticos de sen.</p>
+        <label class="title">
+          <span class="sr-only">Nombre del tema</span>
+          <input id="project-name" type="text" autocomplete="off" spellcheck="false" maxlength="120" />
+        </label>
+        <span class="save-state" id="save-state">guardado</span>
+        <div class="topbar__actions">
+          <button class="icon-btn" id="undo" type="button" aria-label="Deshacer" title="Deshacer (Cmd/Ctrl+Z)">↶</button>
+          <button class="icon-btn" id="redo" type="button" aria-label="Rehacer" title="Rehacer (Mayús+Cmd/Ctrl+Z)">↷</button>
+          <button class="btn btn--quiet" id="new" type="button">Nuevo</button>
+          <button class="btn btn--quiet" id="open" type="button" title="Abrir un .sen.json o un WAV del laboratorio, o importar un MIDI">Abrir</button>
+          <button class="btn btn--quiet" id="save-project" type="button" title="Descargar el proyecto (Cmd/Ctrl+S)">Proyecto</button>
+          <button class="btn btn--primary" id="export" type="button" title="Exportar (Cmd/Ctrl+E)">Exportar</button>
+          <input id="open-file" type="file" accept=".json,.wav,.mid,.midi,application/json,audio/wav,audio/x-wav,audio/midi" hidden />
         </div>
       </header>
 
-      <div class="lab-grid">
-        <section class="panel panel--mix" aria-labelledby="mix-title">
-          <div class="panel-head">
-            <h2 id="mix-title">Mezcla</h2>
-            <span id="status" class="status"><i aria-hidden="true"></i><span id="status-text">listo</span></span>
-          </div>
-
-          <div class="base-row">
-            <label for="base">Ambiente base</label>
-            <select id="base"></select>
-          </div>
-
-          <div class="transport">
-            <button id="play" class="button button--primary" type="button">
-              <span class="button__icon" aria-hidden="true">▶</span>
-              <span id="play-text">Escuchar</span>
-            </button>
-            <span class="transport__hint">Pulsa para empezar. Los cambios se aplican en directo.</span>
-          </div>
-
-          <div class="section-head">
-            <h3>Carácter de <span id="base-name">Lluvia</span></h3>
-            <span>síntesis en vivo</span>
-          </div>
-          <div class="sliders sliders--base" id="base-sliders"></div>
-
-          <div class="presets" id="presets" aria-label="Variaciones rápidas"></div>
-
-          <div class="section-head section-head--mix">
-            <h3>Capas y salida</h3>
-            <span>suma de ambientes</span>
-          </div>
-          <div class="sliders" id="sliders"></div>
-        </section>
-
-        <aside class="panel panel--export" aria-labelledby="export-title">
-          <div class="panel-head">
-            <h2 id="export-title">Tus parámetros</h2>
-            <span class="tag">sen-lab/2</span>
-          </div>
-          <p class="small">Ponle un nombre, describe la idea y descarga el JSON. Con ese archivo puedes pedirme que replique la variación en la app.</p>
-
-          <label class="field" for="preset-name">
-            <span>Nombre de la variación</span>
-            <input id="preset-name" type="text" placeholder="Lluvia con grillos" autocomplete="off" />
-          </label>
-
-          <label class="field" for="preset-notes">
-            <span>Notas</span>
-            <textarea id="preset-notes" rows="3" placeholder="Quiero que la lluvia suene más cerca y con grillos al fondo..."></textarea>
-          </label>
-
-          <div class="actions">
-            <button id="download" class="button button--primary" type="button">Descargar parámetros</button>
-            <button id="copy" class="button button--ghost" type="button">Copiar JSON</button>
-            <button id="reset" class="button button--quiet" type="button">Restablecer</button>
-          </div>
-
-          <pre class="json" id="json" aria-label="Parámetros actuales"></pre>
-          <p class="small small--foot">Los audios se reproducen en local; no se envía nada a ningún servidor.</p>
-        </aside>
+      <div class="transport" id="transport" role="toolbar" aria-label="Transporte">
+        <button class="play" id="play" type="button" aria-label="Reproducir" title="Reproducir / pausa (Espacio)"><span aria-hidden="true">▶</span></button>
+        <button class="icon-btn" id="stop" type="button" aria-label="Detener y volver al inicio" title="Detener (Inicio)">■</button>
+        <output class="clock" id="clock" aria-label="Posición">00:00,0 / 03:00</output>
+        <button class="chip" id="region-loop" type="button" aria-pressed="false" title="Región de escucha en bucle (L)">⟲ región</button>
+        <button class="icon-btn icon-btn--small" id="region-clear" type="button" aria-label="Quitar la región" title="Quitar la región" hidden>×</button>
+        <label class="field-inline">
+          <span>rejilla</span>
+          <select id="grid"></select>
+        </label>
+        <div class="zoom" role="group" aria-label="Zoom">
+          <button class="icon-btn" id="zoom-out" type="button" aria-label="Alejar" title="Alejar (−)">−</button>
+          <button class="icon-btn" id="zoom-in" type="button" aria-label="Acercar" title="Acercar (+)">+</button>
+        </div>
+        <label class="field-inline volume">
+          <span aria-hidden="true">vol</span>
+          <span class="sr-only">Volumen de escucha</span>
+          <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" />
+        </label>
+        <button class="btn btn--quiet compact-only" id="compact-add" type="button">＋ Añadir</button>
       </div>
 
-      <footer class="lab-foot">
-        <span>sen · sonido sintético</span>
-        <span aria-hidden="true">·</span>
-        <a href="../">Volver al menú</a>
-      </footer>
-    </main>
+      <div class="workspace">
+        <aside class="library sheet" id="library" aria-label="Biblioteca"></aside>
+        <section class="timeline" id="timeline" aria-label="Línea de tiempo"></section>
+        <section class="compact-list" id="compact" aria-label="Pistas"></section>
+        <aside class="inspector sheet" id="inspector" aria-label="Inspector"></aside>
+      </div>
 
-    <script type="module" src="lab.js"></script>
+      <footer class="statusbar" id="statusbar">
+        <div class="meter" aria-hidden="true"><i id="meter-l"></i><i id="meter-r"></i></div>
+        <span id="st-lufs">— LUFS</span>
+        <span id="st-peak">pico —</span>
+        <span id="st-load">motor —</span>
+        <span id="st-quality" class="warn" hidden>escucha en calidad reducida</span>
+        <span id="st-warn" class="warn" hidden></span>
+        <span class="spacer"></span>
+        <span id="st-key"></span>
+      </footer>
+    </div>
+
+    <dialog class="dialog" id="start-dialog" aria-labelledby="start-title">
+      <h2 id="start-title">Empezar</h2>
+      <p class="muted">Elige un punto de partida. Puedes cambiarlo todo después.</p>
+      <div class="templates" id="start-templates"></div>
+      <div class="dialog__actions">
+        <button class="btn btn--quiet" id="start-open" type="button">Abrir un archivo o importar MIDI…</button>
+      </div>
+    </dialog>
+
+    <dialog class="dialog dialog--export" id="export-dialog" aria-labelledby="export-title">
+      <form method="dialog" id="export-form">
+        <h2 id="export-title">Exportar</h2>
+        <fieldset class="presets" id="export-presets">
+          <legend>Preajuste</legend>
+        </fieldset>
+        <div class="export-grid">
+          <label>Frecuencia
+            <select name="sampleRate">
+              <option value="22050">22 050 Hz</option>
+              <option value="44100">44 100 Hz</option>
+              <option value="48000">48 000 Hz</option>
+            </select>
+          </label>
+          <label>Resolución
+            <select name="bits">
+              <option value="16">16 bits (dither TPDF)</option>
+              <option value="24">24 bits</option>
+              <option value="32">32 bits flotante</option>
+            </select>
+          </label>
+          <label>Canales
+            <select name="channels">
+              <option value="2">Estéreo</option>
+              <option value="1">Mono</option>
+            </select>
+          </label>
+          <label>Final
+            <select name="end">
+              <option value="">El del tema</option>
+              <option value="tail">Con cola</option>
+              <option value="cut">Duración exacta con fundido</option>
+              <option value="loop">Bucle sin costura</option>
+            </select>
+          </label>
+          <label>Sonoridad
+            <select name="loudness">
+              <option value="none">Solo limitador</option>
+              <option value="-23">−23 LUFS</option>
+              <option value="-18">−18 LUFS</option>
+              <option value="-16">−16 LUFS</option>
+              <option value="-14">−14 LUFS</option>
+            </select>
+          </label>
+          <label>Techo (dBFS)
+            <input name="ceiling" type="number" min="-6" max="-0.1" step="0.1" />
+          </label>
+          <label>Rango
+            <select name="range">
+              <option value="all">Tema completo</option>
+              <option value="region">Región de escucha</option>
+            </select>
+          </label>
+        </div>
+        <p class="muted" id="export-estimate"></p>
+        <p class="warn" id="export-warning" hidden></p>
+        <div class="progress" id="export-progress" hidden>
+          <div class="progress__bar"><i id="export-bar"></i></div>
+          <span id="export-progress-text">0 %</span>
+        </div>
+        <div class="export-result" id="export-result" hidden></div>
+        <div class="dialog__actions">
+          <button class="btn btn--quiet" id="export-close" type="button">Cerrar</button>
+          <button class="btn btn--quiet" id="export-script" type="button" title="Un único archivo .mjs con el motor y el proyecto">Descargar script</button>
+          <button class="btn btn--quiet" id="export-project" type="button">Descargar proyecto</button>
+          <button class="btn btn--quiet" id="export-cancel" type="button" hidden>Cancelar</button>
+          <button class="btn btn--primary" id="export-wav" type="button">Exportar WAV</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="drop-hint" id="drop-hint" hidden>Suelta un proyecto <code>.sen.json</code>, un WAV del laboratorio o un MIDI para importarlo</div>
+    <div class="toast" id="toast" role="status" hidden></div>
+    <p class="sr-only" id="live" aria-live="polite"></p>
+
+    <script type="module" src="app/main.js"></script>
   </body>
 </html>

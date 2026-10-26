@@ -1,0 +1,40 @@
+{
+  "schema": "sen-lab/3",
+  "engine": "sen-synth/1",
+  "name": "Drone y campanas",
+  "notes": "Drone en Re con quinta, nube de campanas en pentatónica mayor y aire.",
+  "seed": "drone-campanas",
+  "duration": 180,
+  "end": { "mode": "tail", "fadeOut": 4 },
+  "tuning": { "a4": 440 },
+  "key": { "root": "D", "scale": "pentatonica-mayor" },
+  "tempo": null,
+  "region": null,
+  "tracks": [
+    {
+      "id": "t-drone", "name": "Drone", "color": "#a48bff", "family": "sustain", "instrument": "drone",
+      "params": { "sub": 0.4, "sweepDepth": 1, "sweepRate": 0.025 },
+      "mix": { "gain": -7, "pan": 0, "reverb": 0.35, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-drone", "type": "tone", "start": 0, "length": 180, "level": 0, "fadeIn": 10, "fadeOut": 12, "notes": ["D2", "A2"], "curve": "respira", "seed": 1 }
+      ]
+    },
+    {
+      "id": "t-campanas", "name": "Campanas", "color": "#ffd08a", "family": "strike", "instrument": "campana",
+      "params": { "decay": 8, "brightness": 0.45 },
+      "mix": { "gain": -9, "pan": 0.1, "reverb": 0.55, "echo": 0.2, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-nube", "type": "cloud", "start": 15, "length": 150, "level": 0, "fadeIn": 0, "fadeOut": 10, "density": 6, "range": ["D4", "D6"], "pitches": null, "timing": 0.7, "motion": 0.7, "gravity": 0.5, "chord": 0.1, "velocity": [0.3, 0.8], "seed": 3, "curve": "plana" }
+      ]
+    },
+    {
+      "id": "t-aire", "name": "Aire", "color": "#b7d8d3", "family": "noise", "instrument": "ruido",
+      "params": { "color": "rosa", "cutoff": 900, "movement": "rafagas", "moveRate": 0.08, "moveDepth": 0.6 },
+      "mix": { "gain": -15, "pan": 0, "reverb": 0.2, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-aire", "type": "span", "start": 0, "length": 180, "level": 0, "fadeIn": 8, "fadeOut": 10, "density": 0.6, "seed": 1, "curve": "plana" }
+      ]
+    }
+  ],
+  "master": { "reverb": { "size": 0.7, "decay": 6, "damping": 6000, "predelay": 0.03 }, "echo": { "time": 0.62, "sync": "libre", "feedback": 0.35, "tone": 3000, "pingPong": true } }
+}

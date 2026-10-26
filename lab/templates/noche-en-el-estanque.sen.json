@@ -1,0 +1,48 @@
+{
+  "schema": "sen-lab/3",
+  "engine": "sen-synth/1",
+  "name": "Noche en el estanque",
+  "notes": "Grillos, sapos parteros, gotas sobre agua y pad grave en La menor. Bucle sin costura.",
+  "seed": "estanque",
+  "duration": 120,
+  "end": { "mode": "loop", "fadeOut": 4 },
+  "tuning": { "a4": 440 },
+  "key": { "root": "A", "scale": "menor" },
+  "tempo": null,
+  "region": null,
+  "tracks": [
+    {
+      "id": "t-pad", "name": "Pad grave", "color": "#9fb2d9", "family": "sustain", "instrument": "pad",
+      "params": { "cutoff": 900, "partials": 10, "tremoloDepth": 0.12, "tremoloRate": 0.1, "drift": 4 },
+      "mix": { "gain": -12, "pan": 0, "reverb": 0.4, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-pad", "type": "tone", "start": 0, "length": 120, "level": 0, "fadeIn": 0, "fadeOut": 0, "notes": ["A2", "E3", "C4"], "curve": "plana", "seed": 1 }
+      ]
+    },
+    {
+      "id": "t-grillos", "name": "Grillos", "color": "#d7e08f", "family": "nature", "instrument": "grillo",
+      "params": { "individuals": 8, "distance": 0.55 },
+      "mix": { "gain": -10, "pan": 0, "reverb": 0.25, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-grillos", "type": "span", "start": 0, "length": 120, "level": 0, "fadeIn": 0, "fadeOut": 0, "density": 0.75, "seed": 1, "curve": "plana" }
+      ]
+    },
+    {
+      "id": "t-sapos", "name": "Sapos parteros", "color": "#9ed6a0", "family": "nature", "instrument": "rana",
+      "params": { "species": "sapoPartero", "individuals": 4, "callsPerMin": 22, "distance": 0.45 },
+      "mix": { "gain": -10, "pan": 0, "reverb": 0.35, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-sapos", "type": "span", "start": 10, "length": 95, "level": 0, "fadeIn": 6, "fadeOut": 8, "density": 0.7, "seed": 1, "curve": "respira" }
+      ]
+    },
+    {
+      "id": "t-gotas", "name": "Gotas", "color": "#8fbdff", "family": "nature", "instrument": "gotas",
+      "params": { "surface": "agua", "rate": 1.2, "pitch": [800, 2600], "distance": 0.3 },
+      "mix": { "gain": -12, "pan": 0, "reverb": 0.35, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-gotas", "type": "span", "start": 0, "length": 120, "level": 0, "fadeIn": 0, "fadeOut": 0, "density": 0.6, "seed": 1, "curve": "plana" }
+      ]
+    }
+  ],
+  "master": { "reverb": { "size": 0.8, "decay": 5, "damping": 5000, "predelay": 0.03 } }
+}

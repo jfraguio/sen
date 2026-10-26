@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { renderAmbient, SAMPLE_RATE } from '../lab/synth.js';
+import { renderAmbient, SAMPLE_RATE } from './lib/synth.js';
 
 const onlyArg = process.argv.find((arg) => arg.startsWith('--only='));
 const ONLY = onlyArg ? onlyArg.slice('--only='.length).split(',').map((id) => id.trim()) : null;

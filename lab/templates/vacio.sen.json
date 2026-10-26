@@ -1,0 +1,14 @@
+{
+  "schema": "sen-lab/3",
+  "engine": "sen-synth/1",
+  "name": "Tema sin título",
+  "notes": "",
+  "seed": "vacio",
+  "duration": 180,
+  "end": { "mode": "tail", "fadeOut": 4 },
+  "tuning": { "a4": 440 },
+  "key": { "root": "C", "scale": "mayor" },
+  "tempo": null,
+  "region": null,
+  "tracks": []
+}

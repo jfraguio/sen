@@ -1,6 +1,6 @@
 /**
  * Genera las escenas de alta calidad 04.wav, 05.wav y 06.wav de cada ambiente
- * con el motor de `lab/soundscapes.js` (22,05 kHz, mono, 16 bits, 30 s, bucle
+ * con el motor de `scripts/lib/soundscapes.js` (22,05 kHz, mono, 16 bits, 30 s, bucle
  * sin costura, sonoridad ≈ −23 LUFS). No toca las escenas 01–03.
  *
  * Uso:
@@ -12,8 +12,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SCENES, FIRST_SCENE, renderScene, SAMPLE_RATE } from '../lab/soundscapes.js';
-import { encodeWav, master, seed } from '../lab/dsp.js';
+import { SCENES, FIRST_SCENE, renderScene, SAMPLE_RATE } from './lib/soundscapes.js';
+import { encodeWav, master, seed } from './lib/dsp.js';
 
 const arg = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const ONLY = arg('only')?.split(',').map((s) => s.trim()).filter(Boolean) ?? null;

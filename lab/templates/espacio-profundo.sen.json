@@ -1,0 +1,44 @@
+{
+  "schema": "sen-lab/3",
+  "engine": "sen-synth/1",
+  "name": "Espacio profundo",
+  "notes": "Drone subgrave, vidrio, ruido marrón con oleaje y eco largo.",
+  "seed": "espacio",
+  "duration": 300,
+  "end": { "mode": "tail", "fadeOut": 4 },
+  "tuning": { "a4": 440 },
+  "key": { "root": "E", "scale": "menor" },
+  "tempo": null,
+  "region": null,
+  "tracks": [
+    {
+      "id": "t-drone", "name": "Drone subgrave", "color": "#a48bff", "family": "sustain", "instrument": "drone",
+      "params": { "sub": 0.7, "cutoff": 700, "beat": 0.2, "drift": 6 },
+      "mix": { "gain": -6, "pan": 0, "reverb": 0.3, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-drone", "type": "tone", "start": 0, "length": 300, "level": 0, "fadeIn": 15, "fadeOut": 20, "notes": ["E1", "B1"], "curve": "plana", "seed": 1 }
+      ]
+    },
+    {
+      "id": "t-vidrio", "name": "Vidrio", "color": "#8fe9e3", "family": "sustain", "instrument": "vidrio",
+      "params": { "tremoloDepth": 0.25, "tremoloRate": 0.15, "cutoff": 7000 },
+      "mix": { "gain": -15, "pan": 0, "reverb": 0.6, "echo": 0.45, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-vidrio-1", "type": "tone", "start": 30, "length": 100, "level": 0, "fadeIn": 20, "fadeOut": 25, "notes": ["E4", "B4"], "curve": "plana", "seed": 1 },
+        { "id": "e-vidrio-2", "type": "tone", "start": 150, "length": 120, "level": 0, "fadeIn": 25, "fadeOut": 30, "notes": ["G4", "D5"], "curve": "plana", "seed": 1 }
+      ]
+    },
+    {
+      "id": "t-oleaje", "name": "Oleaje", "color": "#9fb2d9", "family": "noise", "instrument": "ruido",
+      "params": { "color": "marron", "cutoff": 600, "movement": "oleaje", "wavePeriod": 12, "moveDepth": 0.7 },
+      "mix": { "gain": -12, "pan": 0, "reverb": 0.3, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-oleaje", "type": "span", "start": 0, "length": 300, "level": 0, "fadeIn": 15, "fadeOut": 20, "density": 0.6, "seed": 1, "curve": "plana" }
+      ]
+    }
+  ],
+  "master": {
+    "reverb": { "size": 0.9, "decay": 9, "damping": 4500, "predelay": 0.05 },
+    "echo": { "time": 1.2, "sync": "libre", "feedback": 0.55, "tone": 2400, "pingPong": true }
+  }
+}

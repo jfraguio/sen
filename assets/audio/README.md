@@ -6,9 +6,9 @@ manualmente. Las demás se pueden regenerar con los scripts.
 
 Cada archivo es una escena distinta del mismo ambiente.
 
-- **01–03 · síntesis base** (`lab/synth.js`): 16 s, mono, 16 kHz. Cambian el
+- **01–03 · síntesis base** (`scripts/lib/synth.js`): 16 s, mono, 16 kHz. Cambian el
   patrón del sonido y dejan el fondo en un plano mínimo.
-- **04–06 · paisajes de alta calidad** (`lab/soundscapes.js`): 30 s, mono,
+- **04–06 · paisajes de alta calidad** (`scripts/lib/soundscapes.js`): 30 s, mono,
   22,05 kHz, 16 bits con dither. Usan modelos más fieles (burbujas de
   Minnaert, truenos por sub-ráfagas, cantos de especies reales, cuencos con
   batidos…), reverb, bucle sin costura y sonoridad ≈ −23 LUFS.

@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { decodeWav, loudness } from '../lab/dsp.js';
+import { decodeWav, loudness } from './lib/dsp.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);

@@ -1,0 +1,55 @@
+{
+  "schema": "sen-lab/3",
+  "engine": "sen-synth/1",
+  "name": "Amanecer",
+  "notes": "Pad que crece, mirlo y petirrojo, arroyo y kalimba.",
+  "seed": "amanecer",
+  "duration": 240,
+  "end": { "mode": "tail", "fadeOut": 4 },
+  "tuning": { "a4": 440 },
+  "key": { "root": "G", "scale": "mayor" },
+  "tempo": null,
+  "region": null,
+  "tracks": [
+    {
+      "id": "t-pad", "name": "Pad", "color": "#ffd08a", "family": "sustain", "instrument": "pad",
+      "params": { "cutoff": 2200, "sweepDepth": 0.5, "sweepRate": 0.03 },
+      "mix": { "gain": -9, "pan": 0, "reverb": 0.4, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-pad", "type": "tone", "start": 0, "length": 240, "level": 0, "fadeIn": 20, "fadeOut": 15, "notes": ["G3", "B3", "D4"], "curve": "crece", "seed": 1 }
+      ]
+    },
+    {
+      "id": "t-mirlo", "name": "Mirlo", "color": "#e6d891", "family": "nature", "instrument": "pajaro",
+      "params": { "species": "mirlo", "individuals": 1, "songRate": 5, "distance": 0.3 },
+      "mix": { "gain": -9, "pan": -0.3, "reverb": 0.3, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-mirlo", "type": "span", "start": 40, "length": 160, "level": 0, "fadeIn": 5, "fadeOut": 10, "density": 0.8, "seed": 1, "curve": "plana" }
+      ]
+    },
+    {
+      "id": "t-petirrojo", "name": "Petirrojo", "color": "#f0b37e", "family": "nature", "instrument": "pajaro",
+      "params": { "species": "petirrojo", "individuals": 1, "songRate": 4, "distance": 0.5, "pan": 0.4 },
+      "mix": { "gain": -10, "pan": 0, "reverb": 0.3, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-petirrojo", "type": "span", "start": 70, "length": 150, "level": 0, "fadeIn": 5, "fadeOut": 10, "density": 0.7, "seed": 1, "curve": "plana" }
+      ]
+    },
+    {
+      "id": "t-arroyo", "name": "Arroyo", "color": "#79e8b7", "family": "nature", "instrument": "arroyo",
+      "params": { "flow": 0.45, "distance": 0.45 },
+      "mix": { "gain": -12, "pan": 0, "reverb": 0.2, "echo": 0, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-arroyo", "type": "span", "start": 0, "length": 240, "level": 0, "fadeIn": 8, "fadeOut": 12, "density": 0.6, "seed": 1, "curve": "plana" }
+      ]
+    },
+    {
+      "id": "t-kalimba", "name": "Kalimba", "color": "#f0b37e", "family": "strike", "instrument": "kalimba",
+      "params": {},
+      "mix": { "gain": -10, "pan": 0.15, "reverb": 0.45, "echo": 0.15, "mute": false, "solo": false },
+      "elements": [
+        { "id": "e-kalimba", "type": "cloud", "start": 60, "length": 140, "level": 0, "fadeIn": 10, "fadeOut": 12, "density": 5, "range": ["G4", "G6"], "pitches": null, "timing": 0.5, "motion": 0.75, "gravity": 0.5, "chord": 0.05, "velocity": [0.3, 0.75], "seed": 2, "curve": "respira" }
+      ]
+    }
+  ]
+}
