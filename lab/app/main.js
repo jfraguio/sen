@@ -708,6 +708,9 @@ function boot() {
       if (t) actions.toggleMix(t, 'mute');
     } else if (k === 'l' || k === 'L') {
       toggleRegionLoop();
+    } else if (k === '?') {
+      e.preventDefault();
+      window.open('guia.html', '_blank', 'noopener');
     } else if (k === '+' || k === '=') {
       timeline.zoom(1.5);
     } else if (k === '-' || k === '_') {

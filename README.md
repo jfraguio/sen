@@ -48,7 +48,7 @@ assets/
   audio/README.md
   favicon.svg
 lab/
-  index.html, lab.css
+  index.html, guia.html, lab.css
   worker.js, export-worker.js, overview-worker.js, player-worklet.js
   app/        interfaz del editor
   engine/     motor de síntesis del laboratorio (sin DOM, también en Node)
@@ -112,6 +112,9 @@ ambientes de la app y con su propio motor:
   44,1 kHz/16 bits o «Escena para sen»), con final con cola, exacto o en bucle
   sin costura, y sonoridad normalizada. Cada WAV lleva el proyecto dentro y se
   puede volver a abrir.
+
+Las instrucciones de uso están en **`/lab/guia.html`** (botón **?** de la
+cabecera del laboratorio o tecla `?`).
 
 El mismo motor genera el WAV en local, byte a byte igual que Chrome:
 

@@ -92,26 +92,73 @@ button {
   z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(2, 3, 9, 0.62) 0%, transparent 22%, transparent 74%, rgba(2, 3, 9, 0.72) 100%),
-    radial-gradient(ellipse at 50% 46%, transparent 42%, rgba(0, 0, 0, 0.5) 100%);
+    linear-gradient(180deg, rgba(4, 2, 14, 0.5) 0%, transparent 20%, transparent 78%, rgba(3, 2, 12, 0.62) 100%),
+    radial-gradient(ellipse at 50% 46%, transparent 48%, rgba(2, 0, 10, 0.45) 100%);
+}
+
+/* Grano muy fino para dar textura al cielo. */
+.menu-shade::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   flex: 0 0 auto;
-  padding-top: clamp(4px, 1.4vh, 12px);
+  padding-top: clamp(4px, 1.2vh, 10px);
+}
+
+.brand__sigil {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(232, 222, 255, 0.55);
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(197, 139, 255, 0.45);
+  animation: sigil-breathe 7s ease-in-out infinite;
+}
+
+.brand__sigil::after {
+  content: "";
+  position: absolute;
+  inset: 4.5px;
+  border-radius: 50%;
+  background: #f4f1ff;
+  box-shadow: 0 0 8px #e0b8ff;
 }
 
 .brand__mark {
-  padding-left: 0.58em;
-  color: rgba(237, 233, 224, 0.9);
-  font-size: clamp(18px, 2.5vmin, 24px);
-  font-weight: 450;
-  letter-spacing: 0.58em;
+  padding-left: 0.62em;
+  font-size: clamp(17px, 2.4vmin, 23px);
+  font-weight: 300;
+  letter-spacing: 0.62em;
   line-height: 1;
-  text-shadow: 0 0 24px rgba(190, 210, 255, 0.24);
+  text-transform: lowercase;
+  background: linear-gradient(90deg, #cdb8ff, #ffffff 40%, #ffc9e8 60%, #b7f3ea);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 14px rgba(200, 160, 255, 0.35));
+  animation: shimmer 18s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes sigil-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.18); opacity: 1; }
 }
 
 .constellation {
@@ -121,6 +168,8 @@ button {
   max-height: 780px;
   min-height: 0;
   margin: auto;
+  transform: translate(calc(var(--px, 0) * -7px), calc(var(--py, 0) * -7px));
+  transition: transform 1.2s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .constellation__lines {
@@ -131,6 +180,7 @@ button {
   height: 100%;
   overflow: visible;
   pointer-events: none;
+  transition: opacity 600ms ease;
 }
 
 .constellation__lines path {
@@ -143,15 +193,30 @@ button {
 .constellation__lines .connection {
   stroke: url(#line-gradient);
   stroke-width: 1;
-  opacity: 0.44;
-  filter: drop-shadow(0 0 5px rgba(168, 194, 255, 0.3));
+  opacity: 0.5;
+  filter: drop-shadow(0 0 5px rgba(197, 139, 255, 0.45));
 }
 
 .constellation__lines .connection-glow {
-  stroke: #a8c2ff;
-  stroke-width: 7;
-  opacity: 0.04;
-  filter: blur(3px);
+  stroke: url(#line-gradient);
+  stroke-width: 9;
+  opacity: 0.06;
+  filter: blur(4px);
+}
+
+/* Luz que recorre la constelación. */
+.constellation__lines .connection-flow {
+  stroke: #fff4ff;
+  stroke-width: 2;
+  stroke-dasharray: 0.6 99.4;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 4px #ffd1f3) drop-shadow(0 0 10px #c58bff);
+  animation: flow 26s linear infinite;
+}
+
+@keyframes flow {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
 }
 
 .nodes {
@@ -161,6 +226,7 @@ button {
 }
 
 .node {
+  --scale: 1;
   position: absolute;
   left: calc(var(--x) * 1%);
   top: calc(var(--y) * 1%);
@@ -169,97 +235,314 @@ button {
   width: var(--node-size);
   height: var(--node-size);
   padding: 0;
-  border: 1px solid var(--accent-line);
+  border: 0;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 40% 32%, var(--accent-soft), transparent 62%),
-    rgba(5, 8, 16, 0.56);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.025),
-    0 0 24px -5px var(--accent-glow),
-    0 0 62px -18px var(--accent-glow),
-    inset 0 0 24px rgba(255, 255, 255, 0.02);
+    radial-gradient(circle at 50% 50%, var(--accent-soft) 0%, transparent 58%),
+    radial-gradient(circle at 50% 50%, rgba(8, 4, 22, 0.78) 0%, rgba(8, 4, 22, 0.35) 70%, transparent 72%);
   color: var(--accent);
   cursor: pointer;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--scale));
   transition:
-    transform 240ms ease,
-    border-color 240ms ease,
-    box-shadow 240ms ease;
-  animation: node-in 800ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
-  animation-delay: calc(var(--i) * 35ms + 100ms);
+    transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 600ms ease,
+    filter 600ms ease;
+  animation: node-in 1400ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  animation-delay: calc(var(--i) * 70ms + 150ms);
 }
 
-.node::before {
-  content: "";
+/* Halo que respira. */
+.node__halo {
   position: absolute;
-  inset: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.045);
+  inset: -40%;
   border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 62%);
+  opacity: 0.55;
   pointer-events: none;
+  animation: halo 6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.73s);
+}
+
+@keyframes halo {
+  0%, 100% { opacity: 0.35; transform: scale(0.92); }
+  50% { opacity: 0.8; transform: scale(1.06); }
+}
+
+/* Anillo de sigilo que gira despacio. */
+.node__ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: spin var(--spin, 90s) linear infinite;
+  animation-direction: var(--dir, normal);
+  transition: filter 400ms ease;
+}
+
+.node__ring svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+}
+
+.node__ring .r-orbit {
+  stroke-width: 0.6;
+  opacity: 0.45;
+}
+
+.node__ring .r-ticks {
+  stroke-width: 0.8;
+  opacity: 0.55;
+}
+
+.node__ring .r-arc {
+  stroke-width: 1.4;
+  opacity: 0.8;
+  stroke-linecap: round;
+}
+
+.node__ring .r-gem {
+  fill: currentColor;
+  stroke: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .node__icon {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 44%;
-  height: 44%;
-  filter: drop-shadow(0 0 9px var(--accent-glow));
-  transition: transform 240ms ease;
+  width: 52%;
+  height: 52%;
+  filter: drop-shadow(0 0 6px var(--accent-glow)) drop-shadow(0 0 2px var(--accent-line));
+  transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 400ms ease;
 }
 
 .node__icon svg {
   width: 100%;
   height: 100%;
+  overflow: visible;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.5;
+  stroke-width: 1.05;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
+.node__icon svg :is(path, circle, ellipse) {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: draw 2.2s cubic-bezier(0.6, 0, 0.2, 1) backwards;
+  animation-delay: calc(var(--i) * 70ms + 400ms);
+}
+
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
 .node__icon svg .i-two {
   fill: currentColor;
-  fill-opacity: 0.12;
+  fill-opacity: 0.1;
 }
 
-.node__icon svg .i-solid {
-  fill: currentColor;
-  stroke: none;
-}
-
+.node__icon svg .i-solid,
 .node__icon svg .i-dot {
   fill: currentColor;
   stroke: none;
 }
 
-.node__icon svg .i-soft-line {
-  stroke-opacity: 0.55;
-}
-
-.node:active {
-  transform: translate(-50%, -50%) scale(0.975);
+.node__icon svg .i-faint {
+  stroke-width: 0.6;
+  opacity: 0.32;
 }
 
 .node:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 5px;
+  outline: 1px solid var(--accent);
+  outline-offset: 6px;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .node:hover {
-    border-color: var(--accent);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.04),
-      0 0 30px -3px var(--accent-glow),
-      0 0 80px -16px var(--accent-glow),
-      inset 0 0 24px rgba(255, 255, 255, 0.03);
-    transform: translate(-50%, -50%) scale(1.045);
+    --scale: 1.08;
+  }
+
+  .node:hover .node__ring {
+    animation-duration: 12s;
+    filter: drop-shadow(0 0 4px var(--accent));
   }
 
   .node:hover .node__icon {
-    transform: scale(1.06);
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 10px var(--accent)) drop-shadow(0 0 2px var(--accent));
   }
+
+  .node:hover .node__icon svg :is(path, circle, ellipse) {
+    animation: draw 1.1s cubic-bezier(0.6, 0, 0.2, 1);
+  }
+
+  .node:hover .node__halo {
+    opacity: 1;
+  }
+}
+
+.node:active {
+  --scale: 0.96;
+}
+
+/* Invocación: el nodo elegido arde y el resto se pliega hacia él. */
+.app.is-invoking .node:not(.is-chosen) {
+  --scale: 0.4;
+  opacity: 0;
+  filter: blur(6px);
+  left: calc((var(--x) + (var(--ox) - var(--x)) * 0.6) * 1%);
+  top: calc((var(--y) + (var(--oy) - var(--y)) * 0.6) * 1%);
+  transition:
+    transform 900ms cubic-bezier(0.7, 0, 0.3, 1),
+    left 900ms cubic-bezier(0.7, 0, 0.3, 1),
+    top 900ms cubic-bezier(0.7, 0, 0.3, 1),
+    opacity 800ms ease,
+    filter 800ms ease;
+}
+
+.app.is-invoking .constellation__lines {
+  opacity: 0;
+}
+
+.app.is-invoking .brand,
+.app.is-invoking .foot {
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.node.is-chosen {
+  z-index: 3;
+  --scale: 1.35;
+}
+
+.node.is-chosen .node__ring {
+  animation-duration: 2.4s;
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+
+.node.is-chosen .node__halo {
+  opacity: 1;
+  animation: halo-burst 1s ease-out forwards;
+}
+
+.node.is-chosen .node__icon {
+  filter: drop-shadow(0 0 12px var(--accent)) drop-shadow(0 0 3px #fff);
+}
+
+@keyframes halo-burst {
+  from { transform: scale(1); }
+  to { transform: scale(2.4); opacity: 0; }
+}
+
+/* Regreso desde una sesión: los nodos vuelven a aparecer. */
+.app.is-returning .node {
+  animation: node-return 1200ms cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  animation-delay: calc(var(--i) * 40ms);
+}
+
+.app.is-returning .node__icon svg :is(path, circle, ellipse) {
+  animation: draw 1.6s cubic-bezier(0.6, 0, 0.2, 1) backwards;
+  animation-delay: calc(var(--i) * 40ms + 200ms);
+}
+
+@keyframes node-return {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    scale: 0.7;
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    scale: 1;
+  }
+}
+
+/* Portal de luz desde el nodo elegido. */
+.portal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.portal.is-fading {
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+/* Velo que oscurece el menú mientras crece la luz. */
+.portal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ox) var(--oy), color-mix(in srgb, var(--accent) 22%, #06030f) 0%, #030209 70%);
+  opacity: 0;
+  animation: veil 800ms ease-in 300ms forwards;
+}
+
+@keyframes veil {
+  to { opacity: 1; }
+}
+
+.portal__light {
+  position: absolute;
+  left: var(--ox);
+  top: var(--oy);
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, color-mix(in srgb, var(--accent) 70%, #fff) 80%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 60%, transparent) 10%,
+    color-mix(in srgb, var(--accent) 26%, transparent) 26%,
+    color-mix(in srgb, var(--accent) 9%, transparent) 46%,
+    transparent 68%
+  );
+  transform: scale(0);
+  animation: portal-grow 1100ms cubic-bezier(0.75, 0, 0.25, 1) 280ms forwards;
+}
+
+@keyframes portal-grow {
+  to { transform: scale(var(--cover, 300)); }
+}
+
+.portal__ring {
+  position: absolute;
+  left: var(--ox);
+  top: var(--oy);
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 18px var(--accent), inset 0 0 12px var(--accent);
+  opacity: 0;
+  animation: ripple 1300ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+.portal__ring:nth-child(2) {
+  animation-delay: 160ms;
+}
+
+.portal__ring:nth-child(3) {
+  animation-delay: 320ms;
+}
+
+@keyframes ripple {
+  0% { opacity: 0.9; transform: scale(0.6); }
+  100% { opacity: 0; transform: scale(9); }
 }
 
 .foot {
@@ -271,9 +554,9 @@ button {
 }
 
 .foot__duration {
-  padding: 4px 8px;
+  padding: 4px 10px;
   border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 1px solid rgba(214, 190, 255, 0.28);
   background: transparent;
   color: var(--muted);
   font: inherit;
@@ -368,10 +651,12 @@ button {
 @keyframes node-in {
   from {
     opacity: 0;
-    scale: 0.9;
+    filter: blur(10px);
+    scale: 0.6;
   }
   to {
     opacity: 1;
+    filter: blur(0);
     scale: 1;
   }
 }
@@ -407,6 +692,12 @@ button {
 .stage.is-leaving {
   opacity: 0;
   pointer-events: none;
+}
+
+/* Mientras dura la invocación, el escenario espera oculto. */
+.stage.is-awaiting {
+  opacity: 0;
+  animation: none;
 }
 
 .stage:focus {
@@ -556,8 +847,18 @@ button {
    -------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .node {
-    animation: none;
+  .node,
+  .node__halo,
+  .node__ring,
+  .node__icon svg :is(path, circle, ellipse),
+  .brand__sigil,
+  .brand__mark,
+  .constellation__lines .connection-flow {
+    animation: none !important;
+  }
+
+  .constellation {
+    transform: none;
   }
 
   .stage {

@@ -201,45 +201,45 @@ export const SCENES = {
     {
       title: 'Chimenea',
       render() {
-        const f = S.fire({ roar: 1, hiss: 0.7, clusters: 1.3, ticks: 45, pops: 0.12, sap: 0.03, flickerHz: 2, levels: { roar: -9, hiss: -15, ticks: -10, pops: -3, sap: -17 } });
-        return mix([[f, 0, 0.22]], { t60: 0.55, size: 0.6, damp: 5000 });
+        const f = S.hearth({ size: 1, crackle: 2.2, sizzle: 0.9, pops: 0.07, flare: 0.12, whistle: 0.02, flicker: 2 });
+        return mix([[f, 0, 0.16, 22]], { t60: 0.5, size: 0.55, damp: 4500 });
       },
     },
     {
       title: 'Hoguera al aire libre',
       render() {
-        const f = S.fire({ roar: 1.2, hiss: 0.8, clusters: 2.2, ticks: 90, pops: 0.25, sap: 0.06, flickerHz: 3, levels: { roar: -7, hiss: -14, ticks: -9, pops: -2, sap: -15 } });
+        const f = S.hearth({ size: 1.25, crackle: 3.2, sizzle: 1.2, pops: 0.11, flare: 0.2, whistle: 0.03, flicker: 2.8, levels: { flare: -2, crackle: -2 } });
         const night = new Bus();
-        cricketChorus(night, 4, { dLo: 0.75, dHi: 1 });
-        const breeze = S.wind(gusts(0.06, 0, 0.6, 1.5), { lo: 300, hi: 900, low: 0.3, hiss: 0.1 });
+        cricketChorus(night, 5, { dLo: 0.7, dHi: 1 });
+        const breeze = S.wind(gusts(0.05, 0, 0.6, 1.5), { lo: 280, hi: 800, low: 0.3, hiss: 0.05 });
         return mix([
-          [f, 0, 0.1],
-          [night.render({ t60: 1.4, size: 1.4 }), -22],
-          [breeze, -18, 0.1],
-        ], { t60: 0.9, size: 1.5, damp: 5000 });
+          [f, 0, 0.08, 22],
+          [night.render({ t60: 1.4, size: 1.4 }), -24],
+          [breeze, -21, 0.1],
+        ], { t60: 0.9, size: 1.5, damp: 4500 });
       },
     },
     {
       title: 'Brasas',
       render() {
-        const f = S.fire({ roar: 0.4, hiss: 1, clusters: 0.35, ticks: 18, pops: 0.03, sap: 0.02, flickerHz: 0.8, levels: { roar: -14, hiss: -11, ticks: -5, pops: -6, sap: -16 } });
+        const f = S.hearth({ size: 0.45, crackle: 0.9, sizzle: 1.6, pops: 0.03, flare: 0.05, whistle: 0.03, flicker: 0.9, levels: { body: 0, sizzle: -12, crackle: -5 } });
         const tinkle = bank(30, () => {
-          const fr = logRand(3500, 8000);
-          return modal([[fr, 1, rand(0.004, 0.012)], [fr * 1.6, 0.3, 0.004]], { dur: 0.05, attack: 0.0004 });
+          const fr = logRand(2800, 6000);
+          return modal([[fr, 1, rand(0.004, 0.01)], [fr * 1.6, 0.3, 0.003]], { dur: 0.04, attack: 0.0004 });
         });
-        const embers = scatter(buf(), tinkle, 1.4, { spreadDb: 5 });
+        const embers = lp(scatter(buf(), tinkle, 1.2, { spreadDb: 6 }), 6000);
         const settle = new Bus();
         for (const t of [rand(6, 9), rand(19, 23)]) {
-          const ev = buf(sec(0.7));
-          put(ev, modal([[rand(90, 140), 1, 0.05], [rand(220, 320), 0.4, 0.03]], { dur: 0.25, strike: 0.6, strikeLp: 1500 }), 0, 0.6);
-          for (let i = 0; i < irand(15, 30); i++) put(ev, S.crackle(), sec(rand(0, 0.6) ** 1.5), rand(0.1, 0.5));
+          const ev = buf(sec(0.8));
+          put(ev, modal([[rand(90, 140), 1, 0.06], [rand(220, 320), 0.4, 0.03]], { dur: 0.3, strike: 0.5, strikeLp: 1200 }), 0, 0.7);
+          for (let i = 0; i < irand(12, 24); i++) put(ev, S.woodCrack(), sec(rand(0, 0.7) ** 1.5), rand(0.08, 0.4));
           settle.place(ev, t, { g: 1, d: 0.15 });
         }
         return mix([
-          [f, 0, 0.2],
-          [embers, -4, 0.3],
-          [settle.dry, -3, 0.2],
-        ], { t60: 0.6, size: 0.6, damp: 5500 });
+          [f, 0, 0.18, 22],
+          [embers, -17, 0.25, 12],
+          [settle.dry, -10, 0.2, 14],
+        ], { t60: 0.6, size: 0.6, damp: 4500 });
       },
     },
   ],

@@ -10,7 +10,7 @@ import {
   SAMPLE_RATE as SR, SECONDS, N,
   rnd, rand, irand, chance, pick, logRand, gauss, jitter,
   db, sec, buf, add, mul, scale, normRms, normPeak, normActive, tame, put, putAt,
-  white, pink, brown, lp, hp, bp, band, smooth,
+  white, pink, brown, lp, hp, bp, band, smooth, highShelf,
   lfo, range, envAD, envBell, envASR,
   tone, modal, bubble, burst, bank, poisson, regular, dust, reverb,
 } from './dsp.js';
@@ -345,74 +345,123 @@ export function wave({ build = 2.6, crash = 0.35, wash = 5.5, size = 1, bright =
 
 /* ----------------------------------------------------------------- fuego */
 
-/** Chasquido de leña: impulso muy corto filtrado con resonancia aleatoria. */
-export const crackle = () => {
-  const f = logRand(900, 5200);
-  return normPeak(burst(rand(0.0015, 0.008), { lo: f / 1.8, hi: f * 1.8, tau: rand(0.0004, 0.0025), q: rand(0.8, 2.2) }), 1);
-};
-/** Estallido de un nudo de madera, con cola de chispas. */
-export const pop = () => {
-  const ev = buf(sec(0.25));
-  put(ev, burst(0.03, { lo: 250, hi: 3500, tau: 0.006 }), 0, 1);
-  put(ev, modal([[logRand(250, 650), 0.6, 0.014]], { dur: 0.06 }), 0, 1);
-  for (let i = 0; i < irand(3, 10); i++) put(ev, crackle(), sec(rand(0.01, 0.22)), rand(0.1, 0.45));
+/**
+ * Chasquido de madera: un impulso muy corto que excita dos resonancias del
+ * leño (1–4 kHz, pocos milisegundos) y un golpe grave sordo. Suena a «toc»
+ * seco y no a clic digital.
+ */
+export function woodCrack({ bright = 1 } = {}) {
+  const f1 = logRand(1100, 3400) * bright;
+  const ev = modal([
+    [f1, 1, rand(0.0025, 0.007)],
+    [f1 * rand(1.55, 2.3), rand(0.25, 0.6), rand(0.0015, 0.004)],
+    [logRand(260, 620), rand(0.25, 0.7), rand(0.006, 0.014)],
+  ], { dur: 0.04, attack: 0.0002, strike: rand(0.1, 0.35), strikeLp: 5000 });
   return normPeak(ev, 1);
-};
+}
+
+/** Estallido de un nudo o una bolsa de resina: golpe grave y lluvia de chispas. */
+export function knotPop() {
+  const ev = buf(sec(0.6));
+  put(ev, modal([[rand(110, 240), 1, rand(0.025, 0.045)], [rand(380, 700), 0.35, 0.012]], { dur: 0.25, attack: 0.0008, strike: 0.5, strikeLp: 2200 }), 0, 1);
+  let t = rand(0.004, 0.02);
+  for (let i = 0, n = irand(4, 11); i < n; i++) {
+    put(ev, woodCrack({ bright: 1.1 }), sec(t), Math.pow(rnd(), 1.5) * 0.45);
+    t += -Math.log(1 - rnd()) * 0.035;
+    if (t > 0.55) break;
+  }
+  return normPeak(ev, 1);
+}
 
 /**
- * Fuego completo: rugido grave, siseo, chasquidos en racimos, ticks finos,
- * estallidos y silbidos de savia.
+ * Fuego realista:
+ *  - cuerpo: turbulencia cálida entre 150 y 1000 Hz que parpadea y «lame»,
+ *  - avivamientos: soplos breves de llama que crece,
+ *  - chasquidos de madera en racimos, con amplitudes de cola larga,
+ *  - crepitar fino de brasas que sigue a la llama,
+ *  - estallidos de nudos y algún silbido de vapor muy suave.
+ * Todo con una caída suave de agudos para que no resulte áspero.
  */
-export function fire({ roar = 1, hiss = 0.5, clusters = 1.2, ticks = 40, pops = 0.15, sap = 0.03, flickerHz = 2, levels = {} } = {}) {
-  const L = { roar: -6, hiss: -16, crackle: 0, ticks: -10, pops: -2, sap: -18, ...levels };
+export function hearth({
+  size = 1, crackle = 2.4, sizzle = 1, pops = 0.08, flare = 0.14, whistle = 0.02, flicker = 2.2, levels = {},
+} = {}) {
+  const L = { body: 0, low: -11, flare: -3, crackle: -3, sizzle: -14, pops: -5, whistle: -24, ...levels };
   const out = buf();
-  const flick = range(lfo(flickerHz, { slope: 0.6, minHz: 0.1, parts: 24 }), 0.35, 1, 1.4);
-  if (roar) {
-    const r = add(lp(brown(), 200, 0.6), bp(pink(), 480, 0.8), 0.6);
-    add(out, normRms(mul(r, flick), 0.1), db(L.roar) * roar);
+  // Parpadeo: lento (respiración de la llama) y rápido (aleteo), periódicos.
+  const slow = range(lfo(0.12, { slope: 1, parts: 10 }), 0.7, 1);
+  const flick = range(lfo(flicker, { minHz: 0.4, slope: 0.7, parts: 24 }), 0.5, 1, 1.3);
+  const flutter = range(lfo(11, { minHz: 5, slope: 0.2, parts: 20 }), 0.82, 1);
+  const life = new Float32Array(N);
+  for (let i = 0; i < N; i++) life[i] = slow[i] * flick[i] * flutter[i];
+
+  // Cuerpo de la llama: dos bandas que se mueven en contrafase.
+  const lick = range(lfo(0.9, { minHz: 0.2, slope: 0.8 }), 0, 1);
+  const warm = bp(pink(), 300 * Math.sqrt(size), 0.55);
+  const airy = bp(pink(), 760, 0.8);
+  const body = new Float32Array(N);
+  for (let i = 0; i < N; i++) body[i] = (warm[i] * (0.75 + 0.25 * lick[i]) + airy[i] * 0.55 * (1.15 - lick[i])) * life[i];
+  add(out, normRms(lp(body, 1400, 0.6), 0.1), db(L.body) * size);
+  // Base grave de la combustión, discreta.
+  const low = mul(band(brown(), 55, 170), slow);
+  add(out, normRms(low, 0.1), db(L.low) * size);
+
+  // Avivamientos: soplos de 1–3 s con la banda subiendo un poco.
+  if (flare > 0) {
+    const fl = buf();
+    poisson(flare, (t) => {
+      const d = rand(1, 3);
+      const n = sec(d);
+      const ev = mul(band(pink(n), rand(220, 320), rand(1000, 1700), { circular: false }), envBell(n, 1.6));
+      putAt(fl, ev, t, vary(0, 3));
+    });
+    if (rms(fl) > 0) add(out, normActive(fl, 0.1), db(L.flare) * size);
   }
-  if (hiss) {
-    const h = mul(band(pink(), 1800, 7000), range(lfo(0.8, { slope: 0.8 }), 0.45, 1));
-    add(out, normRms(h, 0.1), db(L.hiss) * hiss);
-  }
+
+  // Chasquidos en racimos y sueltos.
   const cr = buf();
-  const cBank = bank(80, crackle);
-  poisson(clusters, (t) => {
-    const m = irand(2, 14);
-    const gain = vary(0, 4);
+  const cBank = bank(120, () => woodCrack());
+  poisson(crackle / 5, (t) => {
     let tt = t;
-    for (let j = 0; j < m; j++) {
-      putAt(cr, pick(cBank), tt, gain * vary(-3, 5));
-      tt += -Math.log(1 - rnd()) * rand(0.008, 0.05);
+    let g = Math.pow(rnd(), 0.6);
+    for (let j = 0, m = irand(3, 14); j < m; j++) {
+      putAt(cr, pick(cBank), tt, g * Math.pow(rnd(), 2.2));
+      tt += -Math.log(1 - rnd()) * rand(0.012, 0.06);
+      g *= rand(0.8, 1);
     }
   });
-  add(out, normActive(tame(cr, 13), 0.1), db(L.crackle));
-  if (ticks) {
-    const tk = band(dust(ticks, { shape: 3 }), 1500, 8000);
-    add(out, normActive(tame(tk, 14), 0.1), db(L.ticks));
+  poisson(crackle * 0.6, (t) => putAt(cr, pick(cBank), t, Math.pow(rnd(), 3) * 0.8));
+  add(out, normActive(tame(lp(cr, 6500, 0.6), 11), 0.1), db(L.crackle));
+
+  // Crepitar fino: muchos ticks muy suaves que crecen con la llama.
+  if (sizzle > 0) {
+    const sz = mul(lp(bp(dust(260 * sizzle, { shape: 3.2 }), 2300, 0.7), 5200), life);
+    add(out, normActive(tame(sz, 14), 0.1), db(L.sizzle));
   }
-  if (pops) {
+
+  // Estallidos de nudos.
+  if (pops > 0) {
     const pp = buf();
-    const pBank = bank(8, pop);
-    poisson(pops, (t) => putAt(pp, pick(pBank), t, vary(0, 3)));
+    const pBank = bank(6, knotPop);
+    poisson(pops, (t) => putAt(pp, pick(pBank), t, vary(0, 2.5)));
     if (rms(pp) > 0) add(out, normActive(tame(pp, 12), 0.1), db(L.pops));
   }
-  if (sap) {
-    const sp = buf();
-    poisson(sap, (t) => {
-      const d = rand(0.6, 1.8);
-      const ev = mul(bp(white(sec(d)), logRand(3000, 6000), rand(5, 9)), envBell(sec(d), 1.5));
-      putAt(sp, ev, t, vary(0, 3));
+
+  // Silbido de vapor: muy raro y muy suave.
+  if (whistle > 0) {
+    const wh = buf();
+    poisson(whistle, (t) => {
+      const d = rand(1.2, 2.6);
+      const n = sec(d);
+      const f = logRand(1800, 3200);
+      const ev = tone(d, { f: (u) => f * (1 + 0.04 * u), amp: (u) => Math.pow(Math.sin(Math.PI * u), 1.4), vib: 0.006, vibRate: 7 });
+      add(ev, mul(bp(white(n), f, 12, { circular: false }), envBell(n, 1.4)), 0.6);
+      putAt(wh, ev, t, 1);
     });
-    if (rms(sp) > 0) add(out, normActive(sp, 0.1), db(L.sap));
+    if (rms(wh) > 0) add(out, normActive(wh, 0.1), db(L.whistle));
   }
-  return out;
+  // Tono final: agudos suaves.
+  return lp(highShelf(out, 4500, -3), 9500, 0.6);
 }
-const rms = (x) => {
-  let s = 0;
-  for (let i = 0; i < x.length; i += 4) s += x[i] * x[i];
-  return Math.sqrt(s / (x.length / 4));
-};
 
 /* ------------------------------------------------------------------ aves */
 

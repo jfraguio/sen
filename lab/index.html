@@ -18,7 +18,7 @@
       <p>Este navegador no puede ejecutar el editor. Falta:</p>
       <ul id="unsupported-list"></ul>
       <p class="muted">Usa Chrome o Edge 91+, Firefox 114+ o Safari 15+, desde HTTPS o <code>localhost</code>.</p>
-      <p><a href="../">← Volver a sen</a></p>
+      <p><a href="guia.html">Instrucciones del laboratorio</a> · <a href="../">← Volver a sen</a></p>
     </section>
 
     <div class="lab" id="app" hidden>
@@ -30,6 +30,7 @@
         </label>
         <span class="save-state" id="save-state">guardado</span>
         <div class="topbar__actions">
+          <a class="icon-btn help-link" id="help" href="guia.html" target="_blank" rel="noopener" aria-label="Instrucciones (se abre en otra pestaña)" title="Instrucciones (?)">?</a>
           <button class="icon-btn" id="undo" type="button" aria-label="Deshacer" title="Deshacer (Cmd/Ctrl+Z)">↶</button>
           <button class="icon-btn" id="redo" type="button" aria-label="Rehacer" title="Rehacer (Mayús+Cmd/Ctrl+Z)">↷</button>
           <button class="btn btn--quiet" id="new" type="button">Nuevo</button>
@@ -83,7 +84,7 @@
 
     <dialog class="dialog" id="start-dialog" aria-labelledby="start-title">
       <h2 id="start-title">Empezar</h2>
-      <p class="muted">Elige un punto de partida. Puedes cambiarlo todo después.</p>
+      <p class="muted">Elige un punto de partida. Puedes cambiarlo todo después. ¿Primera vez? Lee las <a href="guia.html" target="_blank" rel="noopener">instrucciones</a>.</p>
       <div class="templates" id="start-templates"></div>
       <div class="dialog__actions">
         <button class="btn btn--quiet" id="start-open" type="button">Abrir un archivo o importar MIDI…</button>

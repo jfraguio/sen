@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#05060b" />
+    <meta name="description" content="Instrucciones de sen lab: cómo componer, escuchar y exportar música ambiental sintética." />
+    <title>sen · lab · instrucciones</title>
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #05060b;
+        --panel: #0d1019;
+        --panel-2: #121624;
+        --line: #1d2233;
+        --line-2: #2a3045;
+        --ink: #eae6dd;
+        --muted: #8a8a92;
+        --dim: #5d6070;
+        --accent: #9dded8;
+        --warn: #ffb36b;
+        color-scheme: dark;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+      @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+      body {
+        margin: 0;
+        background: radial-gradient(120% 50% at 50% -10%, #0c1226 0%, transparent 60%), var(--bg);
+        color: var(--ink);
+        font: 15px/1.65 ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: var(--accent); }
+      a:hover { color: #fff; }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      code, kbd {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 0.88em;
+      }
+      kbd {
+        display: inline-block;
+        min-width: 1.6em;
+        padding: 0 6px;
+        border: 1px solid var(--line-2);
+        border-bottom-width: 2px;
+        border-radius: 5px;
+        background: var(--panel-2);
+        text-align: center;
+        white-space: nowrap;
+      }
+      code { color: #cfe9e5; }
+
+      .bar {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 10px 20px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(5, 6, 11, 0.88);
+        backdrop-filter: blur(8px);
+        font-size: 13px;
+      }
+      .bar a { color: var(--muted); text-decoration: none; }
+      .bar a:hover { color: var(--ink); }
+      .bar strong { font-weight: 500; letter-spacing: 0.04em; }
+      .bar .spacer { flex: 1; }
+
+      .page {
+        display: grid;
+        grid-template-columns: 230px minmax(0, 760px);
+        gap: 48px;
+        justify-content: center;
+        padding: 32px 24px 96px;
+      }
+      nav.toc {
+        position: sticky;
+        top: 72px;
+        align-self: start;
+        max-height: calc(100vh - 96px);
+        overflow: auto;
+        font-size: 13px;
+      }
+      nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+      nav.toc li { counter-increment: toc; }
+      nav.toc a {
+        display: block;
+        padding: 3px 8px;
+        border-left: 2px solid var(--line);
+        color: var(--muted);
+        text-decoration: none;
+      }
+      nav.toc a::before { content: counter(toc) ". "; color: var(--dim); }
+      nav.toc a:hover { color: var(--ink); border-color: var(--accent); }
+
+      main h1 {
+        margin: 0 0 6px;
+        font-size: 30px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+      }
+      .lead { margin: 0 0 28px; color: var(--muted); font-size: 16px; }
+      main h2 {
+        margin: 52px 0 12px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        font-size: 21px;
+        font-weight: 500;
+      }
+      main h3 { margin: 26px 0 8px; font-size: 16px; font-weight: 600; }
+      main p, main li { color: #d8d4cb; }
+      main ul, main ol { padding-left: 22px; }
+      main li { margin: 4px 0; }
+      .muted { color: var(--muted); }
+
+      table {
+        width: 100%;
+        margin: 12px 0 18px;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th, td {
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th { color: var(--muted); font-weight: 500; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+      td:first-child { white-space: nowrap; }
+
+      .note {
+        margin: 16px 0;
+        padding: 12px 16px;
+        border: 1px solid var(--line-2);
+        border-left: 3px solid var(--accent);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+      .note--warn { border-left-color: var(--warn); }
+      .note p { margin: 0; }
+
+      pre {
+        overflow: auto;
+        margin: 12px 0 18px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .diagram { color: #bcd9d4; }
+
+      .steps { counter-reset: step; list-style: none; padding-left: 0; }
+      .steps > li {
+        counter-increment: step;
+        position: relative;
+        padding-left: 40px;
+        margin: 12px 0;
+      }
+      .steps > li::before {
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line-2);
+        border-radius: 50%;
+        background: var(--panel-2);
+        color: var(--accent);
+        font-size: 13px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 10px;
+        margin: 14px 0 20px;
+      }
+      .card {
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+      }
+      .card b { display: block; margin-bottom: 2px; font-weight: 600; }
+      .card span { color: var(--muted); font-size: 13px; line-height: 1.45; display: block; }
+
+      .top {
+        display: inline-block;
+        margin-top: 64px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 899px) {
+        .page { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 20px; }
+        nav.toc { position: static; max-height: none; margin-bottom: 8px; }
+        nav.toc ol { columns: 2; column-gap: 12px; }
+        main h1 { font-size: 25px; }
+        td:first-child { white-space: normal; }
+      }
+      @media print {
+        .bar, nav.toc, .top { display: none; }
+        body { background: #fff; color: #000; }
+        .page { display: block; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <a href="./">← volver al laboratorio</a>
+      <span class="spacer"></span>
+      <strong>sen · lab · instrucciones</strong>
+    </header>
+
+    <div class="page">
+      <nav class="toc" aria-label="Índice">
+        <ol>
+          <li><a href="#que-es">Qué es</a></li>
+          <li><a href="#primeros-pasos">Primeros pasos</a></li>
+          <li><a href="#pantalla">La pantalla</a></li>
+          <li><a href="#conceptos">Temas, pistas y elementos</a></li>
+          <li><a href="#instrumentos">Instrumentos</a></li>
+          <li><a href="#editar">Editar en la línea de tiempo</a></li>
+          <li><a href="#inspector">El inspector</a></li>
+          <li><a href="#tono">Tonalidad, notas y azar</a></li>
+          <li><a href="#mezcla">Mezcla, maestro y automatización</a></li>
+          <li><a href="#escuchar">Escuchar</a></li>
+          <li><a href="#final">Cómo termina el tema</a></li>
+          <li><a href="#exportar">Exportar</a></li>
+          <li><a href="#archivos">Guardar, abrir y MIDI</a></li>
+          <li><a href="#atajos">Atajos de teclado</a></li>
+          <li><a href="#compacto">Pantallas pequeñas</a></li>
+          <li><a href="#por-dentro">Cómo funciona por dentro</a></li>
+          <li><a href="#limites">Límites</a></li>
+          <li><a href="#problemas">Problemas frecuentes</a></li>
+        </ol>
+      </nav>
+
+      <main>
+        <h1>Instrucciones del laboratorio</h1>
+        <p class="lead">Cómo componer música ambiental sintética en <b>sen lab</b>, escucharla mientras la editas y descargarla como WAV.</p>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="que-es">Qué es</h2>
+        <p>El laboratorio es un editor para crear desde cero temas de música ambiental: notas largas (pads, drones), notas sueltas (campanas, kalimba), ruidos con movimiento y simulaciones de naturaleza (grillos, pájaros, lluvia, arroyo, fuego…). Colocas esos sonidos en una línea de tiempo, los oyes en directo y, cuando te guste, exportas un archivo WAV.</p>
+        <ul>
+          <li><b>Todo ocurre en tu navegador.</b> No hay servidor ni cuenta y nada sale de tu equipo. Todo el sonido se sintetiza; no se usan grabaciones.</li>
+          <li><b>Lo que oyes es lo que exportas.</b> El mismo motor genera la escucha y el WAV.</li>
+          <li><b>Es reproducible.</b> El mismo proyecto da siempre el mismo audio, así que puedes volver a generarlo cuando quieras.</li>
+        </ul>
+        <div class="note">
+          <p><b>Requisitos:</b> un navegador de escritorio reciente (Chrome o Edge 98+, Firefox 114+, Safari 15.4+), abierto desde HTTPS o <code>localhost</code>. Si falta algo, el laboratorio te dice qué y no arranca.</p>
+        </div>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="primeros-pasos">Primeros pasos</h2>
+        <p>La primera vez se abre <b>Empezar</b> con cinco puntos de partida. Todo se puede cambiar después.</p>
+        <div class="cards">
+          <div class="card"><b>Vacío</b><span>3 minutos, Do mayor, sin pistas.</span></div>
+          <div class="card"><b>Drone y campanas</b><span>Drone en Re con quinta, nube de campanas y aire.</span></div>
+          <div class="card"><b>Noche en el estanque</b><span>Grillos, sapos, gotas sobre agua y pad grave.</span></div>
+          <div class="card"><b>Amanecer</b><span>Pad que crece, mirlo, petirrojo, arroyo y kalimba.</span></div>
+          <div class="card"><b>Espacio profundo</b><span>Drone subgrave, vidrio, ruido con oleaje y eco largo.</span></div>
+        </div>
+        <p>Pulsa <kbd>Espacio</kbd> para escuchar. Para aprender, lo más rápido es abrir una plantilla y tocar sus controles mientras suena.</p>
+
+        <h3>Un tema en seis pasos</h3>
+        <ol class="steps">
+          <li>Elige <b>Vacío</b>. Sin nada seleccionado, el inspector (derecha) muestra el tema: pon la tonalidad en <b>Re</b>, escala <b>pentatónica mayor</b>.</li>
+          <li>Arrastra <b>Drone</b> desde la biblioteca (izquierda) al principio de la línea de tiempo. En el inspector, deja las notas <code>Re2</code> y <code>La2</code> y un fundido de entrada de 10 s.</li>
+          <li>Arrastra <b>Campana</b> a 0:20. Se crea una <b>nube</b> de notas: ponle 6 notas por minuto, registro <code>Re4</code>–<code>Re6</code> y «pasos cercanos» en 0,7.</li>
+          <li>Arrastra <b>Grillos</b> a 0:30, elige la curva <b>crece</b> y sube la <b>distancia</b> a 0,6.</li>
+          <li>Arrastra sobre la regla de 0:20 a 1:00 para marcar una región, pulsa <kbd>L</kbd> y ajusta mientras se repite.</li>
+          <li><b>Exportar</b> → preajuste <b>Estudio</b>, final <b>bucle sin costura</b> → <b>Exportar WAV</b>.</li>
+        </ol>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="pantalla">La pantalla</h2>
+<pre class="diagram" aria-hidden="true">┌───────────────────────────────────────────────────────────────────┐
+│ ← sen  Nombre del tema   guardado  ?  ↶ ↷  Nuevo Abrir … Exportar │  cabecera
+├───────────────────────────────────────────────────────────────────┤
+│ ▶ ■  01:12,4 / 03:00   ⟲ región   rejilla   − +   vol             │  transporte
+├──────────┬─────────────────────────────────────────┬──────────────┤
+│Biblioteca│ 0:00    0:30    1:00    1:30            │  Inspector   │
+│          │ Pad     ████ Re3 La3 ██████             │  (tema,      │
+│          │ Campana   · · ░ nube ░ ·  ·             │   pista o    │
+│          │ Grillos       ▒▒▒ crece ▒▒▒▒            │   elemento)  │
+├──────────┴─────────────────────────────────────────┴──────────────┤
+│ nivel ▮▮▮▯  −18 LUFS · pico −2,1 · motor 18 % · Re pentatónica    │  pie
+└───────────────────────────────────────────────────────────────────┘</pre>
+        <table>
+          <tr><th>Zona</th><th>Para qué sirve</th></tr>
+          <tr><td>Cabecera</td><td>Volver a sen, nombre del tema, estado de guardado («sin descargar» si aún no has bajado el proyecto), estas instrucciones (<b>?</b>), deshacer y rehacer, <b>Nuevo</b>, <b>Abrir</b>, <b>Proyecto</b> (descarga el <code>.sen.json</code>) y <b>Exportar</b>.</td></tr>
+          <tr><td>Transporte</td><td>Reproducir/pausa, detener (vuelve al inicio), posición, región en bucle, rejilla de ajuste, zoom y volumen de escucha. El volumen no afecta a lo que exportas.</td></tr>
+          <tr><td>Biblioteca</td><td>Las cuatro familias de instrumentos y las plantillas. El botón <b>▶</b> de cada instrumento hace sonar una muestra de 3 s sin añadir nada.</td></tr>
+          <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, silencio <b>M</b>, solo <b>S</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja sus fundidos, su curva y una forma de onda resumida.</td></tr>
+          <tr><td>Inspector</td><td>Los controles de lo que tengas seleccionado: el tema (sin selección), una pista, un elemento o el bus maestro.</td></tr>
+          <tr><td>Pie</td><td>Medidor de salida, sonoridad a corto plazo (LUFS), pico, carga del motor, tonalidad y tempo. Aquí aparecen también los avisos.</td></tr>
+        </table>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="conceptos">Temas, pistas y elementos</h2>
+        <p>Hay tres niveles:</p>
+        <ul>
+          <li><b>Tema</b>: el proyecto completo. Tiene nombre, duración, forma de terminar, tonalidad, afinación, tempo opcional, una semilla de azar, las pistas y el bus maestro.</li>
+          <li><b>Pista = instrumento.</b> Cada pista es un único instrumento con su timbre (sus parámetros) y su mezcla (volumen, panorama, envíos a reverb y eco, silencio y solo). El timbre se ajusta una vez por pista.</li>
+          <li><b>Elemento</b>: un bloque en la pista que dice <i>cuándo</i> y <i>qué</i> suena. Tiene inicio, duración, nivel, fundidos y su contenido (notas, densidad…). Los elementos pueden solaparse: se suman.</li>
+        </ul>
+
+        <h3>Familias y tipos de elemento</h3>
+        <table>
+          <tr><th>Familia</th><th>Qué es</th><th>Elementos</th></tr>
+          <tr><td>Notas sostenidas</td><td>Pads, drones, cuerdas, coro, vidrio, seno: tonos que duran lo que dura el elemento.</td><td><b>Tono</b></td></tr>
+          <tr><td>Notas puntuales</td><td>Campana, cuenco, kalimba, caja de música, celesta, marimba, cuerda pulsada, gota tonal: golpes que decaen solos.</td><td><b>Nube</b>, <b>golpe</b>, <b>frase</b></td></tr>
+          <tr><td>Ruidos</td><td>Ruido de color filtrado y con movimiento: aire, rumor, oleaje abstracto.</td><td><b>Tramo</b></td></tr>
+          <tr><td>Simulaciones</td><td>Naturaleza generada al azar: grillos, cigarras, pájaros, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas.</td><td><b>Tramo</b></td></tr>
+        </table>
+        <ul>
+          <li><b>Tono</b>: de 1 a 8 notas a la vez (nota, acorde o cluster). El fundido de entrada es el ataque y el de salida la relajación; lo que ves es lo que suena.</li>
+          <li><b>Golpe</b>: una nota en un instante. Su cola se dibuja rayada.</li>
+          <li><b>Frase</b>: un patrón corto de golpes que se repite hasta llenar el elemento. Se edita en una mini rejilla (piano roll) en el inspector.</li>
+          <li><b>Nube</b>: notas generadas al azar dentro de la escala y de un registro. Es el tipo por defecto de las notas puntuales; con el selector <b>Tipo</b> la conviertes en golpe o frase. Controles:
+            <ul>
+              <li><b>densidad</b>: notas por minuto (1–120);</li>
+              <li><b>ritmo</b>: de regular (0) a totalmente aleatorio (1);</li>
+              <li><b>pasos cercanos</b>: de saltos libres (0) a moverse por grados vecinos (1);</li>
+              <li><b>gravedad</b>: preferencia por la tónica y la quinta;</li>
+              <li><b>acordes</b>: probabilidad de que caigan 2–3 notas juntas;</li>
+              <li><b>velocidad</b>: rango de intensidad de los golpes.</li>
+            </ul>
+          </li>
+          <li><b>Tramo</b> (ruidos y simulaciones): un periodo de actividad. En las simulaciones también define la <b>densidad</b> de la actividad (0–1).</li>
+        </ul>
+
+        <h3>Curvas de intensidad</h3>
+        <p>Todo elemento con duración tiene una curva que modula su intensidad a lo largo del tiempo: <b>plana</b>, <b>crece</b>, <b>decrece</b>, <b>respira</b> (sube y baja una vez), <b>olas</b> (varios ciclos) o una curva propia dibujada a mano. En tonos, frases y ruidos cambia el nivel; en nubes y simulaciones cambia sobre todo la densidad (cuántas cosas pasan).</p>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="instrumentos">Instrumentos</h2>
+        <p>Todos los parámetros tienen un valor por defecto que ya suena bien. Doble clic en un control lo devuelve a ese valor.</p>
+
+        <h3>Notas sostenidas</h3>
+        <table>
+          <tr><td>Pad</td><td>Armónicos suaves con varias voces ligeramente desafinadas.</td></tr>
+          <tr><td>Drone</td><td>Pocas parciales graves con batidos lentos y subgrave opcional.</td></tr>
+          <tr><td>Cuerdas</td><td>Sección de cuerdas con filtro lento y vibrato suave.</td></tr>
+          <tr><td>Coro</td><td>Voces con formantes que van de «a» a «o» y «u».</td></tr>
+          <tr><td>Vidrio</td><td>Parciales inarmónicos sostenidos, brillo frío.</td></tr>
+          <tr><td>Seno</td><td>Una sinusoide pura: graves y tonos de prueba.</td></tr>
+        </table>
+        <p class="muted">Controles comunes: parciales, caída de armónicos, voces, desafinación, deriva lenta, filtro, vibrato, trémolo, barrido de filtro y ancho estéreo.</p>
+
+        <h3>Notas puntuales</h3>
+        <table>
+          <tr><td>Campana</td><td>Parciales de campana y golpe metálico.</td></tr>
+          <tr><td>Cuenco</td><td>Modos inarmónicos que baten, como un cuenco tibetano.</td></tr>
+          <tr><td>Kalimba</td><td>Lengüeta con ataque blando y cuerpo de madera.</td></tr>
+          <tr><td>Caja de música</td><td>Púa metálica brillante y corta.</td></tr>
+          <tr><td>Celesta</td><td>Láminas metálicas suaves con resonador.</td></tr>
+          <tr><td>Marimba</td><td>Láminas de madera con resonador tubular.</td></tr>
+          <tr><td>Cuerda pulsada</td><td>Entre arpa y guitarra suave.</td></tr>
+          <tr><td>Gota tonal</td><td>Gota de agua afinada cuyo tono sube al final.</td></tr>
+        </table>
+        <p class="muted">Controles comunes: decaimiento, brillo, dureza del golpe, inarmonicidad, batido, respuesta a la velocidad y ancho estéreo.</p>
+
+        <h3>Ruidos</h3>
+        <p>Un único instrumento, <b>Ruido</b>: color (blanco, rosa o marrón), filtro y movimiento. Hay dos tipos de movimiento: <b>ráfagas</b> (cambios aleatorios suaves del nivel, del filtro o de ambos) y <b>oleaje</b> (ciclos regulares de 3–20 s que suben y bajan). Tiene ajustes rápidos: <i>aire</i>, <i>rumor grave</i>, <i>viento suave</i>, <i>oleaje lejano</i> y <i>lluvia lejana</i>.</p>
+
+        <h3>Simulaciones</h3>
+        <table>
+          <tr><td>Grillos</td><td>Individuos, registro, llamadas por segundo, pulsos por llamada y sincronía.</td></tr>
+          <tr><td>Cigarras</td><td>Individuos, registro, duración de tandas y pausas.</td></tr>
+          <tr><td>Pájaros</td><td>Especie (mirlo, petirrojo, carbonero, pinzón, cuco, tórtola, autillo, cárabo o genérico), individuos y frases por minuto.</td></tr>
+          <tr><td>Ranas</td><td>Sapo partero, ranita o croar grave; individuos.</td></tr>
+          <tr><td>Gotas</td><td>Superficie (agua, hoja, cristal, piedra), gotas por segundo y registro.</td></tr>
+          <tr><td>Lluvia</td><td>Intensidad y superficie (hojas, tejado, cristal, agua, lona).</td></tr>
+          <tr><td>Arroyo</td><td>Caudal, fuentes de burbujeo y registro.</td></tr>
+          <tr><td>Olas</td><td>Periodo, tamaño, espuma y guijarros.</td></tr>
+          <tr><td>Viento</td><td>Fuerza, racheo, aullido y hojas.</td></tr>
+          <tr><td>Fuego</td><td>Tamaño, chasquidos, estallidos y siseo.</td></tr>
+          <tr><td>Campanillas</td><td>Material (metal, bambú, vidrio), número de tubos (afinados a la escala del tema) y viento.</td></tr>
+        </table>
+        <p>Todas las simulaciones comparten:</p>
+        <ul>
+          <li><b>distancia</b> (0 cerca, 1 lejos): baja el nivel, quita agudos y añade reverb a la vez;</li>
+          <li><b>posición</b> en el estéreo y <b>dispersión</b> de los individuos;</li>
+          <li><b>variación</b>: cuánto cambia cada evento respecto al anterior.</li>
+        </ul>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="editar">Editar en la línea de tiempo</h2>
+        <h3>Añadir</h3>
+        <ul>
+          <li><b>Arrastra</b> un instrumento de la biblioteca a la línea de tiempo: crea una pista con un elemento en ese instante.</li>
+          <li><b>Clic</b> en un instrumento: lo mismo, en la posición del cabezal.</li>
+          <li><b>Doble clic</b> en un hueco de una pista: añade otro elemento a esa pista.</li>
+        </ul>
+        <h3>Modificar elementos</h3>
+        <ul>
+          <li><b>Arrastrar</b> el elemento lo mueve; sus <b>bordes</b> cambian la duración; las <b>asas de las esquinas superiores</b> ajustan los fundidos.</li>
+          <li><kbd>Alt</kbd> + arrastrar duplica.</li>
+          <li><kbd>S</kbd> divide en el cabezal; <kbd>Supr</kbd> borra.</li>
+          <li>Selección múltiple con <kbd>Mayús</kbd> + clic o dibujando un marco.</li>
+          <li>Todo se ajusta a la rejilla y a los bordes de otros elementos; mantén <kbd>Mayús</kbd> mientras arrastras para moverlo libremente.</li>
+          <li>Con un elemento enfocado, <kbd>←</kbd>/<kbd>→</kbd> lo mueven 0,1 s (1 s con <kbd>Mayús</kbd>) y <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd> cambian su duración.</li>
+        </ul>
+        <h3>Pistas</h3>
+        <p>Se pueden reordenar arrastrando, renombrar, cambiar de color, duplicar, plegar, silenciar (<b>M</b>) y dejar en solo (<b>S</b>). Hasta 32 pistas.</p>
+        <h3>Navegar</h3>
+        <ul>
+          <li>Clic en la regla: mueve el cabezal. Arrastrar en la regla: marca la región de escucha.</li>
+          <li>Zoom con <b>−</b>/<b>+</b> o <kbd>Cmd/Ctrl</kbd> + rueda.</li>
+          <li><b>Rejilla</b>: libre, 0,1 s, 0,25 s, 0,5 s o 1 s; si el tema tiene tempo, también pulsos y compases.</li>
+        </ul>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="inspector">El inspector</h2>
+        <p>Cambia según lo que hayas seleccionado:</p>
+        <ul>
+          <li><b>Sin selección</b> (o <kbd>Esc</kbd>): el tema. Duración, final, tonalidad, afinación, tempo, semilla, notación de las notas y el bus maestro.</li>
+          <li><b>Una pista</b>: instrumento, timbre, mezcla y automatización.</li>
+          <li><b>Un elemento</b>: tiempos, nivel, fundidos, curva y su contenido (notas, nube, frase o densidad).</li>
+        </ul>
+        <p>Trucos de los controles:</p>
+        <ul>
+          <li>Cada deslizador tiene un valor numérico que puedes escribir.</li>
+          <li><b>Doble clic</b> en el control o en su etiqueta devuelve el valor por defecto.</li>
+          <li><kbd>Mayús</kbd> + rueda sobre un deslizador hace ajuste fino.</li>
+          <li><b>⟳ Aleatorizar</b> (en nubes y simulaciones) prueba otra tirada del azar de ese elemento.</li>
+          <li><b>◉ Escuchar solo esto</b>: mientras lo mantienes pulsado suena solo ese elemento.</li>
+          <li>En las notas hay un mini teclado de dos octavas que suena al pulsar.</li>
+        </ul>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="tono">Tonalidad, notas y azar</h2>
+        <ul>
+          <li><b>Tonalidad</b>: raíz (Do…Si) y escala: mayor, menor natural, dórica, lidia, mixolidia, pentatónica mayor o menor, <i>hirajoshi</i>, tonos enteros o cromática.</li>
+          <li><b>Afinación</b>: La4 entre 415 y 466 Hz (440 por defecto; 432 es habitual en música ambiental).</li>
+          <li><b>Notación</b>: latina (<code>Re3</code>) o anglosajona (<code>D3</code>). También se admite una frecuencia libre en Hz.</li>
+          <li><b>Cambiar la tonalidad</b> no mueve las notas que ya has escrito, salvo que actives <b>Transponer todo</b>. Las nubes siempre siguen la escala nueva.</li>
+          <li><b>Tempo</b> (opcional, 30–160 BPM): solo sirve para la rejilla y el eco sincronizado. Mucha música ambiental no lo necesita.</li>
+        </ul>
+        <h3>Semillas</h3>
+        <p>Todo lo aleatorio (cuándo canta cada pájaro, qué nota toca la nube…) sale de semillas. Cada elemento tiene la suya, combinada con la del tema. Así, <b>editar un elemento no cambia el azar de los demás</b>. «Aleatorizar» en un elemento solo cambia ese elemento; <b>Aleatorizar todo</b> en el tema cambia todo a la vez.</p>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="mezcla">Mezcla, maestro y automatización</h2>
+        <h3>Por pista</h3>
+        <p>Volumen, panorama, envío a reverb y envío a eco, más silencio y solo.</p>
+        <h3>Bus maestro</h3>
+        <ul>
+          <li><b>Reverb</b> común: tamaño, decaimiento (hasta 12 s), amortiguación y predelay.</li>
+          <li><b>Eco</b> común: tiempo (o sincronizado al tempo), realimentación, tono y ping-pong.</li>
+          <li><b>Ecualización</b>: corte de graves, corte de agudos e inclinación.</li>
+          <li><b>Volumen</b> y <b>techo</b> del limitador, que evita que la salida se sature.</li>
+        </ul>
+        <h3>Automatización</h3>
+        <p>En el inspector de una pista, sección <b>Automatización</b>: eliges un parámetro (volumen, panorama, envío a reverb, envío a eco o filtro paso bajo) y dibujas su evolución a lo largo del tema. Clic añade un punto, arrastrar lo mueve y doble clic lo quita. Mientras haya puntos, la automatización manda sobre el valor fijo. En la línea de tiempo se ve como una línea discontinua y la pista muestra una <b>A</b>.</p>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="escuchar">Escuchar</h2>
+        <ul>
+          <li><kbd>Espacio</kbd> reproduce o pausa; <kbd>Inicio</kbd> o <b>■</b> vuelven al principio.</li>
+          <li>Los cambios se oyen en menos de medio segundo <b>sin detener la reproducción</b>: solo se recalcula la pista que has tocado. La mezcla (volumen, panorama, envíos, silencio, solo) cambia al instante.</li>
+          <li><b>Región en bucle</b>: arrastra sobre la regla para marcarla y pulsa <kbd>L</kbd> o <b>⟲ región</b>. Sirve para ajustar un pasaje sin oír el tema entero. <b>×</b> la quita.</li>
+          <li>Al saltar a otro punto hay un instante de espera: el motor «calienta» la reverb y los filtros para que suenen como si viniera de antes.</li>
+        </ul>
+        <div class="note">
+          <p>Si el equipo no da abasto, la escucha baja la calidad automáticamente y el pie muestra «escucha en calidad reducida». <b>La exportación siempre se hace a la calidad completa.</b> Si la carga del motor sale en rojo, se han producido cortes: silencia pistas o reduce voces, individuos o densidad.</p>
+        </div>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="final">Cómo termina el tema</h2>
+        <table>
+          <tr><th>Final</th><th>Qué ocurre</th></tr>
+          <tr><td>Con cola</td><td>Suena la duración del tema y después se dejan apagar las colas naturales (campanas, reverb, eco), hasta 20 s más.</td></tr>
+          <tr><td>Duración exacta</td><td>El archivo dura exactamente lo indicado, con un fundido de salida (4 s por defecto, hasta 30).</td></tr>
+          <tr><td>Bucle sin costura</td><td>El final enlaza con el principio sin clic ni salto: perfecto para reproducir en bucle. Lo que sobresale del final (una cola de reverb, un elemento que cruza el borde) se oye al principio; en la línea de tiempo esa parte se dibuja rayada al inicio. Mínimo 10 s y máximo 10 min.</td></tr>
+        </table>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="exportar">Exportar</h2>
+        <p><b>Exportar</b> (<kbd>Cmd/Ctrl</kbd> + <kbd>E</kbd>) genera el WAV en tu navegador. Elige un preajuste o ajusta las opciones:</p>
+        <table>
+          <tr><th>Preajuste</th><th>Formato</th><th>Para qué</th></tr>
+          <tr><td>Estudio</td><td>48 kHz, 24 bits, estéreo, −18 LUFS, techo −1 dB</td><td>Seguir editando o mezclar en otro programa.</td></tr>
+          <tr><td>CD</td><td>44,1 kHz, 16 bits, estéreo, −16 LUFS, techo −1 dB</td><td>Escuchar y compartir.</td></tr>
+          <tr><td>Escena para sen</td><td>22,05 kHz, 16 bits, mono, bucle, −23 LUFS, techo −3 dB</td><td>El formato exacto de las escenas de la app (ver abajo).</td></tr>
+        </table>
+        <ul>
+          <li><b>Sonoridad</b>: el tema se mide y se ajusta al nivel elegido (LUFS). «Solo limitador» no lo normaliza. Si el objetivo es demasiado alto para ese tema, se te avisa de que el limitador ha tenido que apretar.</li>
+          <li><b>Techo</b>: pico máximo del archivo, medido como pico real.</li>
+          <li><b>Rango</b>: el tema completo o solo la región de escucha.</li>
+          <li>Verás el tamaño estimado, el progreso y un botón <b>Cancelar</b>. La escucha se detiene mientras tanto para dejarle toda la CPU.</li>
+          <li>Al terminar se descarga <code>nombre-AAAAMMDD-HHmm.wav</code> y se muestran la sonoridad, el pico y cuánto ha trabajado el limitador.</li>
+        </ul>
+        <div class="note">
+          <p><b>El WAV contiene el proyecto.</b> Cada WAV exportado lleva dentro el proyecto completo. Arrástralo al laboratorio y se abrirá para seguir editándolo.</p>
+        </div>
+        <h3>Usar un tema como escena de sen</h3>
+        <p>Exporta con el preajuste <b>Escena para sen</b> y copia el archivo a mano en <code>assets/audio/&lt;ambiente&gt;/</code> con el número de escena (por ejemplo <code>04.wav</code>). El laboratorio no publica nada por sí solo.</p>
+        <h3>Otras descargas</h3>
+        <ul>
+          <li><b>Descargar proyecto</b>: el <code>.sen.json</code> para reabrirlo o guardarlo en tu control de versiones.</li>
+          <li><b>Descargar script</b>: un único archivo <code>.render.mjs</code> con el motor y el proyecto. <code>node tema.render.mjs [salida.wav]</code> genera el mismo WAV sin necesitar nada más.</li>
+          <li><b>Render local</b> desde el repositorio:
+<pre>node scripts/render-lab.mjs tema.sen.json
+node scripts/render-lab.mjs tema.sen.json --out tema.wav --rate 44100 --bits 16 \
+  --mono --end loop --lufs -23 --peak -3
+node scripts/render-lab.mjs tema.wav     # usa el proyecto guardado dentro del WAV</pre>
+          Sin opciones usa las de la última exportación guardadas en el proyecto.</li>
+        </ul>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="archivos">Guardar, abrir y MIDI</h2>
+        <ul>
+          <li><b>Autoguardado</b>: el tema se guarda solo en el navegador, un segundo después de cada cambio, y se recupera al volver. Es una copia local: si borras los datos del navegador se pierde, así que <b>descarga el proyecto</b> (<b>Proyecto</b> o <kbd>Cmd/Ctrl</kbd> + <kbd>S</kbd>) para conservarlo. La cabecera indica «sin descargar» cuando hay cambios que aún no has bajado.</li>
+          <li><b>Nuevo</b> te pregunta antes de descartar un tema que no has descargado.</li>
+          <li><b>Deshacer</b> hasta 200 pasos. Un arrastre o un gesto de deslizador cuentan como un solo paso.</li>
+          <li><b>Abrir</b> (o arrastrar a la ventana): un <code>.sen.json</code>, un WAV exportado por el laboratorio o un MIDI.</li>
+          <li><b>MIDI</b> (<code>.mid</code>): se importa en el tema actual como pistas nuevas, y se deshace en un solo paso. Las notas largas se convierten en una pista de <b>Pad</b> con acordes; el resto, en <b>Kalimba</b> con frases. La percusión (canal 10) se ignora. Si hace falta, el tema se alarga.</li>
+          <li>Si un archivo trae valores fuera de rango, se recortan y se te avisa una vez.</li>
+        </ul>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="atajos">Atajos de teclado</h2>
+        <table>
+          <tr><th>Atajo</th><th>Acción</th></tr>
+          <tr><td><kbd>Espacio</kbd></td><td>Reproducir / pausa</td></tr>
+          <tr><td><kbd>Inicio</kbd></td><td>Detener y volver al principio</td></tr>
+          <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Mover el cabezal 1 s (5 s con <kbd>Mayús</kbd>)</td></tr>
+          <tr><td><kbd>←</kbd> <kbd>→</kbd> sobre un elemento</td><td>Moverlo 0,1 s (1 s con <kbd>Mayús</kbd>); con <kbd>Alt</kbd>, cambiar su duración</td></tr>
+          <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>Z</kbd></td><td>Deshacer (<kbd>Mayús</kbd> o <kbd>Cmd/Ctrl</kbd> <kbd>Y</kbd> para rehacer)</td></tr>
+          <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>C</kbd> <kbd>X</kbd> <kbd>V</kbd> <kbd>D</kbd></td><td>Copiar, cortar, pegar en el cabezal, duplicar</td></tr>
+          <tr><td><kbd>Supr</kbd> / <kbd>Retroceso</kbd></td><td>Borrar la selección</td></tr>
+          <tr><td><kbd>S</kbd></td><td>Dividir en el cabezal</td></tr>
+          <tr><td><kbd>M</kbd> / <kbd>Mayús</kbd> <kbd>S</kbd></td><td>Silencio / solo de la pista seleccionada</td></tr>
+          <tr><td><kbd>L</kbd></td><td>Región de escucha en bucle</td></tr>
+          <tr><td><kbd>+</kbd> <kbd>−</kbd></td><td>Zoom</td></tr>
+          <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>S</kbd></td><td>Descargar el proyecto</td></tr>
+          <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>E</kbd></td><td>Exportar</td></tr>
+          <tr><td><kbd>?</kbd></td><td>Abrir estas instrucciones</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>Cerrar diálogo o quitar la selección</td></tr>
+        </table>
+        <p class="muted">Los atajos de una letra no actúan mientras escribes en un campo de texto.</p>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="compacto">Pantallas pequeñas</h2>
+        <p>Por debajo de 900 px de ancho el laboratorio pasa a <b>modo compacto</b>: no hay línea de tiempo para arrastrar; las pistas se listan en vertical y cada elemento es una tarjeta con inicio, duración y nivel editables. El inspector se abre como hoja inferior y <b>＋ Añadir</b> abre la biblioteca. Escuchar, editar parámetros, plantillas, abrir y exportar funcionan igual.</p>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="por-dentro">Cómo funciona por dentro</h2>
+        <p>No necesitas saberlo para usar el laboratorio, pero ayuda a entender su comportamiento.</p>
+<pre class="diagram" aria-hidden="true">Editor (lo que ves) ──proyecto──▶ Motor de escucha (Worker)
+                                    │ bloques de audio de 50 ms
+                                    ▼
+                              Reproductor (AudioWorklet) ──▶ altavoces
+                                    │ nivel y posición
+Editor ◀────────────────────────────┘</pre>
+        <ul>
+          <li><b>Un proyecto es una receta, no audio.</b> Es un JSON de pocos KB que describe pistas, elementos y parámetros. El sonido se calcula a partir de él cada vez.</li>
+          <li><b>Motor propio.</b> El sonido lo genera un motor escrito en JavaScript (osciladores, filtros, modelos físicos de campanas, gotas o cuerdas, reverb), no los efectos del navegador. Por eso suena igual en el navegador y en Node.</li>
+          <li><b>Escucha.</b> El motor trabaja en un hilo aparte y va un cuarto de segundo por delante de lo que suena. Cuando cambias algo, recalcula solo la pista afectada y la sustituye con un fundido cruzado imperceptible.</li>
+          <li><b>Compilar.</b> Antes de sonar, el motor «planifica» el tema: decide de antemano cada nota de las nubes y cada canto de pájaro a partir de las semillas. Por eso el resultado es siempre el mismo.</li>
+          <li><b>Exportar.</b> El WAV se calcula en otro hilo y en dos pasadas: una mide la sonoridad y la otra escribe el archivo por trozos. Nunca se guarda el tema entero en memoria, así que caben temas de 30 minutos.</li>
+          <li><b>Bucle sin costura.</b> El motor calcula varias vueltas seguidas del tema y se queda con la última. Así la reverb y los ecos del final ya están sonando al principio y la unión es exacta, sin fundidos.</li>
+          <li><b>Determinismo.</b> Mismo proyecto, misma versión del motor y mismas opciones dan el mismo WAV byte a byte en Chrome, Edge y Node. En Safari y Firefox la diferencia es inaudible (por debajo de −90 dB).</li>
+        </ul>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="limites">Límites</h2>
+        <table>
+          <tr><td>Duración del tema</td><td>10 s – 30 min (en bucle: 10 s – 10 min)</td></tr>
+          <tr><td>Pistas</td><td>32</td></tr>
+          <tr><td>Elementos por tema</td><td>500</td></tr>
+          <tr><td>Notas por tono</td><td>8</td></tr>
+          <tr><td>Voces sostenidas a la vez</td><td>96 (notas × voces de unísono)</td></tr>
+          <tr><td>Golpes a la vez</td><td>16 por pista, 64 en total (se apaga el más antiguo)</td></tr>
+          <tr><td>Eventos de simulaciones</td><td>200 000 por tema (solo avisa: tarda más)</td></tr>
+          <tr><td>Reverb</td><td>decaimiento de hasta 12 s</td></tr>
+          <tr><td>Tamaño del proyecto</td><td>1 MB</td></tr>
+        </table>
+        <p class="muted">Si un cambio supera un límite, no se aplica y se te explica por qué.</p>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="problemas">Problemas frecuentes</h2>
+        <table>
+          <tr><th>Qué pasa</th><th>Qué hacer</th></tr>
+          <tr><td>No suena nada</td><td>Pulsa <b>▶</b> o <kbd>Espacio</kbd>: el navegador solo permite audio tras un gesto tuyo. Revisa el volumen de escucha, que no haya un <b>S</b> (solo) activo en otra pista y que el cabezal no esté pasado el final.</td></tr>
+          <tr><td>Se entrecorta</td><td>La carga del motor está alta. Silencia pistas que no estés ajustando, baja voces, individuos o densidad, o usa una región en bucle. La exportación no se ve afectada.</td></tr>
+          <tr><td>«Escucha en calidad reducida»</td><td>Es automático y solo afecta a la escucha.</td></tr>
+          <tr><td>«El motor se ha detenido»</td><td>Pulsa <b>Reiniciar motor</b>. El proyecto no se pierde.</td></tr>
+          <tr><td>«No se puede abrir este archivo»</td><td>El aviso dice el motivo. Los JSON del mezclador antiguo (<code>sen-lab/2</code>) no se pueden abrir en este editor.</td></tr>
+          <tr><td>El WAV suena más bajo de lo esperado</td><td>Revisa el preajuste: <b>Escena para sen</b> exporta a −23 LUFS a propósito. Usa <b>CD</b> (−16 LUFS) para escuchar.</td></tr>
+          <tr><td>Aviso de que el objetivo es demasiado alto</td><td>El limitador ha tenido que bajar el nivel. Elige una sonoridad más baja o reduce los picos (golpes muy fuertes).</td></tr>
+          <tr><td>El cambio de tonalidad no afecta a mis notas</td><td>Es intencionado; activa <b>Transponer todo</b> si quieres moverlas.</td></tr>
+        </table>
+
+        <a class="top" href="#que-es">↑ volver arriba</a>
+      </main>
+    </div>
+  </body>
+</html>

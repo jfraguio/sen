@@ -1,5 +1,5 @@
 import { APP, ambients, hexToRgb } from './config/ambients.js';
-import { iconSvg } from './config/icons.js';
+import { iconSvg, ringSvg } from './config/icons.js';
 import { AmbientRenderer } from './render/engine.js';
 import { Session } from './core/session.js';
 import { AmbientAudio } from './core/audio.js';
@@ -19,7 +19,11 @@ const els = {
   durationOptions: document.getElementById('duration-options'),
   trackLabel: document.getElementById('track-label'),
   sessionClose: document.getElementById('session-close'),
+  app: document.getElementById('app'),
+  portal: document.getElementById('portal'),
 };
+
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const renderer = new AmbientRenderer(document.getElementById('canvas'));
 const menuRenderer = new AmbientRenderer(document.getElementById('menu-canvas'));
@@ -29,10 +33,12 @@ const audio = new AmbientAudio({ onError: () => notifyAudioFailure() });
 const MENU_BACKDROP = {
   animation: 'constellation',
   palette: {
-    void: ['#010107', '#070b20', '#010005'],
-    nebula: ['#6f4cff', '#3b6dff', '#d9d1ff'],
-    star: '#f0f3ff',
+    void: ['#14063a', '#0c0f3e', '#04222c'],
+    nebula: ['#8b3dff', '#e0399a', '#1fb6ff', '#1ad6b0', '#f2a24b'],
+    star: '#f4f1ff',
   },
+  /* Posición del puntero en -1..1; el fondo la usa para el paralaje. */
+  pointer: { x: 0, y: 0 },
 };
 
 /* Posiciones del menú en porcentaje del lienzo de la constelación. */
@@ -86,13 +92,15 @@ function drawConstellationLines() {
   els.lines.innerHTML = `
     <defs>
       <linearGradient id="line-gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100">
-        <stop offset="0" stop-color="#9ab9ff" />
-        <stop offset="0.5" stop-color="#b59bff" />
-        <stop offset="1" stop-color="#8fd9e8" />
+        <stop offset="0" stop-color="#7fb4ff" />
+        <stop offset="0.35" stop-color="#c58bff" />
+        <stop offset="0.7" stop-color="#ff8fc8" />
+        <stop offset="1" stop-color="#6fe8d6" />
       </linearGradient>
     </defs>
     <path class="connection-glow" d="${path}" />
     <path class="connection" d="${path}" />
+    <path class="connection-flow" d="${path}" pathLength="100" />
   `;
 }
 
@@ -113,15 +121,93 @@ function buildGrid() {
     button.style.setProperty('--i', String(index));
     button.title = ambient.hint;
     button.setAttribute('aria-label', `${ambient.name}: ${ambient.hint}. Comenzar una sesión`);
+    button.style.setProperty('--spin', `${70 + ((index * 37) % 50)}s`);
+    button.style.setProperty('--dir', index % 2 ? 'reverse' : 'normal');
     button.innerHTML = `
+      <span class="node__halo" aria-hidden="true"></span>
+      <span class="node__ring" aria-hidden="true">${ringSvg()}</span>
       <span class="node__icon" aria-hidden="true">${iconSvg(ambient.icon)}</span>
     `;
-    button.addEventListener('click', () => startSession(ambient, button));
+    // Longitud normalizada para que los trazos del sigilo puedan «dibujarse».
+    for (const shape of button.querySelectorAll('.node__icon svg :is(path, circle, ellipse)')) {
+      shape.setAttribute('pathLength', '1');
+    }
+    button.addEventListener('click', () => invoke(ambient, button));
     els.grid.append(button);
   });
 
   drawConstellationLines();
 }
+
+/* --------------------------------------------------------------------------
+   Invocación: animación al elegir un nodo
+   -------------------------------------------------------------------------- */
+
+let invoking = false;
+
+function invoke(ambient, button) {
+  if (active || invoking) return;
+  if (reducedMotion.matches) {
+    startSession(ambient, button);
+    return;
+  }
+  invoking = true;
+  const rect = button.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const reach = Math.hypot(Math.max(cx, innerWidth - cx), Math.max(cy, innerHeight - cy));
+  const portal = els.portal;
+  portal.style.setProperty('--ox', `${cx}px`);
+  portal.style.setProperty('--oy', `${cy}px`);
+  portal.style.setProperty('--accent', ambient.accent);
+  portal.style.setProperty('--cover', String(reach * 0.26));
+  portal.innerHTML = `
+    <span class="portal__ring"></span>
+    <span class="portal__ring"></span>
+    <span class="portal__ring"></span>
+    <span class="portal__light"></span>
+  `;
+  portal.hidden = false;
+  portal.classList.remove('is-fading');
+
+  // Los demás nodos se pliegan hacia el elegido.
+  const crect = els.grid.getBoundingClientRect();
+  els.app.style.setProperty('--ox', String(((cx - crect.left) / crect.width) * 100));
+  els.app.style.setProperty('--oy', String(((cy - crect.top) / crect.height) * 100));
+  els.app.classList.add('is-invoking');
+  button.classList.add('is-chosen');
+
+  // La sesión empieza ya (el audio necesita el gesto), pero el escenario
+  // espera oculto a que termine la invocación.
+  els.stage.classList.add('is-awaiting');
+  startSession(ambient, button);
+
+  window.setTimeout(() => {
+    els.stage.classList.remove('is-awaiting');
+    portal.classList.add('is-fading');
+  }, 1050);
+  window.setTimeout(() => {
+    portal.hidden = true;
+    portal.innerHTML = '';
+    els.app.classList.remove('is-invoking');
+    button.classList.remove('is-chosen');
+    invoking = false;
+  }, 2000);
+}
+
+/* --------------------------------------------------------------------------
+   Paralaje del puntero
+   -------------------------------------------------------------------------- */
+
+window.addEventListener('pointermove', (event) => {
+  if (active || reducedMotion.matches) return;
+  const x = (event.clientX / innerWidth) * 2 - 1;
+  const y = (event.clientY / innerHeight) * 2 - 1;
+  MENU_BACKDROP.pointer.x = x;
+  MENU_BACKDROP.pointer.y = y;
+  document.documentElement.style.setProperty('--px', x.toFixed(3));
+  document.documentElement.style.setProperty('--py', y.toFixed(3));
+}, { passive: true });
 
 /* --------------------------------------------------------------------------
    Duración de la sesión
@@ -386,6 +472,10 @@ function finishSession(token, reason) {
     renderer.stop();
     menuRenderer.resume();
     active = null;
+    els.app.classList.remove('is-returning');
+    void els.app.offsetWidth;
+    els.app.classList.add('is-returning');
+    window.setTimeout(() => els.app.classList.remove('is-returning'), 1600);
     trigger?.focus?.({ preventScroll: true });
   }, 440);
 }

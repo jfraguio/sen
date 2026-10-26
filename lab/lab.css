@@ -157,6 +157,19 @@ code {
   font-size: 15px;
 }
 
+a.icon-btn {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+a.icon-btn:hover {
+  color: var(--ink);
+}
+
+.dialog a {
+  color: var(--accent);
+}
+
 .icon-btn--small {
   width: 22px;
   height: 22px;

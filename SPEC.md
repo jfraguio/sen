@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 4.0<br>
+**Versión:** 4.1<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de música ambiental
 
@@ -81,10 +81,18 @@ una al azar entre las que existan en la carpeta del ambiente.
 
 Al cargar `/`:
 
-- Se dibuja un fondo de constelación animado en `#menu-canvas`.
+- Se dibuja un cielo místico animado en `#menu-canvas`: nebulosas violetas,
+  magenta, cian y turquesa que derivan, cintas de aurora, polvo, un mandala
+  (flor de la vida y hexagrama) que respira muy tenue, 320 estrellas con
+  paralaje según el puntero y estrellas fugaces ocasionales.
 - Se generan catorce botones circulares, uno por ambiente, en las posiciones
-  definidas en `NODE_LAYOUT`.
-- Se dibuja una línea suave que une los nodos en el orden de `NODE_PATH`.
+  definidas en `NODE_LAYOUT`. Cada nodo tiene un halo, un anillo rúnico
+  (`ringSvg()`: marcas, arco y gemas) que gira despacio y un sigilo de estilo
+  alquímico que se dibuja trazo a trazo al entrar.
+- Se dibuja una línea suave que une los nodos en el orden de `NODE_PATH`, con
+  un flujo de luz que la recorre.
+- La constelación y el título se desplazan ligeramente con el puntero
+  (paralaje).
 - Cada nodo muestra **solo su icono**. No hay texto visible debajo.
 - El nombre y la pista del ambiente se conservan en el `aria-label` y en el
   `title` del botón.
@@ -92,7 +100,13 @@ Al cargar `/`:
 - En la parte inferior hay un único botón: **`10 MIN`**.
 
 Un clic o toque en un nodo inicia la sesión de ese ambiente con la duración
-seleccionada.
+seleccionada. La invocación es animada: el resto de nodos se pliega hacia el
+elegido, salen ondas desde él y una luz de su color de acento crece hasta cubrir
+la pantalla (`#portal`) mientras un velo oscurece el menú; la escena aparece al
+cabo de ~1 s. El audio se arranca dentro del gesto, y el escenario permanece
+oculto (`.stage.is-awaiting`) hasta que termina la transición. Al volver de una
+sesión los nodos reaparecen escalonados. Con `prefers-reduced-motion` no hay
+portal, ondas ni paralaje.
 
 ### 4.2 Selector de duración
 
@@ -315,22 +329,26 @@ manualmente; las demás pueden regenerarse con los scripts de audio.
 
 - **Sensación:** hoguera íntima, con brasas, chasquidos y un resplandor cálido
   irregular.
-- **Visual:** 68 partículas de llama en cuatro tonos (crema, ámbar, naranja y
-  rojo) y 38 brasas que suben. El fondo es casi negro, con un degradado de calor
-  en la mitad inferior y parpadeo continuo.
+- **Visual:** hoguera dibujada: tres leños cruzados con corteza y cortes
+  claros, un lecho de 34 brasas que laten, 17 lenguas de llama en tres capas
+  (rojizas y anchas detrás, doradas delante, núcleo crema) que ondulan y
+  respiran, y 46 chispas que suben en remolino. Resplandor cálido con parpadeo
+  irregular y degradado de calor en la mitad inferior.
 - **Escena 01 — brasas:** tres grupos de chasquidos y cinco pops graves. El
   fuego está bajo y tranquilo.
 - **Escena 02 — fuego vivo:** siete grupos de chasquidos, dieciséis pops y más
   presencia de ascuas.
 - **Escena 03 — fuego con viento:** cinco grupos de chasquidos, diez pops y dos
   ráfagas que avivan la llama. Los graves están más presentes.
-- **Escena 04 — chimenea:** rugido grave suave, siseo, racimos de chasquidos
-  (~1,3 por segundo), ticks finos, estallidos ocasionales de nudos y algún
-  silbido de savia, en una sala pequeña.
-- **Escena 05 — hoguera al aire libre:** más llama y parpadeo, chasquidos más
-  frecuentes (~2,2 por segundo), estallidos, grillos lejanos y brisa.
-- **Escena 06 — brasas:** casi sin llama: siseo, ticks escasos, tintineo de
-  ascuas (~1,4 por segundo) y dos asentamientos de leña.
+- **Escena 04 — chimenea:** modelo `hearth`: cuerpo de llama cálido (150–1000
+  Hz) que parpadea y «lame», avivamientos breves, chasquidos de madera modales
+  (resonancias de 1–4 kHz más golpe sordo) en racimos con amplitudes de cola
+  larga, crepitar fino que sigue a la llama, estallidos de nudos y algún silbido
+  de vapor, con agudos suavizados. Sala pequeña.
+- **Escena 05 — hoguera al aire libre:** llama más grande y viva, más
+  chasquidos y avivamientos, grillos lejanos y brisa suave.
+- **Escena 06 — brasas** (receta disponible, sin publicar): casi sin llama,
+  crepitar, tintineo de ascuas y dos asentamientos de leña.
 - **Síntesis base:** `intensity` 0.55, `crackle` 0.65, `rumble` 0.50, `flicker`
   0.45, `brightness` 0.55.
 
@@ -358,9 +376,10 @@ manualmente; las demás pueden regenerarse con los scripts de audio.
 ### 6.7 Río · `rio`
 
 - **Sensación:** agua clara entre piedras, con remolinos y destellos dorados.
-- **Visual:** tres cintas de corriente con tres pasadas de distinto grosor, 54
-  vetas de agua y 30 motas doradas. El fondo es verde bosque con reflejos
-  turquesa.
+- **Visual:** tres cintas de corriente con tres pasadas de distinto grosor; 54
+  vetas que viajan siguiendo la corriente con cola desvanecida; cinco piedras
+  con espuma río arriba que palpita y estela en V aguas abajo; 30 destellos
+  dorados sobre la superficie. Fondo verde bosque con reflejos turquesa.
 - **Escena 01 — arroyo claro:** corriente brillante, remolinos lentos y pocas
   burbujas.
 - **Escena 02 — río rápido:** corriente más ancha y rápida, con muchas burbujas
@@ -382,8 +401,9 @@ manualmente; las demás pueden regenerarse con los scripts de audio.
 
 - **Sensación:** ráfagas que atraviesan un paisaje abierto, con hojas y algún
   silbido.
-- **Visual:** 30 corrientes onduladas en gris azulado y verdes pálidos, 34 motas
-  que se desplazan con el aire y resplandores difusos.
+- **Visual:** una ráfaga lenta que sube y baja gobierna toda la escena: 30
+  cintas de aire con los extremos desvanecidos, nubes alargadas a la deriva, 18
+  hojas que vuelan girando y 70 briznas de hierba que se doblan con el viento.
 - **Escena 01 — brisa:** ráfagas suaves, más peso en las frecuencias medias,
   pocos silbidos y pocas hojas.
 - **Escena 02 — vendaval:** graves y agudos más fuertes, nueve silbidos y diez
@@ -505,8 +525,10 @@ manualmente; las demás pueden regenerarse con los scripts de audio.
 ### 6.14 Bosque · `bosque`
 
 - **Sensación:** sombra verde, hojas que se mueven y ramas que crujen.
-- **Visual:** siete árboles con copas difusas, tres haces de luz entre troncos y
-  44 motas de hojas y polen.
+- **Visual:** tres planos de profundidad: abetos pálidos en la bruma, árboles
+  de copa redonda que se mecen y grandes troncos oscuros que enmarcan. Cuatro
+  haces de luz que respiran, bruma baja a la deriva, 22 hojas que caen girando y
+  44 motas de polen.
 - **Escena 01 — sombra:** pocas ráfagas de hojas, dos crujidos y tres pájaros.
 - **Escena 02 — viento en las hojas:** once ráfagas, seis crujidos y cuatro
   pájaros; el viento mueve la escena.
@@ -845,7 +867,8 @@ por parámetro.
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Cabecera:** volver, nombre editable del tema, estado de guardado,
+- **Cabecera:** volver, nombre editable del tema, estado de guardado, enlace
+  **?** a las instrucciones (`lab/guia.html`, en otra pestaña),
   deshacer/rehacer, abrir y exportar.
 - **Transporte:** reproducir/pausa, detener (vuelve al inicio), posición y
   duración (`mm:ss,d`), región de escucha en bucle, rejilla, zoom y volumen de
@@ -909,6 +932,7 @@ sin animaciones de fondo que compitan con el trabajo.
 | `+` / `−` | Zoom |
 | `Cmd/Ctrl` + `S` | Descargar el proyecto `.sen.json` |
 | `Cmd/Ctrl` + `E` | Abrir el diálogo de exportación |
+| `?` | Abrir las instrucciones en otra pestaña |
 | `Escape` | Cerrar diálogo o deseleccionar |
 
 Los atajos de una letra no actúan mientras el foco está en un campo de texto.
@@ -1483,6 +1507,7 @@ cuenta las que suenan a la vez (notas × voces de unísono).
 ```text
 lab/
   index.html                Página del editor
+  guia.html                 Instrucciones para el usuario (página estática)
   lab.css
   worker.js                 Worker de escucha: compila y emite bloques
   export-worker.js          Worker de exportación: dos pasadas y WAV
@@ -1653,8 +1678,9 @@ laboratorio (`lab/engine/`) son independientes: no comparten código.
 - **`src/config/ambients.js`**: exporta `APP`, `ambients` y `hexToRgb`. Es la
   única fuente de verdad para nombres, iconos, paletas, animaciones y carpetas
   de audio.
-- **`src/config/icons.js`**: mapa de iconos SVG. `iconSvg(name)` devuelve el
-  marcado o el icono de lluvia como fallback.
+- **`src/config/icons.js`**: mapa de sigilos SVG. `iconSvg(name)` devuelve el
+  marcado o el icono de lluvia como fallback; `ringSvg()` devuelve el anillo
+  rúnico de los nodos.
 - **`src/core/session.js`**: reloj basado en `performance.now()` con fases
   `running`, `hold`, `manual` y `done`. Emite snapshots `{ phase, elapsed,
   light, gain }`.
@@ -1744,8 +1770,8 @@ click nodo
   sesión.
 - El menú se pausa mientras dura la sesión.
 - El canvas se redimensiona a `innerWidth × innerHeight` con DPR limitado a 1,5.
-- El menú dibuja un fondo de Vía Láctea y una constelación; los nodos y la línea
-  son DOM/SVG.
+- El menú dibuja el cielo místico (tema `constellation`); los nodos, la línea y
+  el portal de invocación son DOM/SVG/CSS.
 - La sesión dibuja la animación del ambiente seleccionado y aplica un velo
   negro (`#dim`) para el fundido.
 - `prefers-reduced-motion` dibuja una composición estática en `t = 2.4`.
@@ -2007,6 +2033,11 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **4.1:** instrucciones del laboratorio (`lab/guia.html`), enlazadas desde la
+  cabecera, el diálogo de inicio y el atajo `?`; menú rediseñado (cielo místico, sigilos alquímicos con anillo
+  rúnico, paralaje, animación de invocación con portal de luz y retorno
+  escalonado); nuevas animaciones de fuego, río, viento y bosque; nuevo modelo
+  de fuego `hearth` para las escenas 04–05 de `fuego`.
 - **4.0:** nuevo laboratorio implementado: editor de música ambiental con 26
   instrumentos, línea de tiempo, escucha en directo, automatización por pista,
   exportación WAV en el navegador (pico real, tres finales, proyecto incrustado),
