@@ -201,12 +201,16 @@ export function createInspector(root, store, actions) {
     });
     const timbre = paramDefs(track.instrument).map((def) => control(def, tb('params', def.key)));
     const mix = MIX_DEFS.map((def) => control(def, tb('mix', def.key)));
+    const isLayer = track.family === 'layer';
+    const src = track.source;
+    const srcTitle = isLayer ? src.title || `${src.ambient} · ${String(src.track).padStart(2, '0')}` : '';
     return [
-      head(track.name, `${family.label} · ${instrumentLabel(track)}`),
+      head(track.name, isLayer ? `Capa de «${srcTitle}»` : `${family.label} · ${instrumentLabel(track)}`),
       section(null,
         textControl('Nombre', { get: () => findTrack(state.project, id)?.name ?? '', set: (v, { gesture } = {}) => commit((d) => { findTrack(d, id).name = v || 'Pista'; }, gesture), done }, syncers),
         h('div', { class: 'ctl ctl--row' }, h('span', { class: 'ctl-label' }, 'Color'), color),
-        enumControl({ label: 'Instrumento', options: sameFamily }, {
+        isLayer ? h('p', { class: 'help' }, `Capa «${src.name || track.name}» de la pista «${srcTitle}», tal como suena en la app. Cambia su volumen (también en la cabecera de la pista), su panorama, sus fundidos o automatízala; su timbre no se puede editar.`) : null,
+        isLayer ? null : enumControl({ label: 'Instrumento', options: sameFamily }, {
           get: () => findTrack(state.project, id)?.instrument,
           set: (v) => commit((d) => {
             const t = findTrack(d, id);
@@ -217,11 +221,11 @@ export function createInspector(root, store, actions) {
             t.params = fresh;
           }),
         }, syncers),
-        h('p', { class: 'help' }, INSTRUMENTS[track.instrument].description),
+        isLayer ? null : h('p', { class: 'help' }, INSTRUMENTS[track.instrument].description),
         h('div', { class: 'ins-actions' },
           h('button', { type: 'button', class: 'btn', onclick: () => actions.auditionTrack(id) }, '▶ Escuchar'),
           h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.addElement(id, state.playhead) }, '+ Elemento en el cabezal'))),
-      section('Timbre', ...timbre),
+      timbre.length ? section('Timbre', ...timbre) : null,
       section('Mezcla', ...mix),
       section('Automatización', automationSection(id)),
       section(null, h('div', { class: 'ins-actions' },
@@ -305,6 +309,10 @@ export function createInspector(root, store, actions) {
       blocks.push(section(track.family === 'nature' ? 'Actividad' : 'Tramo',
         ...ELEMENT_DEFS.span.map((def) => numberControl(def, eb(def.key), syncers)),
         seedRow(id)));
+    } else if (el.type === 'clip') {
+      blocks.push(section('Capa',
+        ...ELEMENT_DEFS.clip.map((def) => numberControl(def, eb(def.key), syncers)),
+        h('p', { class: 'help' }, 'La capa se repite en bucle. Este valor es el punto de la capa que suena al empezar el elemento (al dividir un elemento, la segunda parte sigue donde iba).')));
     }
     if (el.type !== 'hit') blocks.push(section(null, curveEditor({ binding: { get: () => findElement(state.project, id)?.el.curve ?? 'plana', set: (v, { gesture } = {}) => commit((d) => { findElement(d, id).el.curve = v; }, gesture), done }, syncers })));
 

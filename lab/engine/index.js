@@ -1,5 +1,5 @@
 /**
- * Motor de síntesis del laboratorio (`sen-synth/1`).
+ * Motor de síntesis del laboratorio (`sen-synth/2`).
  *
  *   const plan = compile(project, { sampleRate: 48000 });
  *   const r = createRenderer(plan, { from: 0 });
@@ -27,6 +27,7 @@ import { compileCigarra, compileGrillo } from './voices/nature/insects.js';
 import { compilePajaro, compileRana } from './voices/nature/animals.js';
 import { compileArroyo, compileGotas, compileLluvia, compileOlas } from './voices/nature/water.js';
 import { compileCampanillas, compileFuego, compileViento } from './voices/nature/air.js';
+import { compileLayerElement, layerSample } from './voices/layer.js';
 
 export { ENGINE_VERSION };
 
@@ -35,7 +36,7 @@ export const ENGINE_MODULES = [
   'rng.js', 'music.js', 'schema.js', 'dsp.js', 'space.js', 'master.js', 'wav.js',
   'voices/sustain.js', 'voices/strike.js', 'voices/noise.js', 'voices/nature/kit.js',
   'voices/nature/insects.js', 'voices/nature/animals.js', 'voices/nature/water.js', 'voices/nature/air.js',
-  'index.js',
+  'voices/layer.js', 'index.js',
 ];
 
 const NATURE_COMPILERS = {
@@ -56,6 +57,7 @@ function elementCompiler(track) {
   if (track.family === 'sustain') return compileSustainElement;
   if (track.family === 'strike') return compileStrikeElement;
   if (track.family === 'noise') return compileNoiseElement;
+  if (track.family === 'layer') return compileLayerElement;
   return NATURE_COMPILERS[track.instrument] || null;
 }
 
@@ -81,7 +83,7 @@ function trackKey(track) {
 
 /** ¿Cubre el elemento todo el bucle sin fundidos? (voz permanente) */
 function isPermanent(el, L) {
-  if (!['tone', 'span'].includes(el.type)) return false;
+  if (!['tone', 'span', 'clip'].includes(el.type)) return false;
   return el.start <= 0.0005 && el.start + el.length >= L - 0.0005 && !(el.fadeIn > 0) && !(el.fadeOut > 0);
 }
 
@@ -98,6 +100,7 @@ function compileSpecs(project, track, opts) {
       elementSeed: seedFrom(project.seed ?? 'sen', track.id, el.id, el.seed ?? 1),
       audition: !!opts.audition,
       eventBudget: LIMITS.events,
+      samples: opts.samples,
     };
     const specs = compiler(track, el, ctx);
     out.push({ el, specs, permanent: opts.loop && isPermanent(el, L) });
@@ -109,7 +112,7 @@ function compileSpecs(project, track, opts) {
  * Compila un proyecto a un plan de render: para cada pista, una lista de voces
  * ordenada con su inicio y fin en muestras.
  */
-export function compile(project, { sampleRate = 48000, mode = 'preview', end = null, cache = null, audition = false } = {}) {
+export function compile(project, { sampleRate = 48000, mode = 'preview', end = null, cache = null, audition = false, samples = null } = {}) {
   const sr = sampleRate;
   const endMode = end || project.end?.mode || 'tail';
   const loop = endMode === 'loop';
@@ -119,15 +122,22 @@ export function compile(project, { sampleRate = 48000, mode = 'preview', end = n
   const ctxKey = JSON.stringify([project.seed, project.tuning, project.key, project.tempo, L, loop, audition]);
 
   // 1. Especificaciones de voces por elemento (independientes de fs).
+  let missingLayers = 0;
   const specsByTrack = project.tracks.map((track) => {
-    const key = `s|${ctxKey}|${trackKey(track)}`;
+    let key = `s|${ctxKey}|${trackKey(track)}`;
+    if (track.family === 'layer') {
+      const s = layerSample(samples, track.source);
+      if (!s) missingLayers++;
+      key += s ? `|${s.rate}|${s.data.length}|${s.id ?? ''}` : '|sin-audio';
+    }
     let specs = cache?.get(key);
     if (!specs) {
-      specs = compileSpecs(project, track, { loop, audition });
+      specs = compileSpecs(project, track, { loop, audition, samples });
       cache?.set(key, specs);
     }
     return specs;
   });
+  if (missingLayers) warnings.push(`${missingLayers === 1 ? 'Falta el audio de 1 capa' : `Falta el audio de ${missingLayers} capas`} de pistas de sen: se está preparando o no se encuentra.`);
 
   // 2. Ciclos de render en bucle: la cola más larga debe caber.
   let cycles = 1;
@@ -574,6 +584,12 @@ export function auditionProject(project, track, { note = null, seconds = 3 } = {
       el.pattern = 4;
       el.events = el.events.map((ev, k) => ({ ...ev, t: k * 0.55 }));
     }
+  } else if (t.family === 'layer') {
+    el = createElement(t, base, 0.02, 'clip');
+    el.length = seconds;
+    el.offset = 0;
+    el.fadeIn = 0.05;
+    el.fadeOut = 0.6;
   } else {
     el = createElement(t, base, 0.02, 'span');
     el.length = seconds;
@@ -622,7 +638,9 @@ function regionProject(project) {
     }).map((e) => {
       if (e.start >= a) return { ...e, start: e.start - a };
       const cut = a - e.start;
-      return { ...e, start: 0, length: e.length - cut, fadeIn: 0, fadeOut: Math.min(e.fadeOut || 0, e.length - cut) };
+      const trimmed = { ...e, start: 0, length: e.length - cut, fadeIn: 0, fadeOut: Math.min(e.fadeOut || 0, e.length - cut) };
+      if (e.type === 'clip') trimmed.offset = (e.offset || 0) + cut;
+      return trimmed;
     });
   }
   p.region = null;
@@ -635,12 +653,12 @@ const sleep = () => new Promise((r) => setTimeout(r, 0));
  * Exporta el proyecto a WAV en streaming. Devuelve `{ parts, stats }`, donde
  * `parts` son los trozos del archivo (cabecera primero).
  */
-export async function renderToWav(project, options = {}, { onProgress = null, signal = null } = {}) {
+export async function renderToWav(project, options = {}, { onProgress = null, signal = null, samples = null } = {}) {
   const opts = resolveExportOptions(project, options);
   const sr = opts.sampleRate;
   const regionLoop = opts.range === 'region' && opts.end === 'loop';
   const source = regionLoop ? regionProject(project) : project;
-  const plan = compile(source, { sampleRate: sr, mode: 'export', end: opts.end });
+  const plan = compile(source, { sampleRate: sr, mode: 'export', end: opts.end, samples });
   const Lf = plan.Lf;
   const fadeFrames = Math.round(clamp(plan.fadeOut, 0, 30) * sr);
   const latencyProbe = new Limiter(sr, { truePeak: true });

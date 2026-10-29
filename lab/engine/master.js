@@ -11,7 +11,8 @@ export class MasterEq {
     this.f = [0, 1].map(() => ({ hp: new Biquad(), lp: new Biquad(), lo: new Biquad(), hi: new Biquad() }));
     this.key = '';
   }
-  set({ lowCut = 30, highCut = 18000, tilt = 0 } = {}) {
+  set({ on = true, lowCut = 30, highCut = 18000, tilt = 0 } = {}) {
+    this.on = on !== false;
     const key = `${lowCut}/${highCut}/${tilt}`;
     if (key === this.key) return;
     this.key = key;
@@ -24,6 +25,7 @@ export class MasterEq {
     this.tilt = tilt;
   }
   process(L, R, n) {
+    if (this.on === false) return;
     const [a, b] = this.f;
     const tilt = this.tilt !== 0;
     for (let i = 0; i < n; i++) {
@@ -122,8 +124,9 @@ export class Limiter {
   setCeiling(db) {
     this.ceiling = dbToGain(clamp(db, -24, 0));
   }
+  /** Retardo total en muestras: la línea de anticipación (la + 1) más 4 del pico real. */
   get latency() {
-    return this.la + (this.tp ? 4 : 0);
+    return this.la + 1 + (this.tp ? 4 : 0);
   }
   process(L, R, n) {
     const la = this.la;

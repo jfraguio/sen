@@ -1,6 +1,6 @@
 {
   "schema": "sen-lab/3",
-  "engine": "sen-synth/1",
+  "engine": "sen-synth/2",
   "name": "Espacio profundo",
   "notes": "Drone subgrave, vidrio, ruido marrón con oleaje y eco largo.",
   "seed": "espacio",

@@ -17,7 +17,7 @@
       <h1>sen · lab</h1>
       <p>Este navegador no puede ejecutar el editor. Falta:</p>
       <ul id="unsupported-list"></ul>
-      <p class="muted">Usa Chrome o Edge 91+, Firefox 114+ o Safari 15+, desde HTTPS o <code>localhost</code>.</p>
+      <p class="muted">Usa Chrome o Edge 98+, Firefox 114+ o Safari 15.4+, desde HTTPS o <code>localhost</code>.</p>
       <p><a href="guia.html">Instrucciones del laboratorio</a> · <a href="../">← Volver a sen</a></p>
     </section>
 
@@ -76,6 +76,7 @@
         <span id="st-peak">pico —</span>
         <span id="st-load">motor —</span>
         <span id="st-quality" class="warn" hidden>escucha en calidad reducida</span>
+        <span id="st-layers" class="warn" hidden>preparando las capas de la pista de sen…</span>
         <span id="st-warn" class="warn" hidden></span>
         <span class="spacer"></span>
         <span id="st-key"></span>
@@ -85,9 +86,22 @@
     <dialog class="dialog" id="start-dialog" aria-labelledby="start-title">
       <h2 id="start-title">Empezar</h2>
       <p class="muted">Elige un punto de partida. Puedes cambiarlo todo después. ¿Primera vez? Lee las <a href="guia.html" target="_blank" rel="noopener">instrucciones</a>.</p>
+      <div class="templates">
+        <button class="template-card template-card--sen" id="start-scenes" type="button"><strong>Retocar una pista de sen…</strong><span>Abre cualquiera de las pistas de la app separada en capas (lluvia, pájaros, pad, melodía…) para cambiar sus volúmenes y exportarla de nuevo.</span></button>
+      </div>
       <div class="templates" id="start-templates"></div>
       <div class="dialog__actions">
         <button class="btn btn--quiet" id="start-open" type="button">Abrir un archivo o importar MIDI…</button>
+      </div>
+    </dialog>
+
+    <dialog class="dialog dialog--scenes" id="scene-dialog" aria-labelledby="scene-title">
+      <h2 id="scene-title">Retocar una pista de sen</h2>
+      <p class="muted">Elige una pista de la app. Se abre con una pista del laboratorio por cada capa (lluvia, pájaros, pad, melodía…), todas a 0 dB: tal cual, suena igual que en la app. Cambia lo que quieras y exporta con «Escena para sen».</p>
+      <div class="scene-list" id="scene-list"><p class="muted">Cargando las pistas…</p></div>
+      <p class="muted scene-status" id="scene-status" role="status"></p>
+      <div class="dialog__actions">
+        <button class="btn btn--quiet" id="scene-close" type="button">Cancelar</button>
       </div>
     </dialog>
 
@@ -129,6 +143,8 @@
           <label>Sonoridad
             <select name="loudness">
               <option value="none">Solo limitador</option>
+              <option value="-25">−25 LUFS</option>
+              <option value="-24">−24 LUFS</option>
               <option value="-23">−23 LUFS</option>
               <option value="-18">−18 LUFS</option>
               <option value="-16">−16 LUFS</option>
@@ -147,6 +163,7 @@
         </div>
         <p class="muted" id="export-estimate"></p>
         <p class="warn" id="export-warning" hidden></p>
+        <p class="muted" id="export-scene" hidden></p>
         <div class="progress" id="export-progress" hidden>
           <div class="progress__bar"><i id="export-bar"></i></div>
           <span id="export-progress-text">0 %</span>

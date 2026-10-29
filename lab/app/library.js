@@ -1,6 +1,6 @@
 /**
  * Biblioteca: familias e instrumentos (arrastrar a la línea de tiempo, clic
- * para añadir en el cabezal, ▶ para escuchar 3 s) y plantillas.
+ * para añadir en el cabezal, ▶ para escuchar 3 s), pistas de sen y plantillas.
  */
 
 import { h } from './util.js';
@@ -16,7 +16,7 @@ export const TEMPLATES = [
 
 export function createLibrary(root, store, actions) {
   const groups = FAMILIES.map((fam) => {
-    const items = Object.entries(INSTRUMENTS).filter(([, v]) => v.family === fam.id).map(([id, inst]) => {
+    const items = Object.entries(INSTRUMENTS).filter(([, v]) => v.family === fam.id && !v.hidden).map(([id, inst]) => {
       const item = h('div', { class: 'lib-item', draggable: 'true', style: { '--c': inst.color }, title: inst.description },
         h('button', { type: 'button', class: 'lib-play', 'aria-label': `Escuchar ${inst.label}`, title: 'Escuchar 3 s', onclick: () => actions.auditionInstrument(id) }, '▶'),
         h('button', { type: 'button', class: 'lib-add', 'aria-label': `Añadir ${inst.label} en el cabezal`, onclick: () => actions.addTrack(id, store.state.playhead) },
@@ -27,12 +27,15 @@ export function createLibrary(root, store, actions) {
       });
       return item;
     });
-    return h('div', { class: 'lib-group' }, h('h3', {}, fam.label), ...items);
-  });
+    return items.length ? h('div', { class: 'lib-group' }, h('h3', {}, fam.label), ...items) : null;
+  }).filter(Boolean);
+  const sen = h('div', { class: 'lib-group' }, h('h3', {}, 'Pistas de sen'),
+    h('button', { type: 'button', class: 'lib-template', onclick: () => actions.showScenes() }, 'Retocar una pista de sen…',
+      h('small', {}, 'Abre una pista de la app separada en capas para cambiar sus volúmenes.')));
   const templates = h('div', { class: 'lib-group' }, h('h3', {}, 'Plantillas'),
     ...TEMPLATES.map((t) => h('button', { type: 'button', class: 'lib-template', onclick: () => actions.loadTemplate(t.id) }, t.name, h('small', {}, t.desc))));
   const close = h('div', { class: 'ins-head' }, h('h2', {}, 'Añadir'), h('button', { type: 'button', class: 'icon-btn ins-close', 'aria-label': 'Cerrar la biblioteca', onclick: () => actions.closeSheet() }, '×'));
-  root.append(close, ...groups, templates);
+  root.append(close, sen, ...groups, templates);
   return {
     focus() {
       root.querySelector('.lib-add')?.focus();

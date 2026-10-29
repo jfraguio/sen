@@ -22,7 +22,15 @@ export function gridSeconds(view, project) {
   return typeof g === 'number' ? g : 0;
 }
 
+/** Volumen por defecto de una pista según su familia. */
+export function defaultGain(track) {
+  return { layer: 0, nature: -8, noise: -10 }[track.family] ?? -6;
+}
+
+export const fmtDb = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1).replace('.', ',').replace(/,0$/, '')} dB`;
+
 export function elementLabel(track, el, notation) {
+  if (el.type === 'clip') return track.source?.name || track.name;
   if (el.type === 'tone') return el.notes.map((n) => noteLabel(n, notation)).join(' ');
   if (el.type === 'hit') return noteLabel(el.note, notation);
   if (el.type === 'phrase') return `Frase · ${el.events.length} notas`;
@@ -198,11 +206,12 @@ export function createTimeline(root, store, actions) {
       }
       const head = h('div', { class: 'tl-head' },
         h('button', { type: 'button', class: 'tl-name', onclick: () => store.select({ kind: 'track', trackId: track.id }), title: 'Seleccionar pista' },
-          track.name, h('small', {}, instrumentLabel(track)), track.automation && Object.keys(track.automation).length ? h('small', { class: 'tl-auto', title: 'Pista con automatización' }, 'A') : null),
+          track.name, h('small', {}, track.family === 'layer' ? 'capa' : instrumentLabel(track)), track.automation && Object.keys(track.automation).length ? h('small', { class: 'tl-auto', title: 'Pista con automatización' }, 'A') : null),
         h('div', { class: 'tl-ctrls' },
           h('button', { type: 'button', class: 'tl-ms tl-mute', 'aria-pressed': String(!!track.mix.mute), 'aria-label': `Silenciar ${track.name}`, title: 'Silencio (M)', onclick: () => actions.toggleMix(track.id, 'mute') }, 'M'),
           h('button', { type: 'button', class: 'tl-ms tl-solo', 'aria-pressed': String(!!track.mix.solo), 'aria-label': `Solo de ${track.name}`, title: 'Solo (Mayús+S)', onclick: () => actions.toggleMix(track.id, 'solo') }, 'S'),
-          h('span', { class: 'tl-meter', dataset: { meter: track.id } }, h('i'))));
+          volumeControl(track)),
+        h('span', { class: 'tl-meter', dataset: { meter: track.id } }, h('i')));
       frag.append(h('div', { class: `tl-row${selected ? ' is-selected' : ''}`, dataset: { track: track.id }, style: { '--c': track.color } }, head, lane));
     }
     rows.append(frag);
@@ -212,6 +221,39 @@ export function createTimeline(root, store, actions) {
     empty.hidden = p.tracks.length > 0;
     renderRegion();
     updatePlayhead(state.playhead);
+  }
+
+  /** Volumen de la pista en la cabecera: arrastrar cambia, doble clic vuelve al valor por defecto. */
+  function volumeControl(track) {
+    const id = track.id;
+    const automated = !!track.automation?.gain?.length;
+    const text = h('span', { class: 'tl-voltext', 'aria-hidden': 'true' }, fmtDb(track.mix.gain));
+    const input = h('input', {
+      type: 'range', class: 'tl-vol', min: -60, max: 6, step: 0.5, value: String(track.mix.gain),
+      'aria-label': `Volumen de ${track.name}`,
+      'aria-valuetext': fmtDb(track.mix.gain),
+      title: automated ? 'Esta pista tiene automatización de volumen: manda la automatización' : 'Volumen de la pista (doble clic: valor por defecto)',
+      disabled: automated,
+    });
+    const gesture = `vol-${id}-${Date.now()}`;
+    const set = (v) => {
+      text.textContent = fmtDb(v);
+      input.setAttribute('aria-valuetext', fmtDb(v));
+      store.commit((d) => {
+        const t = d.tracks.find((x) => x.id === id);
+        if (!t) return false;
+        t.mix.gain = v;
+      }, { gesture, source: 'tl-vol' });
+    };
+    input.addEventListener('input', () => set(Number(input.value)));
+    input.addEventListener('change', () => store.endGesture());
+    input.addEventListener('dblclick', () => {
+      const v = defaultGain(track);
+      input.value = String(v);
+      set(v);
+      store.endGesture();
+    });
+    return h('span', { class: 'tl-volbox' }, input, text);
   }
 
   function renderRegion() {

@@ -17,6 +17,7 @@ self.onmessage = async (e) => {
   try {
     const { parts, stats } = await renderToWav(m.project, m.options, {
       signal: controller.signal,
+      samples: m.samples || null,
       onProgress: (p) => self.postMessage({ type: 'progress', p }),
     });
     const buffers = parts.map((p) => (p.byteOffset === 0 && p.byteLength === p.buffer.byteLength ? p.buffer : p.slice().buffer));

@@ -17,6 +17,7 @@ export class LabAudio {
     this.volume = 0.8;
     this.auditionId = 0;
     this.auditionSrc = null;
+    this.samples = {};
     this.createWorker();
   }
 
@@ -35,7 +36,14 @@ export class LabAudio {
     this.worker.terminate();
     this.createWorker();
     if (this.node) this.connect();
+    if (Object.keys(this.samples).length) this.worker.postMessage({ type: 'samples', samples: this.samples });
     if (this.project) this.worker.postMessage({ type: 'project', project: this.project });
+  }
+
+  /** Audio de las capas de pistas de sen: `{ clave: { rate, data, id } }`. */
+  setSamples(samples) {
+    this.samples = { ...this.samples, ...samples };
+    this.worker.postMessage({ type: 'samples', samples });
   }
 
   /** Crea o reanuda el contexto. Llamar dentro del gesto del usuario. */

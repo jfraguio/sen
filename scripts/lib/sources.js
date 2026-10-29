@@ -9,7 +9,7 @@
 import {
   SAMPLE_RATE as SR, SECONDS, N,
   rnd, rand, irand, chance, pick, logRand, gauss, jitter,
-  db, sec, buf, add, mul, scale, normRms, normPeak, normActive, tame, put, putAt,
+  db, sec, buf, add, mul, scale, rms, normRms, normPeak, normActive, tame, put, putAt,
   white, pink, brown, lp, hp, bp, band, smooth, highShelf,
   lfo, range, envAD, envBell, envASR,
   tone, modal, bubble, burst, bank, poisson, regular, dust, reverb,
@@ -842,6 +842,92 @@ export function chime(f, vel = 1) {
   return scale(modal([
     [f, 1, 3.4], [f * 2.76, 0.45, 1.6], [f * 5.4, 0.2, 0.8], [f * 8.93, 0.06, 0.35],
   ], { dur: 8, attack: 0.001, strike: 0.12, strikeLp: 7000 }), vel);
+}
+
+/**
+ * Piano de fieltro: parciales casi armónicos (leve inarmonicidad de cuerda),
+ * cada uno con un gemelo desafinado ~1,5 cents (cuerdas al unísono, batido
+ * lento), decaimiento en dos fases y martillo blando. Cuanto menor la
+ * velocidad, más oscuro.
+ */
+export function feltPiano(f, vel = 1) {
+  const tau = 2.6 * Math.pow(262 / f, 0.55);
+  const soft = 0.5 + 0.5 * vel;
+  const modes = [];
+  for (let h = 1; h <= 9; h++) {
+    const fh = f * h * Math.sqrt(1 + 0.00035 * h * h);
+    if (fh > 6500) break;
+    const a = Math.pow(h, -1.5) * Math.pow(soft, h - 1);
+    const t = tau / (1 + 0.6 * (h - 1));
+    modes.push([fh, a * 0.75, t], [fh * 1.0009, a * 0.2, t * 0.9], [fh, a * 0.3, t * 0.12]);
+  }
+  const x = modal(modes, { dur: Math.min(7, tau * 3.5), attack: 0.005, strike: 0.04, strikeLp: 700 });
+  return scale(lp(x, 1800 + 2200 * vel, 0.6), vel);
+}
+
+/** Cuerda pulsada modal: `pos` es el punto de pulsación (fija qué armónicos faltan). */
+function pluck(f, vel, { tau, pos, bright, lpHz, strike = 0.03, harm = 12 }) {
+  const modes = [];
+  for (let h = 1; h <= harm; h++) {
+    const fh = f * h * (1 + 0.00015 * h * h);
+    if (fh > 8000) break;
+    modes.push([fh, Math.abs(Math.sin(Math.PI * h * pos)) / h, tau / (1 + bright * Math.pow(h - 1, 1.3))]);
+  }
+  const x = modal(modes, { dur: Math.min(6, tau * 4), attack: 0.002, strike, strikeLp: 3000 });
+  return scale(lp(x, lpHz, 0.6), vel);
+}
+/** Arpa: cuerda larga y redonda, pulsada cerca del centro. */
+export const harp = (f, vel = 1) => pluck(f, vel, { tau: 2.2 * Math.pow(262 / f, 0.6), pos: 0.2, bright: 0.35, lpHz: 5000 });
+/** Guitarra de nailon: más corta y cálida, pulsada cerca del puente. */
+export const nylon = (f, vel = 1) => pluck(f, vel, { tau: 1.5 * Math.pow(196 / f, 0.5), pos: 0.14, bright: 0.5, lpHz: 3600, strike: 0.04 });
+
+/** Vibráfono suave: láminas afinadas 1:4:10, baqueta blanda y motor lento. */
+export function vibes(f, vel = 1) {
+  const tau = 2.8 * Math.pow(440 / f, 0.5);
+  const x = modal([
+    [f, 1, tau], [f * 4, 0.16, tau * 0.3], [f * 10, 0.04, tau * 0.1],
+  ], { dur: Math.min(7, tau * 3.5), attack: 0.003, strike: 0.04, strikeLp: 2500 });
+  const rate = rand(3.8, 4.6);
+  const ph = rand(0, TAU);
+  for (let i = 0; i < x.length; i++) x[i] *= 1 - 0.16 * (0.5 - 0.5 * Math.cos((TAU * rate * i) / SR + ph));
+  return scale(x, vel);
+}
+
+/**
+ * Voz sostenida suave (flauta de madera u ocarina lejana): casi senoidal,
+ * soplo leve con un pequeño «chiff» al empezar y vibrato que llega tarde.
+ * `dur` es la duración de la nota (s); la relajación se añade al final.
+ */
+export function softLead(f, vel = 1, dur = 1.5, { attack = 0.14, release = 0.5, breath = 0.1, vib = 0.004 } = {}) {
+  const total = dur + release;
+  const n = sec(total);
+  const onset = Math.min(0.5, dur * 0.35);
+  const vibRate = rand(4.6, 5.3);
+  const ph0 = rand(0, TAU);
+  const body = tone(total, {
+    f: (u) => {
+      const t = u * total;
+      const depth = vib * Math.min(1, Math.max(0, (t - onset) / 0.6));
+      return f * (1 + depth * Math.sin(TAU * vibRate * t + ph0));
+    },
+    harm: [[1, 1], [2, 0.14], [3, 0.05], [4, 0.015]],
+    phase: rand(0, TAU),
+  });
+  const env = new Float32Array(n);
+  const na = Math.max(1, sec(attack));
+  const nd = Math.min(n - 1, sec(dur));
+  for (let i = 0; i < n; i++) {
+    let a = i < na ? 0.5 - 0.5 * Math.cos((Math.PI * i) / na) : 1;
+    a *= 1 - 0.15 * Math.min(1, i / Math.max(1, nd));
+    if (i >= nd) a *= 0.5 + 0.5 * Math.cos((Math.PI * (i - nd)) / Math.max(1, n - nd));
+    env[i] = a;
+  }
+  const air = bp(white(n), Math.min(4000, f * 3), 0.8);
+  const chiff = sec(0.08);
+  for (let i = 0; i < n; i++) air[i] *= breath * env[i] * (1 + 2.5 * Math.exp(-i / chiff));
+  const out = mul(body, env);
+  add(out, air);
+  return scale(lp(out, 3500, 0.6), vel);
 }
 
 /**

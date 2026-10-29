@@ -226,6 +226,7 @@
         <ol>
           <li><a href="#que-es">Qué es</a></li>
           <li><a href="#primeros-pasos">Primeros pasos</a></li>
+          <li><a href="#pistas-sen">Retocar una pista de sen</a></li>
           <li><a href="#pantalla">La pantalla</a></li>
           <li><a href="#conceptos">Temas, pistas y elementos</a></li>
           <li><a href="#instrumentos">Instrumentos</a></li>
@@ -263,7 +264,7 @@
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="primeros-pasos">Primeros pasos</h2>
-        <p>La primera vez se abre <b>Empezar</b> con cinco puntos de partida. Todo se puede cambiar después.</p>
+        <p>La primera vez se abre <b>Empezar</b>. Arriba está <b>Retocar una pista de sen…</b> (ver <a href="#pistas-sen">más abajo</a>); debajo, cinco plantillas para empezar un tema. Todo se puede cambiar después.</p>
         <div class="cards">
           <div class="card"><b>Vacío</b><span>3 minutos, Do mayor, sin pistas.</span></div>
           <div class="card"><b>Drone y campanas</b><span>Drone en Re con quinta, nube de campanas y aire.</span></div>
@@ -284,6 +285,20 @@
         </ol>
 
         <!-- ------------------------------------------------------------ -->
+        <h2 id="pistas-sen">Retocar una pista de sen</h2>
+        <p>Cualquiera de las pistas que suenan en la app (las cuatro de cada ambiente) se puede abrir en el laboratorio <b>separada en sus capas</b>: lluvia, pájaros, pad, melodía… Cada capa es una pista del laboratorio a 0 dB, así que, sin tocar nada, el tema suena exactamente como en la app.</p>
+        <ol class="steps">
+          <li><b>Nuevo</b> → <b>Retocar una pista de sen…</b> (o, en la biblioteca, <b>Pistas de sen</b>). Elige el ambiente y la pista; tarda unos segundos en calcular las capas.</li>
+          <li>Ajusta el <b>volumen de cada capa con el deslizador de su cabecera</b> (doble clic lo devuelve a 0 dB). Por ejemplo, baja el «Pad» 6 dB. También puedes silenciar (<b>M</b>), escuchar una sola (<b>S</b>), moverla en el estéreo, darle fundidos, automatizarla o añadir instrumentos nuevos encima.</li>
+          <li><b>Exportar</b> ya trae el preajuste <b>Escena para sen</b> y la sonoridad de la pista. Descarga el WAV y sustituye con él el archivo que indica el diálogo (por ejemplo <code>assets/audio/bosque/03.wav</code>).</li>
+        </ol>
+        <ul>
+          <li>El timbre de una capa no se puede editar: es el sonido tal como lo genera la app. Si divides un elemento de una capa, la segunda parte sigue el audio donde iba.</li>
+          <li>Las cuatro pistas de síntesis antigua (la 1 de Mar, Río, Bichos y Noche) no se pueden separar y se abren como una sola capa.</li>
+          <li>El proyecto guarda <i>de qué pista viene</i> cada capa, no el audio: al abrirlo otra vez se recalcula. El script autónomo no puede hacerlo; para renderizarlo fuera del navegador usa <code>node scripts/render-lab.mjs</code>.</li>
+        </ul>
+
+        <!-- ------------------------------------------------------------ -->
         <h2 id="pantalla">La pantalla</h2>
 <pre class="diagram" aria-hidden="true">┌───────────────────────────────────────────────────────────────────┐
 │ ← sen  Nombre del tema   guardado  ?  ↶ ↷  Nuevo Abrir … Exportar │  cabecera
@@ -301,8 +316,8 @@
           <tr><th>Zona</th><th>Para qué sirve</th></tr>
           <tr><td>Cabecera</td><td>Volver a sen, nombre del tema, estado de guardado («sin descargar» si aún no has bajado el proyecto), estas instrucciones (<b>?</b>), deshacer y rehacer, <b>Nuevo</b>, <b>Abrir</b>, <b>Proyecto</b> (descarga el <code>.sen.json</code>) y <b>Exportar</b>.</td></tr>
           <tr><td>Transporte</td><td>Reproducir/pausa, detener (vuelve al inicio), posición, región en bucle, rejilla de ajuste, zoom y volumen de escucha. El volumen no afecta a lo que exportas.</td></tr>
-          <tr><td>Biblioteca</td><td>Las cuatro familias de instrumentos y las plantillas. El botón <b>▶</b> de cada instrumento hace sonar una muestra de 3 s sin añadir nada.</td></tr>
-          <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, silencio <b>M</b>, solo <b>S</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja sus fundidos, su curva y una forma de onda resumida.</td></tr>
+          <tr><td>Biblioteca</td><td><b>Pistas de sen</b>, las cuatro familias de instrumentos y las plantillas. El botón <b>▶</b> de cada instrumento hace sonar una muestra de 3 s sin añadir nada.</td></tr>
+          <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja sus fundidos, su curva y una forma de onda resumida.</td></tr>
           <tr><td>Inspector</td><td>Los controles de lo que tengas seleccionado: el tema (sin selección), una pista, un elemento o el bus maestro.</td></tr>
           <tr><td>Pie</td><td>Medidor de salida, sonoridad a corto plazo (LUFS), pico, carga del motor, tonalidad y tempo. Aquí aparecen también los avisos.</td></tr>
         </table>
@@ -319,10 +334,11 @@
         <h3>Familias y tipos de elemento</h3>
         <table>
           <tr><th>Familia</th><th>Qué es</th><th>Elementos</th></tr>
-          <tr><td>Notas sostenidas</td><td>Pads, drones, cuerdas, coro, vidrio, seno: tonos que duran lo que dura el elemento.</td><td><b>Tono</b></td></tr>
-          <tr><td>Notas puntuales</td><td>Campana, cuenco, kalimba, caja de música, celesta, marimba, cuerda pulsada, gota tonal: golpes que decaen solos.</td><td><b>Nube</b>, <b>golpe</b>, <b>frase</b></td></tr>
+          <tr><td>Notas sostenidas</td><td>Pad, drone, cuerdas, flauta suave, coro, vidrio, seno: tonos que duran lo que dura el elemento.</td><td><b>Tono</b></td></tr>
+          <tr><td>Notas puntuales</td><td>Campana, cuenco, kalimba, caja de música, celesta, marimba, vibráfono, piano de fieltro, arpa, guitarra de nailon, cuerda pulsada, gota tonal: golpes que decaen solos.</td><td><b>Nube</b>, <b>golpe</b>, <b>frase</b></td></tr>
           <tr><td>Ruidos</td><td>Ruido de color filtrado y con movimiento: aire, rumor, oleaje abstracto.</td><td><b>Tramo</b></td></tr>
           <tr><td>Simulaciones</td><td>Naturaleza generada al azar: grillos, cigarras, pájaros, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas.</td><td><b>Tramo</b></td></tr>
+          <tr><td>Capas de pistas de sen</td><td>Una capa de una pista de la app, tal como suena allí. Solo aparecen al <a href="#pistas-sen">retocar una pista de sen</a>.</td><td><b>Capa de audio</b></td></tr>
         </table>
         <ul>
           <li><b>Tono</b>: de 1 a 8 notas a la vez (nota, acorde o cluster). El fundido de entrada es el ataque y el de salida la relajación; lo que ves es lo que suena.</li>
@@ -339,6 +355,7 @@
             </ul>
           </li>
           <li><b>Tramo</b> (ruidos y simulaciones): un periodo de actividad. En las simulaciones también define la <b>densidad</b> de la actividad (0–1).</li>
+          <li><b>Capa de audio</b>: un trozo de una capa de pista de sen, que se repite en bucle. Tiene inicio, duración, nivel, fundidos, curva y el punto de la capa en el que empieza.</li>
         </ul>
 
         <h3>Curvas de intensidad</h3>
@@ -353,11 +370,12 @@
           <tr><td>Pad</td><td>Armónicos suaves con varias voces ligeramente desafinadas.</td></tr>
           <tr><td>Drone</td><td>Pocas parciales graves con batidos lentos y subgrave opcional.</td></tr>
           <tr><td>Cuerdas</td><td>Sección de cuerdas con filtro lento y vibrato suave.</td></tr>
+          <tr><td>Flauta suave</td><td>Voz casi senoidal con un poco de soplo y vibrato, como una flauta de madera lejana. Pensada para melodías: cada elemento es una nota (por defecto, 2 s con ataque y relajación cortos).</td></tr>
           <tr><td>Coro</td><td>Voces con formantes que van de «a» a «o» y «u».</td></tr>
           <tr><td>Vidrio</td><td>Parciales inarmónicos sostenidos, brillo frío.</td></tr>
           <tr><td>Seno</td><td>Una sinusoide pura: graves y tonos de prueba.</td></tr>
         </table>
-        <p class="muted">Controles comunes: parciales, caída de armónicos, voces, desafinación, deriva lenta, filtro, vibrato, trémolo, barrido de filtro y ancho estéreo.</p>
+        <p class="muted">Controles comunes: parciales, caída de armónicos, voces, desafinación, deriva lenta, filtro, vibrato, trémolo, barrido de filtro y ancho estéreo. La flauta tiene solo vibrato, deriva, soplo, filtro, trémolo y ancho.</p>
 
         <h3>Notas puntuales</h3>
         <table>
@@ -367,13 +385,17 @@
           <tr><td>Caja de música</td><td>Púa metálica brillante y corta.</td></tr>
           <tr><td>Celesta</td><td>Láminas metálicas suaves con resonador.</td></tr>
           <tr><td>Marimba</td><td>Láminas de madera con resonador tubular.</td></tr>
-          <tr><td>Cuerda pulsada</td><td>Entre arpa y guitarra suave.</td></tr>
+          <tr><td>Vibráfono</td><td>Láminas de metal con baqueta blanda y el motor que hace ondular el sonido (trémolo ajustable).</td></tr>
+          <tr><td>Piano de fieltro</td><td>Piano íntimo con martillo blando: golpe suave y una cola larga.</td></tr>
+          <tr><td>Arpa</td><td>Cuerda larga y redonda.</td></tr>
+          <tr><td>Guitarra de nailon</td><td>Cuerda cálida y más corta, buena para arpegios.</td></tr>
+          <tr><td>Cuerda pulsada</td><td>Entre arpa y guitarra suave (otro modelo, más sencillo).</td></tr>
           <tr><td>Gota tonal</td><td>Gota de agua afinada cuyo tono sube al final.</td></tr>
         </table>
         <p class="muted">Controles comunes: decaimiento, brillo, dureza del golpe, inarmonicidad, batido, respuesta a la velocidad y ancho estéreo.</p>
 
         <h3>Ruidos</h3>
-        <p>Un único instrumento, <b>Ruido</b>: color (blanco, rosa o marrón), filtro y movimiento. Hay dos tipos de movimiento: <b>ráfagas</b> (cambios aleatorios suaves del nivel, del filtro o de ambos) y <b>oleaje</b> (ciclos regulares de 3–20 s que suben y bajan). Tiene ajustes rápidos: <i>aire</i>, <i>rumor grave</i>, <i>viento suave</i>, <i>oleaje lejano</i> y <i>lluvia lejana</i>.</p>
+        <p>Un único instrumento, <b>Ruido</b>: color (blanco, rosa o marrón), filtro y movimiento. Hay dos tipos de movimiento: <b>ráfagas</b> (cambios aleatorios suaves del nivel, del filtro o de ambos) y <b>oleaje</b> (ciclos regulares de 3–20 s que suben y bajan).</p>
 
         <h3>Simulaciones</h3>
         <table>
@@ -414,7 +436,7 @@
           <li>Con un elemento enfocado, <kbd>←</kbd>/<kbd>→</kbd> lo mueven 0,1 s (1 s con <kbd>Mayús</kbd>) y <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd> cambian su duración.</li>
         </ul>
         <h3>Pistas</h3>
-        <p>Se pueden reordenar arrastrando, renombrar, cambiar de color, duplicar, plegar, silenciar (<b>M</b>) y dejar en solo (<b>S</b>). Hasta 32 pistas.</p>
+        <p>En la cabecera de cada pista: silencio (<b>M</b>), solo (<b>S</b>) y <b>volumen</b> (arrastra el deslizador; doble clic lo devuelve a su valor por defecto). Clic en el nombre selecciona la pista; en el inspector se renombra, se cambia de color, se duplica o se borra. Hasta 32 pistas.</p>
         <h3>Navegar</h3>
         <ul>
           <li>Clic en la regla: mueve el cabezal. Arrastrar en la regla: marca la región de escucha.</li>
@@ -455,12 +477,12 @@
         <!-- ------------------------------------------------------------ -->
         <h2 id="mezcla">Mezcla, maestro y automatización</h2>
         <h3>Por pista</h3>
-        <p>Volumen, panorama, envío a reverb y envío a eco, más silencio y solo.</p>
+        <p>Volumen (también en la cabecera de la pista), panorama, envío a reverb y envío a eco, más silencio y solo.</p>
         <h3>Bus maestro</h3>
         <ul>
           <li><b>Reverb</b> común: tamaño, decaimiento (hasta 12 s), amortiguación y predelay.</li>
           <li><b>Eco</b> común: tiempo (o sincronizado al tempo), realimentación, tono y ping-pong.</li>
-          <li><b>Ecualización</b>: corte de graves, corte de agudos e inclinación.</li>
+          <li><b>Ecualización</b>: corte de graves, corte de agudos e inclinación. Se puede desactivar entera (las pistas de sen se abren sin ecualización, para sonar igual que en la app).</li>
           <li><b>Volumen</b> y <b>techo</b> del limitador, que evita que la salida se sature.</li>
         </ul>
         <h3>Automatización</h3>
@@ -475,7 +497,7 @@
           <li>Al saltar a otro punto hay un instante de espera: el motor «calienta» la reverb y los filtros para que suenen como si viniera de antes.</li>
         </ul>
         <div class="note">
-          <p>Si el equipo no da abasto, la escucha baja la calidad automáticamente y el pie muestra «escucha en calidad reducida». <b>La exportación siempre se hace a la calidad completa.</b> Si la carga del motor sale en rojo, se han producido cortes: silencia pistas o reduce voces, individuos o densidad.</p>
+          <p>Si el equipo no da abasto, la escucha baja la calidad automáticamente y el pie muestra «escucha en calidad reducida»; cada vez que vuelves a reproducir lo intenta de nuevo a calidad completa. <b>La exportación siempre se hace a la calidad completa.</b> Si la carga del motor sale en rojo, se han producido cortes: silencia pistas o reduce voces, individuos o densidad.</p>
         </div>
 
         <!-- ------------------------------------------------------------ -->
@@ -483,7 +505,7 @@
         <table>
           <tr><th>Final</th><th>Qué ocurre</th></tr>
           <tr><td>Con cola</td><td>Suena la duración del tema y después se dejan apagar las colas naturales (campanas, reverb, eco), hasta 20 s más.</td></tr>
-          <tr><td>Duración exacta</td><td>El archivo dura exactamente lo indicado, con un fundido de salida (4 s por defecto, hasta 30).</td></tr>
+          <tr><td>Duración exacta</td><td>El archivo dura exactamente lo indicado, con un fundido de salida (4 s por defecto, hasta 30). La escucha también hace ese fundido.</td></tr>
           <tr><td>Bucle sin costura</td><td>El final enlaza con el principio sin clic ni salto: perfecto para reproducir en bucle. Lo que sobresale del final (una cola de reverb, un elemento que cruza el borde) se oye al principio; en la línea de tiempo esa parte se dibuja rayada al inicio. Mínimo 10 s y máximo 10 min.</td></tr>
         </table>
 
@@ -494,7 +516,7 @@
           <tr><th>Preajuste</th><th>Formato</th><th>Para qué</th></tr>
           <tr><td>Estudio</td><td>48 kHz, 24 bits, estéreo, −18 LUFS, techo −1 dB</td><td>Seguir editando o mezclar en otro programa.</td></tr>
           <tr><td>CD</td><td>44,1 kHz, 16 bits, estéreo, −16 LUFS, techo −1 dB</td><td>Escuchar y compartir.</td></tr>
-          <tr><td>Escena para sen</td><td>22,05 kHz, 16 bits, mono, bucle, −23 LUFS, techo −3 dB</td><td>El formato exacto de las escenas de la app (ver abajo).</td></tr>
+          <tr><td>Escena para sen</td><td>22,05 kHz, 16 bits, mono, bucle, −23 LUFS (−24 o −25 en algunas pistas de sen), techo −3 dB</td><td>El formato exacto de las pistas de la app (ver abajo).</td></tr>
         </table>
         <ul>
           <li><b>Sonoridad</b>: el tema se mide y se ajusta al nivel elegido (LUFS). «Solo limitador» no lo normaliza. Si el objetivo es demasiado alto para ese tema, se te avisa de que el limitador ha tenido que apretar.</li>
@@ -506,12 +528,12 @@
         <div class="note">
           <p><b>El WAV contiene el proyecto.</b> Cada WAV exportado lleva dentro el proyecto completo. Arrástralo al laboratorio y se abrirá para seguir editándolo.</p>
         </div>
-        <h3>Usar un tema como escena de sen</h3>
-        <p>Exporta con el preajuste <b>Escena para sen</b> y copia el archivo a mano en <code>assets/audio/&lt;ambiente&gt;/</code> con el número de escena (por ejemplo <code>04.wav</code>). El laboratorio no publica nada por sí solo.</p>
+        <h3>Usar un tema como pista de sen</h3>
+        <p>Exporta con el preajuste <b>Escena para sen</b> y copia el archivo a mano en <code>assets/audio/&lt;ambiente&gt;/</code> con el número de la pista que sustituye (<code>01.wav</code> … <code>04.wav</code>). Si has retocado una pista de sen, el diálogo de exportar te dice qué archivo es. El laboratorio no publica nada por sí solo.</p>
         <h3>Otras descargas</h3>
         <ul>
           <li><b>Descargar proyecto</b>: el <code>.sen.json</code> para reabrirlo o guardarlo en tu control de versiones.</li>
-          <li><b>Descargar script</b>: un único archivo <code>.render.mjs</code> con el motor y el proyecto. <code>node tema.render.mjs [salida.wav]</code> genera el mismo WAV sin necesitar nada más.</li>
+          <li><b>Descargar script</b>: un único archivo <code>.render.mjs</code> con el motor y el proyecto. <code>node tema.render.mjs [salida.wav]</code> genera el mismo WAV sin necesitar nada más. No está disponible en temas con capas de pistas de sen (necesitan el generador de la app): usa el render local.</li>
           <li><b>Render local</b> desde el repositorio:
 <pre>node scripts/render-lab.mjs tema.sen.json
 node scripts/render-lab.mjs tema.sen.json --out tema.wav --rate 44100 --bits 16 \
@@ -572,6 +594,7 @@ Editor ◀───────────────────────�
           <li><b>Escucha.</b> El motor trabaja en un hilo aparte y va un cuarto de segundo por delante de lo que suena. Cuando cambias algo, recalcula solo la pista afectada y la sustituye con un fundido cruzado imperceptible.</li>
           <li><b>Compilar.</b> Antes de sonar, el motor «planifica» el tema: decide de antemano cada nota de las nubes y cada canto de pájaro a partir de las semillas. Por eso el resultado es siempre el mismo.</li>
           <li><b>Exportar.</b> El WAV se calcula en otro hilo y en dos pasadas: una mide la sonoridad y la otra escribe el archivo por trozos. Nunca se guarda el tema entero en memoria, así que caben temas de 30 minutos.</li>
+          <li><b>Pistas de sen.</b> Al retocar una pista de la app, sus capas las calcula en otro hilo el mismo generador que la creó; el motor del laboratorio solo recibe ese audio y lo reproduce en bucle.</li>
           <li><b>Bucle sin costura.</b> El motor calcula varias vueltas seguidas del tema y se queda con la última. Así la reverb y los ecos del final ya están sonando al principio y la unión es exacta, sin fundidos.</li>
           <li><b>Determinismo.</b> Mismo proyecto, misma versión del motor y mismas opciones dan el mismo WAV byte a byte en Chrome, Edge y Node. En Safari y Firefox la diferencia es inaudible (por debajo de −90 dB).</li>
         </ul>
@@ -598,6 +621,7 @@ Editor ◀───────────────────────�
           <tr><td>No suena nada</td><td>Pulsa <b>▶</b> o <kbd>Espacio</kbd>: el navegador solo permite audio tras un gesto tuyo. Revisa el volumen de escucha, que no haya un <b>S</b> (solo) activo en otra pista y que el cabezal no esté pasado el final.</td></tr>
           <tr><td>Se entrecorta</td><td>La carga del motor está alta. Silencia pistas que no estés ajustando, baja voces, individuos o densidad, o usa una región en bucle. La exportación no se ve afectada.</td></tr>
           <tr><td>«Escucha en calidad reducida»</td><td>Es automático y solo afecta a la escucha.</td></tr>
+          <tr><td>«Preparando las capas de la pista de sen…» o «Falta el audio de… capas»</td><td>Al abrir o recuperar una pista de sen, las capas se calculan en unos segundos. Hasta entonces esas pistas no suenan y no se puede exportar.</td></tr>
           <tr><td>«El motor se ha detenido»</td><td>Pulsa <b>Reiniciar motor</b>. El proyecto no se pierde.</td></tr>
           <tr><td>«No se puede abrir este archivo»</td><td>El aviso dice el motivo. Los JSON del mezclador antiguo (<code>sen-lab/2</code>) no se pueden abrir en este editor.</td></tr>
           <tr><td>El WAV suena más bajo de lo esperado</td><td>Revisa el preajuste: <b>Escena para sen</b> exporta a −23 LUFS a propósito. Usa <b>CD</b> (−16 LUFS) para escuchar.</td></tr>

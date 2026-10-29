@@ -165,7 +165,8 @@ for (const file of files) {
     if (!Number.isFinite(v)) bad++;
     pk = Math.max(pk, Math.abs(v));
   }
-  const name = path.relative(path.join(here, '..', 'assets', 'audio'), file);
+  const rel = path.relative(path.join(here, '..', 'assets', 'audio'), file);
+  const name = rel.startsWith('..') ? path.basename(file) : rel;
   const lufs = loudness(x, wav.sampleRate);
   const seam = seamScore(x);
   const lvl = seamLevel(x, wav.sampleRate);

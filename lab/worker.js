@@ -4,6 +4,7 @@
  */
 
 import { auditionProject, compile, createCompileCache, createRenderer } from './engine/index.js';
+import { fadeCurve } from './engine/dsp.js';
 
 const BLOCK = 0.05; // s por bloque
 const AHEAD = 0.25; // s en cola como objetivo
@@ -27,6 +28,7 @@ let slowFor = 0;
 let lowQuality = false;
 let lastStatus = 0;
 let tailQuiet = 0;
+let samples = {};
 
 const post = (msg, transfer) => self.postMessage(msg, transfer || []);
 
@@ -38,7 +40,7 @@ function warmup() {
 function recompile() {
   if (!project) return;
   if (cache.size > 600) cache = createCompileCache();
-  plan = compile(project, { sampleRate: rate, mode: 'preview', cache });
+  plan = compile(project, { sampleRate: rate, mode: 'preview', cache, samples });
   if (renderer) renderer.update(plan);
   post({ type: 'compiled', warnings: plan.warnings, events: plan.events });
 }
@@ -55,7 +57,23 @@ function loopEnd() {
   return null;
 }
 
+/** En «Duración exacta», los últimos segundos se funden como en la exportación. */
+function endFade(L, R, t) {
+  if (loop || project.end?.mode !== 'cut') return;
+  const fade = project.end.fadeOut ?? 0;
+  const dur = project.duration;
+  const n = L.length;
+  if (fade <= 0 || t + n / rate < dur - fade) return;
+  for (let i = 0; i < n; i++) {
+    const left = dur - (t + i / rate);
+    const g = left <= 0 ? 0 : left >= fade ? 1 : fadeCurve(left / fade);
+    L[i] *= g;
+    R[i] *= g;
+  }
+}
+
 function send(L, R, t, meters) {
+  endFade(L, R, t);
   const id = ++blockId;
   port.postMessage({ type: 'block', gen, id, time: t, rate, L, R, meters }, [L.buffer, R.buffer]);
   queued += L.length / rate;
@@ -109,7 +127,7 @@ function produce() {
       lowQuality = true;
       rate = Math.round(ctxRate / 2);
       cache = createCompileCache();
-      plan = compile(project, { sampleRate: rate, mode: 'preview', cache });
+      plan = compile(project, { sampleRate: rate, mode: 'preview', cache, samples });
       start(time);
     }
   } else slowFor = 0;
@@ -152,7 +170,20 @@ self.onmessage = (e) => {
     } else if (m.type === 'project') {
       project = m.project;
       if (port) recompile();
+    } else if (m.type === 'samples') {
+      samples = { ...samples, ...m.samples };
+      if (project && port) recompile();
     } else if (m.type === 'play') {
+      // Cada reproducción vuelve a intentar la calidad completa.
+      if (lowQuality) {
+        lowQuality = false;
+        rate = ctxRate;
+        slowFor = 0;
+        load = 0;
+        cache = createCompileCache();
+        plan = null;
+        renderer = null;
+      }
       if (!plan) recompile();
       loop = m.loop || null;
       flush();
@@ -173,7 +204,7 @@ self.onmessage = (e) => {
       loop = m.loop || null;
     } else if (m.type === 'audition') {
       const aud = auditionProject(m.project, m.track, { note: m.note, seconds: m.seconds });
-      const p = compile(aud, { sampleRate: ctxRate, mode: 'preview', end: 'tail', audition: true });
+      const p = compile(aud, { sampleRate: ctxRate, mode: 'preview', end: 'tail', audition: true, samples });
       const r = createRenderer(p, { limiter: true });
       const out = r.render(Math.round((m.seconds + (m.track.family === 'strike' ? 1.5 : 0.6)) * ctxRate));
       post({ type: 'audition', id: m.id, L: out.L, R: out.R, rate: ctxRate }, [out.L.buffer, out.R.buffer]);

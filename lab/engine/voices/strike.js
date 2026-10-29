@@ -1,7 +1,8 @@
 /**
  * Notas puntuales: campana, cuenco, kalimba, caja de música, celesta,
- * marimba (síntesis modal), cuerda pulsada (Karplus-Strong) y gota tonal
- * (burbuja de Minnaert afinada).
+ * marimba, vibráfono, piano de fieltro, arpa y guitarra de nailon (síntesis
+ * modal), cuerda pulsada (Karplus-Strong) y gota tonal (burbuja de Minnaert
+ * afinada).
  *
  * Los elementos `hit`, `phrase` y `cloud` se planifican como golpes; cada
  * golpe es una voz con su propio decaimiento.
@@ -22,13 +23,19 @@ export const MODAL_SETS = {
   cajaMusica: [[1, 1, 1], [2, 0.1, 0.45], [3, 0.04, 0.3], [5.93, 0.12, 0.05], [9.4, 0.04, 0.03]],
   celesta: [[1, 1, 1], [2, 0.22, 0.5], [3, 0.06, 0.3], [4.01, 0.08, 0.25]],
   marimba: [[1, 1, 1], [3.93, 0.22, 0.2], [9.2, 0.05, 0.08]],
+  vibrafono: [[1, 1, 1], [4, 0.16, 0.3], [10, 0.04, 0.1]],
+  // Piano de fieltro: cada armónico con una parte que se apaga pronto (golpe) y otra larga.
+  piano: [[1, 0.75, 1], [1, 0.3, 0.12], [2, 0.3, 0.62], [2, 0.1, 0.1], [3, 0.17, 0.45], [4, 0.09, 0.36], [5, 0.06, 0.3], [6, 0.035, 0.25], [7, 0.02, 0.2]],
+  // Cuerdas pulsadas modales: amplitud sen(π·h·p)/h según el punto de pulsación p.
+  arpa: [[1, 1, 1], [2, 0.81, 0.74], [3, 0.54, 0.54], [4, 0.25, 0.41], [6, 0.17, 0.26], [7, 0.23, 0.22], [8, 0.2, 0.19], [9, 0.11, 0.16]],
+  guitarra: [[1, 1, 1], [2, 0.9, 0.67], [3, 0.75, 0.45], [4, 0.57, 0.33], [5, 0.36, 0.25], [6, 0.19, 0.2], [8, 0.07, 0.13]],
   metal: [[1, 1, 1], [2.76, 0.45, 0.47], [5.4, 0.2, 0.24], [8.93, 0.06, 0.1]],
   bambu: [[1, 1, 1], [2.6, 0.32, 0.4], [4.9, 0.08, 0.2]],
   vidrio: [[1, 1, 1], [2.32, 0.3, 0.5], [4.25, 0.15, 0.3], [6.63, 0.05, 0.2]],
 };
 
-const STRIKE_GAIN = { campana: 1, cuenco: 1, kalimba: 1.3, cajaMusica: 1.5, celesta: 1.2, marimba: 1.8, pulsada: 3.2, gotaTonal: 2 };
-const ATTACKS = { kalimba: 0.003, celesta: 0.004, cuenco: 0.006, marimba: 0.0015 };
+const STRIKE_GAIN = { campana: 1, cuenco: 1, kalimba: 1.3, cajaMusica: 1.5, celesta: 1.2, marimba: 1.8, vibrafono: 1, piano: 1.1, arpa: 0.9, guitarra: 1, pulsada: 3.2, gotaTonal: 2 };
+const ATTACKS = { kalimba: 0.003, celesta: 0.004, cuenco: 0.006, marimba: 0.0015, vibrafono: 0.003, piano: 0.005, arpa: 0.002, guitarra: 0.002 };
 const TAIL_DB = 8.06; // ln(10^(70/20)): de 0 a −70 dB
 
 /* ------------------------------------------------------------ planificación */
@@ -166,6 +173,7 @@ export function createStrikeVoice(inst, p, freq, amp, vel, pan, seed, sr, i0) {
     inharmonic: p.inharmonic ?? 0,
     beat: p.beat ?? 0,
     attack: ATTACKS[inst] ?? 0.0008,
+    tremolo: inst === 'vibrafono' ? { depth: p.tremoloDepth ?? 0, rate: p.tremoloRate ?? 4 } : null,
     pan, seed, sr, i0,
   });
 }
@@ -177,7 +185,7 @@ export function createModalVoice(opts) {
 /* ------------------------------------------------------------ modal */
 
 class ModalVoice {
-  constructor({ modes, freq, amp, vel = 0.7, decay, brightness, hardness, inharmonic, beat, attack, pan, seed, sr, i0 }) {
+  constructor({ modes, freq, amp, vel = 0.7, decay, brightness, hardness, inharmonic, beat, attack, tremolo = null, pan, seed, sr, i0 }) {
     this.sr = sr;
     const rng = createRng(seed);
     const list = [];
@@ -217,10 +225,15 @@ class ModalVoice {
     const beatRates = list.map(() => beat * (0.6 + rng.next() * 0.8));
     const beatPh = list.map(() => rng.next());
     const att = Math.max(0.0003, attack);
+    // Trémolo común a todos los modos (motor del vibráfono). Fase por contador: no altera el azar.
+    const tremDepth = tremolo ? clamp(tremolo.depth, 0, 1) : 0;
+    const tremRate = tremolo ? tremolo.rate : 0;
+    const tremPh = tremDepth > 0 ? noiseAt(seed, 11) * 0.5 + 0.5 : 0;
     this.ctl = new Control(n + 1, (i, out) => {
       const t = i / sr;
       for (let k = 0; k < n; k++) out[k] = beat > 0 ? 1 - 0.45 * (0.5 - 0.5 * Math.cos(2 * Math.PI * (beatRates[k] * t + beatPh[k]))) : 1;
       out[n] = 1 - Math.exp(-t / att);
+      if (tremDepth > 0) out[n] *= 1 - tremDepth * (0.5 - 0.5 * Math.cos(2 * Math.PI * (tremRate * t + tremPh)));
     });
     this.kill = 0;
     this.killLeft = 0;

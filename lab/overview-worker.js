@@ -11,6 +11,7 @@ const BINS = 160;
 const MAX_SECONDS = 600;
 let queue = [];
 let busy = false;
+let samples = {};
 
 self.onmessage = (e) => {
   const m = e.data;
@@ -18,7 +19,8 @@ self.onmessage = (e) => {
     queue = queue.filter((q) => q.key !== m.key);
     queue.push(m);
     pump();
-  } else if (m.type === 'clear') queue = [];
+  } else if (m.type === 'samples') samples = { ...samples, ...m.samples };
+  else if (m.type === 'clear') queue = [];
 };
 
 const sleep = () => new Promise((r) => setTimeout(r, 0));
@@ -50,7 +52,7 @@ async function overview({ project, track, el, span }) {
     master: { ...project.master, gain: 0, reverb: { ...project.master.reverb }, echo: { ...project.master.echo } },
     tracks: [{ ...track, mix: { gain: 0, pan: 0, reverb: 0, echo: 0, mute: false, solo: false }, automation: undefined, elements: [{ ...el, start: 0 }] }],
   };
-  const plan = compile(mini, { sampleRate: SR, mode: 'export', end: 'tail' });
+  const plan = compile(mini, { sampleRate: SR, mode: 'export', end: 'tail', samples });
   const r = createRenderer(plan, { limiter: false });
   const frames = Math.round(seconds * SR);
   const per = Math.max(1, Math.floor(frames / BINS));

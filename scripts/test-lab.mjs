@@ -18,8 +18,9 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { compile, createRenderer, renderToWav, ENGINE_MODULES, auditionProject } from '../lab/engine/index.js';
 import {
-  INSTRUMENTS, LabFileError, canonicalProject, createElement, createProject, createTrack, normalizeProject,
+  INSTRUMENTS, LabFileError, canonicalProject, createElement, createProject, createSceneProject, createTrack, layerKey, normalizeProject,
 } from '../lab/engine/schema.js';
+import { publishedLayers } from './lib/published.js';
 import { decodeWavChannels, readSenpProject } from '../lab/engine/wav.js';
 import { LoudnessMeter } from '../lab/engine/master.js';
 import { planStrikeHits } from '../lab/engine/voices/strike.js';
@@ -130,7 +131,8 @@ function smallProject(over = {}) {
 {
   const base = createProject({ seed: 'inst', duration: 20 });
   let all = true;
-  for (const id of Object.keys(INSTRUMENTS)) {
+  const playable = Object.keys(INSTRUMENTS).filter((id) => INSTRUMENTS[id].family !== 'layer');
+  for (const id of playable) {
     const t = createTrack(id, base);
     const plan = compile(auditionProject(base, t, { seconds: 3 }), { sampleRate: 44100, audition: true });
     const { L, R } = createRenderer(plan, { limiter: false }).render(44100 * 4);
@@ -145,7 +147,58 @@ function smallProject(over = {}) {
       console.log(`   ${id}: pico ${pk} ${bad ? 'NaN' : ''}`);
     }
   }
-  ok(all, `los ${Object.keys(INSTRUMENTS).length} instrumentos suenan en la audición, sin NaN ni saturación`);
+  ok(all, `los ${playable.length} instrumentos suenan en la audición, sin NaN ni saturación`);
+}
+
+/* ------------------------------------------------------------ capas de pistas de sen */
+
+const readRepo = async (rel) => new Uint8Array(fs.readFileSync(path.join(root, rel)));
+async function sceneProject(ambient, track) {
+  const r = await publishedLayers(ambient, track, readRepo);
+  const { project, warnings } = normalizeProject(createSceneProject({ ...r, layers: r.layers.map((l) => l.name) }));
+  const samples = new Map(r.layers.map((l, k) => [layerKey({ ambient, track, layer: k }), { rate: r.sampleRate, data: l.data }]));
+  return { project, warnings, samples, r };
+}
+const correlation = (a, b) => {
+  let c = 0, ea = 0, eb = 0;
+  for (let i = 0; i < Math.min(a.length, b.length); i++) { c += a[i] * b[i]; ea += a[i] * a[i]; eb += b[i] * b[i]; }
+  return c / Math.sqrt(ea * eb);
+};
+
+{
+  const { project, warnings, samples, r } = await sceneProject('bosque', 3);
+  ok(!warnings.length && project.tracks.length === r.layers.length && project.tracks.every((t) => t.family === 'layer' && t.mix.gain === 0),
+    `pista bosque/03 abierta en capas: ${project.tracks.map((t) => t.name).join(', ')}`);
+  const res = await renderToWav(project, {}, { samples });
+  const out = decodeWavChannels(new Uint8Array(join(res.parts)));
+  const pub = decodeWavChannels(await readRepo('assets/audio/bosque/03.wav'));
+  const corr = correlation(out.data[0], pub.data[0]);
+  ok(out.sampleRate === 22050 && out.channels === 1 && out.data[0].length === pub.data[0].length && corr > 0.999,
+    `sin tocar nada, exporta la misma pista que la app (correlación ${corr.toFixed(5)}, ${res.stats.lufs.toFixed(2)} LUFS)`);
+  const seam = seamScore(out.data[0]);
+  ok(seam <= 1, `la pista exportada enlaza sin costura (${seam.toFixed(2)})`);
+
+  // Bajar el pad 6 dB: la capa del pad suena 6 dB más baja y el resto igual.
+  const pad = project.tracks.find((t) => /Pad/.test(t.name));
+  const solo = (gain) => {
+    const q = structuredClone(project);
+    for (const t of q.tracks) t.mix.solo = t.id === pad.id;
+    q.tracks.find((t) => t.id === pad.id).mix.gain = gain;
+    const { L } = createRenderer(compile(q, { sampleRate: 22050, samples }), { limiter: false }).render(22050 * 10);
+    return Math.sqrt(L.reduce((a, v) => a + v * v, 0) / L.length);
+  };
+  const drop = 20 * Math.log10(solo(-6) / solo(0));
+  ok(pad && Math.abs(drop + 6) < 0.05, `bajar el «${pad?.name}» 6 dB lo baja ${drop.toFixed(2)} dB`);
+
+  const without = await renderToWav(project, {}, {});
+  ok(without.stats.warnings.some((w) => w.includes('capa')), 'sin el audio de las capas se avisa en lugar de fallar');
+  const bad = normalizeProject({ schema: 'sen-lab/3', duration: 30, tracks: [{ instrument: 'capa', elements: [] }] });
+  ok(!bad.project.tracks.length && bad.warnings.length === 1, 'una capa sin origen válido se descarta con aviso');
+}
+{
+  const { project, samples, r } = await sceneProject('mar', 1);
+  const res = await renderToWav(project, {}, { samples });
+  ok(r.layers.length === 1 && Math.abs(res.stats.duration - 16) < 0.001, `las pistas de síntesis base se abren como una sola capa (${res.stats.duration.toFixed(1)} s)`);
 }
 
 /* ------------------------------------------------------------ exportación */
@@ -279,6 +332,15 @@ if (full) {
   fs.writeFileSync(proj, JSON.stringify({ ...p, export: opts }));
   execFileSync(process.execPath, [path.join(root, 'scripts/render-lab.mjs'), proj, '--out', cli], { stdio: 'pipe' });
   ok(sha(fs.readFileSync(cli)) === direct, 'scripts/render-lab.mjs produce el mismo WAV byte a byte');
+
+  const scene = await sceneProject('lluvia', 4);
+  scene.project.tracks[0].mix.gain = -4;
+  const sceneDirect = sha(join((await renderToWav(scene.project, {}, { samples: scene.samples })).parts));
+  const sceneFile = path.join(tmp, 'lluvia.sen.json');
+  const sceneOut = path.join(tmp, 'lluvia.wav');
+  fs.writeFileSync(sceneFile, JSON.stringify(scene.project));
+  execFileSync(process.execPath, [path.join(root, 'scripts/render-lab.mjs'), sceneFile, '--out', sceneOut], { stdio: 'pipe' });
+  ok(sha(fs.readFileSync(sceneOut)) === sceneDirect, 'scripts/render-lab.mjs recalcula las capas de una pista de sen y da el mismo WAV');
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });

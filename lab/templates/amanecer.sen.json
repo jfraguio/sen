@@ -1,6 +1,6 @@
 {
   "schema": "sen-lab/3",
-  "engine": "sen-synth/1",
+  "engine": "sen-synth/2",
   "name": "Amanecer",
   "notes": "Pad que crece, mirlo y petirrojo, arroyo y kalimba.",
   "seed": "amanecer",

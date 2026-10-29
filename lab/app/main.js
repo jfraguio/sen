@@ -4,7 +4,7 @@
 
 import { h, fmtTime, toast, announce, findTrack, findElement, typingTarget, isCompact, clampNum } from './util.js';
 import {
-  INSTRUMENTS, LIMITS, LabFileError, createElement, createProject, createTrack, newId, normalizeProject, projectCounts,
+  INSTRUMENTS, LIMITS, LabFileError, createElement, createProject, createSceneProject, createTrack, layerKey, newId, normalizeProject, projectCounts,
 } from '../engine/schema.js';
 import { sustainVoiceCount } from '../engine/voices/sustain.js';
 import { noteLabel } from '../engine/music.js';
@@ -18,6 +18,7 @@ import { createExportDialog } from './export.js';
 import { createCompact } from './compact.js';
 import { downloadProject, isDownloaded, loadAutosave, readProjectFile, scheduleAutosave, writeMeta } from './storage.js';
 import { midiToTracks } from './midi.js';
+import { createSceneSource } from './scenes.js';
 
 /* ------------------------------------------------------------ requisitos */
 
@@ -120,6 +121,7 @@ function boot() {
     return JSON.stringify([p.seed, p.key, p.tuning, timbre, { ...el, start: 0 }]);
   }
   function overview(track, el, span) {
+    if (track.family === 'layer' && !layerSamples[layerKey(track.source)]) return null;
     const key = overviewKey(track, el);
     const hit = overviews.get(key);
     if (hit) return hit;
@@ -127,6 +129,7 @@ function boot() {
       pending.add(key);
       if (!overviewWorker) {
         overviewWorker = new Worker(new URL('../overview-worker.js', import.meta.url), { type: 'module' });
+        if (Object.keys(layerSamples).length) overviewWorker.postMessage({ type: 'samples', samples: layerSamples });
         overviewWorker.onmessage = (e) => {
           if (e.data.type !== 'overview') return;
           pending.delete(e.data.key);
@@ -191,9 +194,105 @@ function boot() {
   };
   const guarded = (fn, opts) => store.commit(fn, opts);
 
+  /* ------------------------------------------------------------ pistas de sen */
+
+  const scenes = createSceneSource();
+  /** Audio de las capas de pistas de sen ya calculadas: `{ clave: { rate, data, id } }`. */
+  const layerSamples = {};
+  let layersPending = null;
+
+  function shareSamples(add) {
+    if (!Object.keys(add).length) return;
+    Object.assign(layerSamples, add);
+    audio.setSamples(add);
+    overviewWorker?.postMessage({ type: 'samples', samples: add });
+  }
+
+  /** Prepara el audio de las capas que use el proyecto (si falta). */
+  function ensureLayers(project) {
+    const missing = project.tracks.some((t) => t.family === 'layer' && !layerSamples[layerKey(t.source)]);
+    if (!missing) return Promise.resolve(true);
+    if (layersPending) return layersPending;
+    $('st-layers').hidden = false;
+    layersPending = scenes.samplesFor(project)
+      .then((add) => {
+        shareSamples(add);
+        timeline.render();
+        exporter.refresh();
+        return true;
+      })
+      .catch((err) => {
+        notify(`No se pudieron preparar las capas: ${err.message}`, true);
+        return false;
+      })
+      .finally(() => {
+        layersPending = null;
+        $('st-layers').hidden = true;
+        // Por si entretanto se ha abierto otra pista.
+        if (state.project.tracks.some((t) => t.family === 'layer' && !layerSamples[layerKey(t.source)])) ensureLayers(state.project);
+      });
+    return layersPending;
+  }
+
+  const sceneDialog = $('scene-dialog');
+  let sceneBusy = false;
+  async function showScenes() {
+    const list = $('scene-list');
+    $('scene-status').textContent = '';
+    if ($('start-dialog').open) $('start-dialog').close();
+    sceneDialog.showModal();
+    try {
+      const catalog = await scenes.catalog();
+      list.textContent = '';
+      for (const amb of catalog) {
+        list.append(h('div', { class: 'scene-row' }, h('strong', {}, amb.name),
+          h('div', { class: 'scene-tracks' }, amb.tracks.map((t) => h('button', {
+            type: 'button',
+            class: 'scene-track',
+            title: `${amb.name} · pista ${t.track} · ${t.title}`,
+            onclick: () => openScene(amb.id, t.track),
+          }, h('b', {}, String(t.track)), t.title, t.scene ? null : h('small', {}, 'una sola capa'))))));
+      }
+      list.querySelector('.scene-track')?.focus();
+    } catch (err) {
+      list.textContent = '';
+      list.append(h('p', { class: 'warn' }, `No se pudo cargar la lista de pistas: ${err.message}`));
+    }
+  }
+
+  async function openScene(ambient, track) {
+    if (sceneBusy) return;
+    if (!confirmDiscard()) return;
+    sceneBusy = true;
+    const status = $('scene-status');
+    status.textContent = 'Preparando las capas… (unos segundos)';
+    for (const b of sceneDialog.querySelectorAll('button')) b.disabled = true;
+    try {
+      const r = await scenes.load(ambient, track);
+      const { project } = normalizeProject(createSceneProject({ ...r, layers: r.layers.map((l) => l.name) }));
+      shareSamples(await scenes.samplesFor(project));
+      loadProject(project);
+      sceneDialog.close();
+      notify(`${r.layers.length} ${r.layers.length === 1 ? 'capa' : 'capas'} a 0 dB. Mueve el volumen de cada una en su cabecera y exporta con «Escena para sen».`);
+    } catch (err) {
+      status.textContent = `No se pudo abrir: ${err.message}`;
+    } finally {
+      sceneBusy = false;
+      for (const b of sceneDialog.querySelectorAll('button')) b.disabled = false;
+    }
+  }
+  $('scene-close').addEventListener('click', () => sceneDialog.close());
+  sceneDialog.addEventListener('cancel', (e) => {
+    if (sceneBusy) e.preventDefault();
+  });
+  $('start-scenes').addEventListener('click', () => showScenes());
+
   const actions = {
     notify,
     overview,
+    showScenes,
+    layerSamples: () => layerSamples,
+    layersReady: () => !state.project.tracks.some((t) => t.family === 'layer' && !layerSamples[layerKey(t.source)]),
     focusLibrary() {
       if (isCompact()) actions.openSheet('library');
       else library.focus();
@@ -352,6 +451,7 @@ function boot() {
           if (t0 <= el.start + 0.05 || t0 >= el.start + el.length - 0.05) continue;
           const len1 = Math.round((t0 - el.start) * 1000) / 1000;
           const second = { ...structuredClone(el), id: newId('e'), start: Math.round(t0 * 1000) / 1000, length: Math.round((el.length - len1) * 1000) / 1000, fadeIn: 0 };
+          if (el.type === 'clip') second.offset = Math.round(((el.offset || 0) + len1) * 1000) / 1000;
           second.fadeOut = Math.min(el.fadeOut, second.length);
           el.length = len1;
           el.fadeOut = 0;
@@ -755,8 +855,9 @@ function boot() {
         updateGridOptions();
       }
     }
+    if (kind === 'load') ensureLayers(s.project);
     if (kind === 'project' || kind === 'load' || kind === 'selection' || kind === 'view') {
-      timeline.render();
+      if (info?.source !== 'tl-vol') timeline.render();
       inspector.render(kind === 'load' || kind === 'view');
       compact.render();
       updateTransport();
@@ -811,6 +912,7 @@ function boot() {
   updateSaveState();
   requestAnimationFrame(() => timeline.fit());
   if (saved?.warnings?.length) notify(saved.warnings.join(' '));
+  ensureLayers(state.project);
   if (!saved) showStart();
 
   // Exponer para depuración en consola.

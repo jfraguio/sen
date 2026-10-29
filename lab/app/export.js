@@ -25,6 +25,8 @@ export function createExportDialog(store, actions) {
   const btnClose = document.getElementById('export-close');
   const btnScript = document.getElementById('export-script');
   const btnProject = document.getElementById('export-project');
+  const sceneNote = document.getElementById('export-scene');
+  const usesLayers = () => state.project.tracks.some((t) => t.family === 'layer');
   let worker = null;
   let started = 0;
   let lastAnnounce = -1;
@@ -58,9 +60,11 @@ export function createExportDialog(store, actions) {
     field('range').value = o.range === 'region' && state.project.region ? 'region' : 'all';
   }
 
+  /** «Escena para sen» admite la sonoridad propia de la pista (−23, −24 o −25 LUFS). */
+  const sameLoudness = (id, p, o) => (id === 'escena' ? o.loudness !== null && o.loudness <= -23 && o.loudness >= -25 : p.loudness === o.loudness);
   function matchPreset() {
     const o = read();
-    const found = Object.entries(EXPORT_PRESETS).find(([, p]) => p.sampleRate === o.sampleRate && p.bits === o.bits && p.channels === o.channels && (p.end || null) === (o.end || null) && p.loudness === o.loudness && p.ceiling === o.ceiling);
+    const found = Object.entries(EXPORT_PRESETS).find(([id, p]) => p.sampleRate === o.sampleRate && p.bits === o.bits && p.channels === o.channels && (p.end || null) === (o.end || null) && sameLoudness(id, p, o) && p.ceiling === o.ceiling);
     const id = found ? found[0] : 'custom';
     for (const r of presets.querySelectorAll('input')) r.checked = r.value === id;
   }
@@ -78,15 +82,23 @@ export function createExportDialog(store, actions) {
     if (mb > 300) warns.push('Archivo de más de 300 MB: en móvil puede fallar.');
     if (end === 'loop' && len > 600) warns.push('Un bucle no puede durar más de 10 minutos.');
     if (end === 'loop' && len < 10) warns.push('Un bucle debe durar al menos 10 s.');
+    const waiting = usesLayers() && !actions.layersReady();
+    if (waiting) warns.push('Las capas de la pista de sen se están preparando: espera unos segundos.');
     warning.textContent = warns.join(' ');
     warning.hidden = !warns.length;
-    btnWav.disabled = !!worker || (end === 'loop' && (len > 600 || len < 10));
+    btnWav.disabled = !!worker || waiting || (end === 'loop' && (len > 600 || len < 10));
+    const sc = p.scene;
+    sceneNote.hidden = !sc;
+    if (sc) sceneNote.textContent = `Para usarla en la app: exporta con «Escena para sen» y sustituye assets/audio/${sc.ambient}/${String(sc.track).padStart(2, '0')}.wav por el WAV descargado.`;
+    btnScript.disabled = usesLayers();
+    btnScript.title = usesLayers() ? 'El script autónomo no incluye las capas de las pistas de sen: usa node scripts/render-lab.mjs con el proyecto' : 'Un único archivo .mjs con el motor y el proyecto';
     field('range').querySelector('option[value="region"]').disabled = !p.region;
   }
 
   presets.addEventListener('change', (e) => {
     const p = EXPORT_PRESETS[e.target.value];
-    if (p) write({ ...read(), ...p, range: read().range });
+    const lufs = e.target.value === 'escena' && state.project.scene?.lufs ? { loudness: state.project.scene.lufs } : {};
+    if (p) write({ ...read(), ...p, ...lufs, range: read().range });
     update();
   });
   form.addEventListener('change', (e) => {
@@ -169,7 +181,7 @@ export function createExportDialog(store, actions) {
       busy(false);
       toast('No se pudo exportar: el motor se ha detenido.', { error: true });
     };
-    worker.postMessage({ type: 'export', project, options: o });
+    worker.postMessage({ type: 'export', project, options: o, samples: usesLayers() ? actions.layerSamples() : null });
   });
 
   btnCancel.addEventListener('click', () => {
@@ -214,6 +226,10 @@ export function createExportDialog(store, actions) {
       progress.hidden = true;
       update();
       dialog.showModal();
+    },
+    /** Vuelve a evaluar el estado (p. ej., cuando terminan de prepararse las capas). */
+    refresh() {
+      if (dialog.open && !worker) update();
     },
     get busy() {
       return !!worker;

@@ -10,6 +10,9 @@
  *     --mono --end loop --lufs -23 --peak -3
  *   node scripts/render-lab.mjs tema.wav            # usa el proyecto del chunk senp
  *
+ * Si el tema usa capas de pistas de sen, se recalculan con el generador de la
+ * app (`scripts/lib/published.js`), igual que en el navegador.
+ *
  * Opciones (sustituyen a las de `export` del proyecto):
  *   --out <archivo>        destino (por defecto, al lado del proyecto)
  *   --rate 22050|44100|48000
@@ -25,8 +28,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { renderToWav, resolveExportOptions, slugify } from '../lab/engine/index.js';
-import { ENGINE_VERSION, normalizeProject } from '../lab/engine/schema.js';
+import { ENGINE_VERSION, layerKey, normalizeProject } from '../lab/engine/schema.js';
 import { readSenpProject } from '../lab/engine/wav.js';
+import { publishedLayers } from './lib/published.js';
+import { fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
 if (!args.length || args.includes('--help') || args.includes('-h')) {
@@ -92,6 +97,21 @@ const out = flag('--out') || path.join(dir, `${base}.wav`);
 
 console.log(`${project.name} · ${project.duration} s · ${opts.sampleRate} Hz · ${opts.bits} bits · ${opts.channels === 1 ? 'mono' : 'estéreo'} · final ${opts.end} · ${opts.loudness === null ? 'solo limitador' : `${opts.loudness} LUFS`} · techo ${opts.ceiling} dBFS`);
 
+/** Audio de las capas de pistas de sen que use el tema. */
+async function layerSamples(p) {
+  const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const wanted = new Set(p.tracks.filter((t) => t.family === 'layer').map((t) => `${t.source.ambient}/${t.source.track}`));
+  const samples = new Map();
+  for (const key of wanted) {
+    const [ambient, track] = key.split('/');
+    const res = await publishedLayers(ambient, Number(track), async (rel) => new Uint8Array(fs.readFileSync(path.join(root, rel))));
+    res.layers.forEach((l, k) => samples.set(layerKey({ ambient, track: Number(track), layer: k }), { rate: res.sampleRate, data: l.data }));
+    console.log(`  capas de ${res.name} · ${String(res.track).padStart(2, '0')} · ${res.title}: ${res.layers.map((l) => l.name).join(', ')}`);
+  }
+  return samples;
+}
+const samples = await layerSamples(project);
+
 const started = Date.now();
 let lastDraw = 0;
 const draw = (p) => {
@@ -104,7 +124,7 @@ const draw = (p) => {
   process.stderr.write(`\r[${'#'.repeat(n)}${'.'.repeat(w - n)}] ${(p * 100).toFixed(0).padStart(3)} %`);
 };
 
-const { parts, stats } = await renderToWav(project, options, { onProgress: draw });
+const { parts, stats } = await renderToWav(project, options, { onProgress: draw, samples });
 if (process.stderr.isTTY) process.stderr.write('\n');
 const file = Buffer.concat(parts.map((p) => Buffer.from(p.buffer, p.byteOffset, p.byteLength)));
 fs.writeFileSync(out, file);

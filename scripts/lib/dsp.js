@@ -1,5 +1,5 @@
 /**
- * Núcleo DSP de los paisajes sonoros de alta calidad (escenas 04–06).
+ * Núcleo DSP de los paisajes sonoros de alta calidad (escenas 04–08).
  *
  * Todo es determinista (RNG con semilla) y periódico: los filtros, la reverb y
  * el limitador se procesan de forma circular (dos pasadas sobre el búfer) y los

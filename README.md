@@ -24,11 +24,12 @@ ES y el audio necesitan un servidor.
 - Menú de constelación con **14 ambientes** identificados solo por su icono.
 - Selector de duración con tres opciones: **10, 15 y 30 minutos**.
 - Sesión a pantalla completa con animación propia, progreso y fundido final.
-- **Escenas de audio por ambiente**: el motor puede generar hasta seis
-  (`01.wav` … `06.wav`), tres de síntesis base y tres paisajes de alta calidad.
-  **El repositorio conserva dos por ambiente, `01.wav` y `02.wav`**, y la
+- **Escenas de audio por ambiente**: el motor puede generar hasta ocho
+  (`01.wav` … `08.wav`): tres de síntesis base, tres paisajes de alta calidad y
+  dos paisajes con melodía sutil y pad. **El repositorio conserva cuatro por
+  ambiente, `01.wav` … `04.wav`** (01–02 paisaje, 03–04 con melodía), y la
   sesión empieza siempre por `01.wav`.
-- **Indicador de pista discreto** arriba a la izquierda (`1/2`, `2/2`…): al
+- **Indicador de pista discreto** arriba a la izquierda (`1/4`, `2/4`…): al
   pulsarlo se pasa a la siguiente pista del ambiente. La URL indica el ambiente
   y la pista (`#mar/01`). Arriba a la derecha hay una **X** para cerrar y volver
   al menú.
@@ -45,7 +46,7 @@ ambiente están en **[`SPEC.md`](SPEC.md)**.
 index.html
 SPEC.md
 assets/
-  audio/<id>/01.wav, 02.wav (dos por ambiente)
+  audio/<id>/01.wav … 04.wav (cuatro por ambiente)
   audio/README.md
   favicon.svg
 lab/
@@ -76,38 +77,48 @@ src/
 
 ## Regenerar el audio
 
-El motor genera seis escenas sintéticas por ambiente; el repositorio conserva
-solo dos de ellas, renombradas `01.wav` (por defecto) y `02.wav`. Las otras
-cuatro se pueden regenerar:
+El motor genera ocho escenas sintéticas por ambiente; el repositorio conserva
+cuatro, renombradas `01.wav` (por defecto) … `04.wav`. Las demás se pueden
+regenerar:
 
 - **01–03**, síntesis base (`scripts/lib/synth.js`): 16 s, mono, 16 kHz.
 - **04–06**, paisajes de alta calidad (`scripts/lib/soundscapes.js`): 30 s, mono,
   22,05 kHz, bucle sin costura, deterministas y a ≈ −23 LUFS.
+- **07–08**, los mismos paisajes con una melodía sutil (piano de fieltro, arpa,
+  guitarra, celesta, vibráfono, kalimba o flauta) y, cuando encaja, un pad
+  sostenido. Se publican como `03.wav` y `04.wav`.
 
 ```bash
 node scripts/make-audio-variants.mjs              # 01–03 de todos
 node scripts/make-audio-variants.mjs --only=lluvia
-node scripts/make-soundscapes.mjs                 # 04–06 de todos
+node scripts/make-soundscapes.mjs                 # 04–08 de todos
 node scripts/make-soundscapes.mjs --only=mar,fuego
+node scripts/make-soundscapes.mjs --scene=7,8     # solo las musicales
+node scripts/make-soundscapes.mjs --publish       # escribe 01–04 tal como se publican
 node scripts/analyze-audio.mjs                    # nivel, picos y costura
 ```
 
-Los archivos se escriben en `assets/audio/<id>/`. La app solo lee `01.wav` y
-`02.wav`; si quieres publicar otra escena generada, renómbrala o cópiala con uno
-de esos dos nombres. La app los descubre con peticiones `HEAD` al iniciar cada
-sesión, así que puedes borrar la escena alternativa sin tocar código.
+Los archivos se escriben en `assets/audio/<id>/`. La app solo lee `01.wav` …
+`04.wav`; la tabla `PUBLISHED` de `scripts/lib/soundscapes.js` dice de qué
+escena sale cada una y `--publish` las escribe con ese nombre. La app los
+descubre con peticiones `HEAD` al iniciar cada sesión, así que puedes borrar
+cualquier escena sin tocar código.
 
 ## Laboratorio
 
-**`/lab/`** es un editor de música ambiental sintética, independiente de los
-ambientes de la app y con su propio motor:
+**`/lab/`** es un editor de música ambiental sintética con su propio motor:
 
+- **Retocar una pista de sen:** abre cualquiera de las pistas de la app
+  separada en capas (lluvia, pájaros, pad, melodía…), cambia sus volúmenes o
+  añade instrumentos y exporta el WAV con el formato de la app. Sin tocar nada,
+  suena igual que en la app.
 - **Línea de tiempo** con pistas y elementos: notas sostenidas (pad, drone,
-  cuerdas, coro, vidrio, seno), notas puntuales (campana, cuenco, kalimba,
-  caja de música, celesta, marimba, cuerda pulsada, gota tonal) como golpes,
-  frases o nubes generativas, ruido de color y **simulaciones** (grillos,
-  cigarras, pájaros por especie, ranas, gotas, lluvia, arroyo, olas, viento,
-  fuego, campanillas).
+  cuerdas, flauta suave, coro, vidrio, seno), notas puntuales (campana, cuenco,
+  kalimba, caja de música, celesta, marimba, vibráfono, piano de fieltro, arpa,
+  guitarra de nailon, cuerda pulsada, gota tonal) como golpes, frases o nubes
+  generativas, ruido de color y **simulaciones** (grillos, cigarras, pájaros
+  por especie, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas).
+  Cada pista tiene silencio, solo y volumen en su cabecera.
 - **Escucha en directo** mientras editas; región de escucha en bucle.
 - Tonalidad, tempo opcional, reverb y eco maestros, automatización por pista,
   deshacer, autoguardado, plantillas, modo compacto en móvil e importación MIDI.

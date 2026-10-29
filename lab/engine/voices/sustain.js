@@ -1,5 +1,5 @@
 /**
- * Notas sostenidas: pad, drone, cuerdas, coro, vidrio y seno.
+ * Notas sostenidas: pad, drone, cuerdas, flauta suave, coro, vidrio y seno.
  *
  * Cada nota de un elemento `tone` es una voz con varias subvoces desafinadas
  * (unísono), timbre por tabla de onda o parciales, filtro de estado variable y
@@ -11,11 +11,19 @@ import {
   quantizeFreq, sineCycle, smoothRandom, WAVETABLE_SIZE,
 } from '../dsp.js';
 import { noteFrequency } from '../music.js';
-import { createRng, subSeed } from '../rng.js';
+import { createRng, noiseAt, subSeed } from '../rng.js';
 import { trackParams } from '../schema.js';
 
 const VOWEL_FORMANTS = [[800, 1150, 2900], [450, 800, 2830], [325, 700, 2530]];
 const FORMANT_GAINS = [1, 0.55, 0.3];
+/** Armónicos de la flauta suave: casi senoidal. */
+const FLUTE_HARMONICS = [1, 0.14, 0.05, 0.015];
+
+/** Voces de unísono de una nota (los instrumentos sin el parámetro tienen una). */
+function unison(inst, p) {
+  if (inst === 'seno' || inst === 'flauta' || !Number.isFinite(p.voices)) return 1;
+  return Math.max(1, Math.round(p.voices));
+}
 
 export function compileSustainElement(track, el, ctx) {
   const p = trackParams(track);
@@ -28,7 +36,7 @@ export function compileSustainElement(track, el, ctx) {
       t: 0,
       d: el.length,
       bed: true,
-      voices: track.instrument === 'seno' ? 1 : Math.max(1, Math.round(p.voices)),
+      voices: unison(track.instrument, p),
       create: (sr, i0, period) => new SustainVoice(track.instrument, p, el, f, noteGain, seed, sr, i0, period),
     };
   });
@@ -39,7 +47,7 @@ class SustainVoice {
     this.sr = sr;
     this.period = period;
     const rng = createRng(seed);
-    const V = inst === 'seno' ? 1 : Math.max(1, Math.round(p.voices));
+    const V = unison(inst, p);
     this.V = V;
     this.env = new ElementEnvelope(el, sr, period);
     this.inc = new Float64Array(V);
@@ -65,7 +73,10 @@ class SustainVoice {
     // Timbre
     this.kind = inst === 'seno' ? 'sine' : inst === 'vidrio' ? 'partials' : 'table';
     const maxH = Math.max(1, Math.floor((0.45 * sr) / (f * 1.08)));
-    if (this.kind === 'table') {
+    if (this.kind === 'table' && inst === 'flauta') {
+      const amps = FLUTE_HARMONICS.slice(0, Math.min(maxH, FLUTE_HARMONICS.length));
+      this.table = makeWavetable(amps, amps.map(() => rng.next()));
+    } else if (this.kind === 'table') {
       const H = Math.min(maxH, Math.max(1, Math.round(p.partials || 1)));
       const amps = [];
       const phases = [];
@@ -122,6 +133,13 @@ class SustainVoice {
         return new Svf(2).set(fk, clamp(fk / 90, 2, 12), sr);
       }));
     }
+    // Soplo de la flauta: ruido en banda alrededor del tercer armónico.
+    this.breath = inst === 'flauta' ? clamp(p.breath ?? 0, 0, 1) * 0.14 : 0;
+    if (this.breath) {
+      this.breathSeed = subSeed(seed, 7);
+      this.bl = new Svf(2).set(Math.min(4000, f * 3), 1.4, sr);
+      this.br = new Svf(2).set(Math.min(4000, f * 3.1), 1.4, sr);
+    }
     // Filtro
     const mode = FILTER_MODES[p.filterType] ?? 0;
     this.fl = new Svf(mode);
@@ -146,7 +164,7 @@ class SustainVoice {
     const phS = rng.next();
     const cutoff = p.cutoff ?? 18000;
     const env = this.env;
-    const base = 0.24 * noteGain;
+    const base = 0.24 * noteGain * (inst === 'flauta' ? 0.6 : 1);
     this.ctl = new Control(3, (i, out) => {
       const t = (period ? i % period : i) / sr;
       const cents = vibDepth * sineCycle(vibRate * t + phV) + driftDepth * drift(t * driftRate);
@@ -209,6 +227,12 @@ class SustainVoice {
           l = val * gl[0];
           r = val * gr[0];
         }
+        if (this.breath) {
+          const k = i + s;
+          const j = this.period ? k % this.period : k;
+          l += this.bl.tick(noiseAt(this.breathSeed, j)) * this.breath;
+          r += this.br.tick(noiseAt(this.breathSeed, j + 7919)) * this.breath;
+        }
         if (this.sub) {
           let ph = this.subPh + this.subInc * fm;
           if (ph >= 1) ph -= 1;
@@ -240,6 +264,6 @@ class SustainVoice {
 /** Unísono total de un elemento (para el límite de voces sostenidas). */
 export function sustainVoiceCount(track, el) {
   const p = trackParams(track);
-  return el.notes.length * (track.instrument === 'seno' ? 1 : Math.max(1, Math.round(p.voices)));
+  return el.notes.length * unison(track.instrument, p);
 }
 

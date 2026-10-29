@@ -1,6 +1,6 @@
 {
   "schema": "sen-lab/3",
-  "engine": "sen-synth/1",
+  "engine": "sen-synth/2",
   "name": "Drone y campanas",
   "notes": "Drone en Re con quinta, nube de campanas en pentatónica mayor y aire.",
   "seed": "drone-campanas",
