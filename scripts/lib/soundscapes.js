@@ -1729,13 +1729,13 @@ export const AMBIENT_NAMES = {
 
 /**
  * De qué escena del generador sale cada pista publicada en la app
- * (`assets/audio/<id>/01.wav` y `02.wav`). `'base'` es una escena de la
+ * (`assets/audio/<id>/01.wav` … `04.wav`). `'base'` es una escena de la
  * síntesis base (`synth.js`), que no se puede regenerar igual: se usa el WAV.
  */
 export const PUBLISHED = {
-  lluvia: [4, 5], tormenta: [4, 5], fuego: [4, 5], viento: [4, 5], pajaros: [4, 5], espacio: [4, 5],
-  bosque: [5, 6], burbujas: [5, 6], cuento: [4, 6], meditacion: [4, 6],
-  mar: ['base', 5], noche: ['base', 4], bichos: ['base', 4], rio: ['base', 4],
+  lluvia: [4, 5, 7, 8], tormenta: [4, 5, 7, 8], fuego: [4, 5, 7, 8], viento: [4, 5, 7, 8], pajaros: [4, 5, 7, 8], espacio: [4, 5, 7, 8],
+  bosque: [5, 6, 7, 8], burbujas: [5, 6, 7, 8], cuento: [4, 6, 7, 8], meditacion: [4, 6, 7, 8],
+  mar: ['base', 5, 7, 8], noche: ['base', 4, 7, 8], bichos: ['base', 4, 7, 8], rio: ['base', 4, 7, 8],
 };
 
 /** Catálogo de pistas publicadas, en el orden de la app: `[{ id, name, tracks: [{ track, scene, title }] }]`. */

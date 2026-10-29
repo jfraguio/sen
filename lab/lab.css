@@ -394,16 +394,52 @@ input[type="range"] {
 /* ------------------------------------------------------------ biblioteca */
 
 .lib-group {
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
-.lib-group h3 {
-  margin: 6px 6px 6px;
+.lib-group__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px;
+  padding: 2px 0;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--dim);
   font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 5px;
+}
+
+.lib-group__title::-webkit-details-marker {
+  display: none;
+}
+
+.lib-group__title::before {
+  content: '▸';
+  flex: none;
+  font-size: 9px;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+
+.lib-group[open] > .lib-group__title::before {
+  transform: rotate(90deg);
+}
+
+.lib-group__title:hover {
+  color: var(--ink);
+}
+
+.lib-group__title:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lib-group__body {
+  padding: 0 0 2px;
 }
 
 .lib-item {
@@ -1383,79 +1419,14 @@ input[type="range"] {
   font-size: 12px;
 }
 
-.template-card--sen {
-  grid-column: 1 / -1;
-  border-color: var(--accent);
-}
-
-.dialog--scenes {
-  width: min(760px, calc(100vw - 24px));
-}
-
-.scene-list {
-  display: grid;
-  gap: 6px;
-  margin-top: 12px;
-  max-height: min(60vh, 560px);
+#start-templates {
+  max-height: min(55vh, 520px);
   overflow: auto;
+  padding-right: 4px;
 }
 
-.scene-row {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  align-items: start;
-  gap: 8px;
-}
-
-.scene-row > strong {
-  padding-top: 7px;
-  font-size: 13px;
-}
-
-.scene-tracks {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.scene-track {
-  text-align: left;
-  border: 1px solid var(--line-2);
-  border-radius: 8px;
-  background: var(--panel);
-  padding: 6px 8px;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 1.3;
-  min-width: 0;
-}
-
-.scene-track:hover,
-.scene-track:focus-visible {
-  border-color: var(--accent);
-}
-
-.scene-track b {
-  color: var(--accent);
-  margin-right: 4px;
-}
-
-.scene-track small {
-  display: block;
-  color: var(--muted);
-}
-
-.scene-status {
+.status-line {
   min-height: 1.4em;
-}
-
-@media (max-width: 640px) {
-  .scene-row {
-    grid-template-columns: 1fr;
-  }
-  .scene-tracks {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .presets {

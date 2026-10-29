@@ -4,9 +4,8 @@
  * sin costura, sonoridad ≈ −23 LUFS). 04–06 son paisaje puro; 07–08 llevan
  * melodía sutil y pad. No toca las escenas 01–03.
  *
- * Con `--publish` escribe directamente las dos pistas que usa la app
- * (01.wav y 02.wav) a partir de la tabla `PUBLISHED`; las de síntesis base no
- * se tocan.
+ * Con `--publish` escribe directamente las pistas que usa la app (01.wav …
+ * 04.wav) a partir de la tabla `PUBLISHED`; las de síntesis base no se tocan.
  *
  * Uso:
  *   node scripts/make-soundscapes.mjs

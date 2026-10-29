@@ -85,23 +85,11 @@
 
     <dialog class="dialog" id="start-dialog" aria-labelledby="start-title">
       <h2 id="start-title">Empezar</h2>
-      <p class="muted">Elige un punto de partida. Puedes cambiarlo todo después. ¿Primera vez? Lee las <a href="guia.html" target="_blank" rel="noopener">instrucciones</a>.</p>
-      <div class="templates">
-        <button class="template-card template-card--sen" id="start-scenes" type="button"><strong>Retocar una pista de sen…</strong><span>Abre cualquiera de las pistas de la app separada en capas (lluvia, pájaros, pad, melodía…) para cambiar sus volúmenes y exportarla de nuevo.</span></button>
-      </div>
+      <p class="muted">Elige un punto de partida: un tema vacío o una canción de sen. Puedes cambiarlo todo después. ¿Primera vez? Lee las <a href="guia.html" target="_blank" rel="noopener">instrucciones</a>.</p>
       <div class="templates" id="start-templates"></div>
+      <p class="muted status-line" id="start-status" role="status"></p>
       <div class="dialog__actions">
         <button class="btn btn--quiet" id="start-open" type="button">Abrir un archivo o importar MIDI…</button>
-      </div>
-    </dialog>
-
-    <dialog class="dialog dialog--scenes" id="scene-dialog" aria-labelledby="scene-title">
-      <h2 id="scene-title">Retocar una pista de sen</h2>
-      <p class="muted">Elige una pista de la app. Se abre con una pista del laboratorio por cada capa (lluvia, pájaros, pad, melodía…), todas a 0 dB: tal cual, suena igual que en la app. Cambia lo que quieras y exporta con «Escena para sen».</p>
-      <div class="scene-list" id="scene-list"><p class="muted">Cargando las pistas…</p></div>
-      <p class="muted scene-status" id="scene-status" role="status"></p>
-      <div class="dialog__actions">
-        <button class="btn btn--quiet" id="scene-close" type="button">Cancelar</button>
       </div>
     </dialog>
 

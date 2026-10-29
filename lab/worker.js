@@ -75,8 +75,13 @@ function endFade(L, R, t) {
 function send(L, R, t, meters) {
   endFade(L, R, t);
   const id = ++blockId;
+  // La longitud hay que leerla antes de transferir los búferes: al transferir,
+  // los arrays quedan desacoplados y `length` pasa a 0. Si se cuenta después,
+  // `queued` nunca sube y el worker renderiza sin límite por delante del
+  // cabezal (los cambios de mezcla tardaban en oírse).
+  const seconds = L.length / rate;
   port.postMessage({ type: 'block', gen, id, time: t, rate, L, R, meters }, [L.buffer, R.buffer]);
-  queued += L.length / rate;
+  queued += seconds;
 }
 
 function produce() {

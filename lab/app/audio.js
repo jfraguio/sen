@@ -60,6 +60,9 @@ export class LabAudio {
       this.node.port.onmessage = (e) => this.onPlayer(e.data);
       this.node.port.postMessage({ type: 'volume', value: this.volume });
       this.connect();
+      // Las capas viajan aparte del proyecto; hay que reenviarlas al conectar
+      // (o tras reiniciar el motor) para que el worker pueda compilarlas.
+      if (Object.keys(this.samples).length) this.worker.postMessage({ type: 'samples', samples: this.samples });
       if (this.project) this.worker.postMessage({ type: 'project', project: this.project });
     })();
     return this.ready;

@@ -13,7 +13,7 @@ import { createStore } from './store.js';
 import { LabAudio } from './audio.js';
 import { createTimeline, gridSeconds } from './timeline.js';
 import { createInspector } from './inspector.js';
-import { createLibrary, TEMPLATES } from './library.js';
+import { createLibrary, startTemplates } from './library.js';
 import { createExportDialog } from './export.js';
 import { createCompact } from './compact.js';
 import { downloadProject, isDownloaded, loadAutosave, readProjectFile, scheduleAutosave, writeMeta } from './storage.js';
@@ -52,15 +52,6 @@ if (missing.length) {
   boot();
 }
 
-async function fetchTemplate(id) {
-  const res = await fetch(new URL(`../templates/${id}.sen.json`, import.meta.url));
-  if (!res.ok) throw new Error('No se pudo cargar la plantilla.');
-  const { project } = normalizeProject(await res.json());
-  project.createdAt = new Date().toISOString();
-  project.savedAt = null;
-  return project;
-}
-
 /* ------------------------------------------------------------ arranque */
 
 function boot() {
@@ -91,8 +82,12 @@ function boot() {
     },
     onCompiled: (c) => {
       const w = $('st-warn');
-      w.hidden = !c.warnings.length;
-      w.textContent = c.warnings.join(' ');
+      // Mientras las capas se están calculando, el aviso de «falta audio» es
+      // transitorio: se oculta para no confundirlo con un error.
+      const pending = !$('st-layers').hidden;
+      const warnings = pending ? c.warnings.filter((x) => !x.startsWith('Falta el audio de')) : c.warnings;
+      w.hidden = !warnings.length;
+      w.textContent = warnings.join(' ');
     },
     onUnderrun: () => {
       $('st-load').classList.add('load-high');
@@ -223,74 +218,84 @@ function boot() {
       })
       .catch((err) => {
         notify(`No se pudieron preparar las capas: ${err.message}`, true);
+        const w = $('st-warn');
+        w.hidden = false;
+        w.textContent = `No se pudieron preparar las capas: ${err.message}`;
         return false;
       })
       .finally(() => {
         layersPending = null;
         $('st-layers').hidden = true;
-        // Por si entretanto se ha abierto otra pista.
-        if (state.project.tracks.some((t) => t.family === 'layer' && !layerSamples[layerKey(t.source)])) ensureLayers(state.project);
+        // Si entretanto se ha abierto otro proyecto, prepara sus capas. Si es
+        // el mismo y ha fallado, no reintentar en bucle.
+        if (state.project !== project && state.project.tracks.some((t) => t.family === 'layer' && !layerSamples[layerKey(t.source)])) ensureLayers(state.project);
       });
     return layersPending;
   }
 
-  const sceneDialog = $('scene-dialog');
-  let sceneBusy = false;
-  async function showScenes() {
-    const list = $('scene-list');
-    $('scene-status').textContent = '';
-    if ($('start-dialog').open) $('start-dialog').close();
-    sceneDialog.showModal();
-    try {
-      const catalog = await scenes.catalog();
-      list.textContent = '';
-      for (const amb of catalog) {
-        list.append(h('div', { class: 'scene-row' }, h('strong', {}, amb.name),
-          h('div', { class: 'scene-tracks' }, amb.tracks.map((t) => h('button', {
-            type: 'button',
-            class: 'scene-track',
-            title: `${amb.name} · pista ${t.track} · ${t.title}`,
-            onclick: () => openScene(amb.id, t.track),
-          }, h('b', {}, String(t.track)), t.title, t.scene ? null : h('small', {}, 'una sola capa'))))));
-      }
-      list.querySelector('.scene-track')?.focus();
-    } catch (err) {
-      list.textContent = '';
-      list.append(h('p', { class: 'warn' }, `No se pudo cargar la lista de pistas: ${err.message}`));
+  let catalogPromise = null;
+  /** Catálogo de canciones de sen (una sola petición por sesión). */
+  function getCatalog() {
+    if (!catalogPromise) {
+      catalogPromise = scenes.catalog().catch((err) => {
+        catalogPromise = null;
+        throw err;
+      });
     }
+    return catalogPromise;
   }
 
-  async function openScene(ambient, track) {
-    if (sceneBusy) return;
-    if (!confirmDiscard()) return;
-    sceneBusy = true;
-    const status = $('scene-status');
-    status.textContent = 'Preparando las capas… (unos segundos)';
-    for (const b of sceneDialog.querySelectorAll('button')) b.disabled = true;
+  let layersBusy = false;
+
+  /** Abre una canción publicada como proyecto de capas. Devuelve su info o `null`. */
+  async function loadSceneProject(ambient, track, status = null) {
+    if (layersBusy) return null;
+    if (!confirmDiscard()) return null;
+    layersBusy = true;
+    if (status) status.textContent = 'Preparando las capas… (unos segundos)';
     try {
       const r = await scenes.load(ambient, track);
       const { project } = normalizeProject(createSceneProject({ ...r, layers: r.layers.map((l) => l.name) }));
       shareSamples(await scenes.samplesFor(project));
       loadProject(project);
-      sceneDialog.close();
-      notify(`${r.layers.length} ${r.layers.length === 1 ? 'capa' : 'capas'} a 0 dB. Mueve el volumen de cada una en su cabecera y exporta con «Escena para sen».`);
+      if (status) status.textContent = '';
+      return r;
     } catch (err) {
-      status.textContent = `No se pudo abrir: ${err.message}`;
+      const msg = `No se pudo abrir: ${err.message}`;
+      if (status) status.textContent = msg;
+      else notify(msg, true);
+      return null;
     } finally {
-      sceneBusy = false;
-      for (const b of sceneDialog.querySelectorAll('button')) b.disabled = false;
+      layersBusy = false;
     }
   }
-  $('scene-close').addEventListener('click', () => sceneDialog.close());
-  sceneDialog.addEventListener('cancel', (e) => {
-    if (sceneBusy) e.preventDefault();
-  });
-  $('start-scenes').addEventListener('click', () => showScenes());
+
+  /** Abre una opción de inicio: el tema vacío o una canción de sen. */
+  async function openTemplate(t) {
+    if (layersBusy) return;
+    if (t.blank) {
+      if (!confirmDiscard()) return;
+      loadProject(createProject({ seed: 'vacio' }));
+      $('start-dialog').close();
+      actions.closeSheet();
+      return;
+    }
+    const fromStart = $('start-dialog').open;
+    const status = fromStart ? $('start-status') : null;
+    const buttons = fromStart ? $('start-templates').querySelectorAll('button') : [];
+    for (const b of buttons) b.disabled = true;
+    if (!status) notify(`Preparando «${t.name}»… (unos segundos)`);
+    const r = await loadSceneProject(t.ambient, t.track, status);
+    for (const b of buttons) b.disabled = false;
+    if (!r) return;
+    $('start-dialog').close();
+    actions.closeSheet();
+    if (!status) notify(`${t.name}: ${r.layers.length} ${r.layers.length === 1 ? 'capa' : 'capas'} a 0 dB.`);
+  }
 
   const actions = {
     notify,
     overview,
-    showScenes,
     layerSamples: () => layerSamples,
     layersReady: () => !state.project.tracks.some((t) => t.family === 'layer' && !layerSamples[layerKey(t.source)]),
     focusLibrary() {
@@ -493,15 +498,8 @@ function boot() {
       $('library').classList.remove('is-open');
       $('inspector').classList.remove('is-open');
     },
-    async loadTemplate(id) {
-      if (!confirmDiscard()) return;
-      try {
-        loadProject(await fetchTemplate(id));
-        $('start-dialog').close();
-        actions.closeSheet();
-      } catch (err) {
-        notify(err.message, true);
-      }
+    loadTemplate(template) {
+      return openTemplate(template);
     },
     stopPlayback() {
       if (state.playing) togglePlay();
@@ -518,6 +516,9 @@ function boot() {
   const library = createLibrary($('library'), store, actions);
   const exporter = createExportDialog(store, actions);
   const compact = createCompact($('compact'), store, actions);
+  getCatalog()
+    .then((catalog) => library.setTemplates(startTemplates(catalog)))
+    .catch((err) => notify(`No se pudieron cargar las canciones de sen: ${err.message}`, true));
 
   /* ------------------------------------------------------------ transporte */
 
@@ -704,20 +705,21 @@ function boot() {
     $('start-dialog').close();
   }
 
-  function showStart() {
+  async function showStart() {
     const box = $('start-templates');
+    const templateCard = (t) => h('button', { type: 'button', class: 'template-card', onclick: () => openTemplate(t) },
+      h('strong', {}, t.name), h('span', {}, t.title));
     box.textContent = '';
-    for (const t of TEMPLATES) {
-      box.append(h('button', { type: 'button', class: 'template-card', onclick: async () => {
-        try {
-          loadProject(await fetchTemplate(t.id));
-          $('start-dialog').close();
-        } catch (err) {
-          notify(err.message, true);
-        }
-      } }, h('strong', {}, t.name), h('span', {}, t.desc)));
-    }
+    box.append(h('p', { class: 'muted' }, 'Cargando las canciones de sen…'));
     $('start-dialog').showModal();
+    try {
+      const list = startTemplates(await getCatalog());
+      box.textContent = '';
+      for (const t of list) box.append(templateCard(t));
+    } catch (err) {
+      box.textContent = '';
+      box.append(h('p', { class: 'warn' }, `No se pudieron cargar las canciones de sen: ${err.message}`));
+    }
   }
 
   /* ------------------------------------------------------------ arrastrar archivos */
@@ -855,7 +857,7 @@ function boot() {
         updateGridOptions();
       }
     }
-    if (kind === 'load') ensureLayers(s.project);
+    if (kind === 'project' || kind === 'load') ensureLayers(s.project);
     if (kind === 'project' || kind === 'load' || kind === 'selection' || kind === 'view') {
       if (info?.source !== 'tl-vol') timeline.render();
       inspector.render(kind === 'load' || kind === 'view');

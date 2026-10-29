@@ -1,18 +1,44 @@
 /**
  * Biblioteca: familias e instrumentos (arrastrar a la línea de tiempo, clic
- * para añadir en el cabezal, ▶ para escuchar 3 s), pistas de sen y plantillas.
+ * para añadir en el cabezal, ▶ para escuchar 3 s) y plantillas de canciones.
+ * Cada sección se puede plegar para recorrer el panel con comodidad.
  */
 
 import { h } from './util.js';
 import { FAMILIES, INSTRUMENTS } from '../engine/schema.js';
 
-export const TEMPLATES = [
-  { id: 'vacio', name: 'Vacío', desc: '3 min, Do mayor, sin pistas.' },
-  { id: 'drone-y-campanas', name: 'Drone y campanas', desc: 'Drone en Re con quinta, nube de campanas y aire.' },
-  { id: 'noche-en-el-estanque', name: 'Noche en el estanque', desc: 'Grillos, sapos parteros, gotas y pad grave. Bucle.' },
-  { id: 'amanecer', name: 'Amanecer', desc: 'Pad que crece, mirlo, petirrojo, arroyo y kalimba.' },
-  { id: 'espacio-profundo', name: 'Espacio profundo', desc: 'Drone subgrave, vidrio, ruido con oleaje y eco largo.' },
-];
+/** Opción para empezar un tema desde cero. */
+export const BLANK_TEMPLATE = { blank: true, name: 'Vacío', title: '3 min, Do mayor, sin pistas.' };
+
+/** Nombre visible de una pista publicada como plantilla: «Bosque - 01». */
+export function templateName(ambientName, track) {
+  return `${ambientName} - ${String(track).padStart(2, '0')}`;
+}
+
+/**
+ * Opciones para empezar: el tema vacío y una plantilla por cada canción
+ * publicada, con el nombre «Ambiente - NN» y el título de la escena.
+ */
+export function startTemplates(catalog) {
+  return [
+    BLANK_TEMPLATE,
+    ...catalog.flatMap((amb) => amb.tracks.map((t) => ({
+      ambient: amb.id,
+      track: t.track,
+      name: templateName(amb.name, t.track),
+      title: t.title,
+    }))),
+  ];
+}
+
+/** Sección plegable: devuelve el `<details>` y el contenedor de su contenido. */
+function fold(title) {
+  const body = h('div', { class: 'lib-group__body' });
+  const el = h('details', { class: 'lib-group', open: true },
+    h('summary', { class: 'lib-group__title' }, title),
+    body);
+  return { el, body };
+}
 
 export function createLibrary(root, store, actions) {
   const groups = FAMILIES.map((fam) => {
@@ -27,18 +53,31 @@ export function createLibrary(root, store, actions) {
       });
       return item;
     });
-    return items.length ? h('div', { class: 'lib-group' }, h('h3', {}, fam.label), ...items) : null;
+    if (!items.length) return null;
+    const g = fold(fam.label);
+    g.body.append(...items);
+    return g.el;
   }).filter(Boolean);
-  const sen = h('div', { class: 'lib-group' }, h('h3', {}, 'Pistas de sen'),
-    h('button', { type: 'button', class: 'lib-template', onclick: () => actions.showScenes() }, 'Retocar una pista de sen…',
-      h('small', {}, 'Abre una pista de la app separada en capas para cambiar sus volúmenes.')));
-  const templates = h('div', { class: 'lib-group' }, h('h3', {}, 'Plantillas'),
-    ...TEMPLATES.map((t) => h('button', { type: 'button', class: 'lib-template', onclick: () => actions.loadTemplate(t.id) }, t.name, h('small', {}, t.desc))));
+  const templates = fold('Plantillas');
+  templates.body.append(h('p', { class: 'help' }, 'Cargando las canciones de sen…'));
   const close = h('div', { class: 'ins-head' }, h('h2', {}, 'Añadir'), h('button', { type: 'button', class: 'icon-btn ins-close', 'aria-label': 'Cerrar la biblioteca', onclick: () => actions.closeSheet() }, '×'));
-  root.append(close, sen, ...groups, templates);
+  root.append(close, ...groups, templates.el);
   return {
     focus() {
-      root.querySelector('.lib-add')?.focus();
+      const target = root.querySelector('details[open] .lib-add')
+        || root.querySelector('details[open] summary')
+        || root.querySelector('summary');
+      target?.focus();
+    },
+    /** Sustituye la lista de plantillas por las canciones publicadas de sen. */
+    setTemplates(list) {
+      templates.body.textContent = '';
+      templates.body.append(...list.map((t) => h('button', {
+        type: 'button',
+        class: 'lib-template',
+        title: t.title,
+        onclick: () => actions.loadTemplate(t),
+      }, t.name, h('small', {}, t.title))));
     },
   };
 }

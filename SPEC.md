@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 4.4<br>
+**Versión:** 4.5<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de música ambiental
 
@@ -28,12 +28,9 @@ escenas no son copias: cada una es un paisaje distinto del mismo ambiente. Las
 escenas 01–03 salen de la síntesis base, las 04–06 son paisajes sonoros de
 alta calidad (más resolución, bucles más largos y modelos más realistas) y las
 07–08 son esos paisajes con una melodía sutil y, cuando encaja, un pad
-sostenido.
-
-**El repositorio publica dos por ambiente, `01.wav` y `02.wav`**: dos paisajes
-de alta calidad elegidos manualmente. El resto de escenas del motor son
-opcionales y no se publican. Al comenzar una sesión suena siempre `01.wav`;
-`02.wav` queda como alternativa.
+sostenido. **El repositorio conserva cuatro por ambiente, renombradas `01.wav`
+… `04.wav`**: `01` y `02` son paisaje puro, `03` y `04` llevan melodía. Al
+comenzar una sesión suena siempre `01.wav`; las demás quedan como alternativas.
 
 ---
 
@@ -147,8 +144,9 @@ Al iniciar una sesión:
 5. Se prepara el contexto de audio **de forma síncrona** dentro del gesto del
    usuario, antes de cualquier petición asíncrona.
 6. Se comprueban las escenas disponibles del ambiente con peticiones `HEAD`.
-7. El orden es siempre `01.wav`, `02.wav`. Se empieza por `01.wav`; si no
-   existe, por la primera disponible. El indicador arranca en `1/N`.
+7. El orden es siempre `01.wav`, `02.wav`, `03.wav`, `04.wav`. Se empieza por
+   `01.wav`; si no existe, por la primera disponible. El indicador arranca en
+   `1/N`.
 8. Se reproduce la pista en bucle y se arranca la animación del ambiente y el
    reloj de sesión.
 9. Se solicita el Screen Wake Lock.
@@ -159,7 +157,7 @@ Durante la sesión:
 
 - La escena llena la pantalla; no hay controles inferiores.
 - Arriba a la izquierda hay un indicador discreto `posición/total` (por ejemplo
-  `1/2`). Al pulsarlo se pasa a la siguiente pista del ambiente, con un
+  `1/4`). Al pulsarlo se pasa a la siguiente pista del ambiente, con un
   crossfade corto y sin reiniciar la sesión ni la barra de progreso. El hash de
   la URL se actualiza a `#<id>/<pista>` (`#mar/02`) con `replaceState`.
 - Arriba a la derecha hay una **X** discreta para cerrar el ambiente y volver al
@@ -230,17 +228,17 @@ disponible no se muestra ningún error: la app funciona igual.
 ### 5.2 Selección de escena
 
 - Cada ambiente tiene una carpeta `assets/audio/<id>/`.
-- Los nombres válidos son `01.wav` y `02.wav`.
-- Al iniciar cada sesión se hacen dos peticiones `HEAD` con
+- Los nombres válidos son `01.wav`, `02.wav`, `03.wav` y `04.wav`.
+- Al iniciar cada sesión se hacen cuatro peticiones `HEAD` con
   `cache: 'no-store'`.
 - Solo se consideran las escenas que responden correctamente.
-- El orden es fijo: `01.wav`, `02.wav`. La sesión empieza siempre por `01.wav`;
-  si no existe, por la primera disponible. El indicador siempre muestra
-  `1/N`.
+- El orden es fijo: `01.wav`, `02.wav`, `03.wav`, `04.wav`. La sesión empieza
+  siempre por `01.wav`; si no existe, por la primera disponible. El indicador
+  siempre muestra `1/N`.
 - Al pulsar el indicador se avanza cíclicamente por ese orden: `1/N`, `2/N`…
   y de nuevo `1/N`. No se reinicia el reloj de la sesión.
 - El hash de la URL indica el número real del archivo que está sonando, por
-  ejemplo `#mar/01` o `#mar/02`.
+  ejemplo `#mar/01` o `#mar/03`.
 - Si el usuario borra una escena, deja de elegirse en la siguiente sesión.
 - Si solo queda una, el indicador muestra `1/1` desactivado y siempre suena esa.
 - Si no queda ninguna, se aplica el comportamiento de “Audio no disponible”.
@@ -261,11 +259,12 @@ disponible no se muestra ningún error: la app funciona igual.
 
 ### 6.1 Nota sobre las escenas
 
-Las fichas de este apartado describen las escenas que puede generar el motor:
-las de paisaje (01–06) y, al final de cada ficha, las dos con melodía (07–08).
-**El repositorio publica solo dos por ambiente, `01.wav` y `02.wav`**, elegidas
-entre los paisajes de alta calidad. Las demás son opcionales y no se publican;
-pueden regenerarse con los scripts de audio.
+Las fichas de este apartado describen las escenas de paisaje (01–06) que puede
+generar el motor y, al final de cada ficha, las dos escenas con melodía
+(07–08). El repositorio actual conserva cuatro por ambiente: dos de paisaje,
+renombradas `01.wav` y `02.wav` y elegidas manualmente, y las dos con melodía,
+publicadas como `03.wav` (escena 07) y `04.wav` (escena 08). Las demás pueden
+regenerarse con los scripts de audio.
 
 ### 6.2 Tabla general
 
@@ -310,10 +309,10 @@ pueden regenerarse con los scripts de audio.
 - **Escena 06 — tienda de campaña:** golpes de gota sobre la lona (resonancias
   de 150–330 Hz, ~20 por segundo), goteo regular del borde en un charco cada
   ~1,75 s, lluvia exterior apagada y un espacio muy pequeño.
-- **Escena 07 — piano junto a la ventana** (opcional): lluvia sobre hojas más
+- **Escena 07 — piano junto a la ventana** (`03.wav`): lluvia sobre hojas más
   suave y una melodía de piano de fieltro en Fa mayor (64 BPM, Fa–Lam–Si♭–Do)
   con bajo discreto y cuerdas muy lejanas.
-- **Escena 08 — lluvia mansa y arpa** (opcional): lluvia fina con goterones,
+- **Escena 08 — lluvia mansa y arpa** (`04.wav`): lluvia fina con goterones,
   arpegios lentos de arpa en Re mayor (80 BPM) con una frase arriba y un pad
   Re–La–Mi sostenido.
 - **Síntesis base:** `intensity` 0.60, `drops` 0.45, `hiss` 0.55, `wind` 0.20,
@@ -341,10 +340,10 @@ pueden regenerarse con los scripts de audio.
 - **Escena 06 — tormenta con viento:** ráfagas con aullido, lluvia cuya
   intensidad sigue al viento, gotas que azotan el cristal en las rachas y dos
   truenos lejanos (aprox. 3 y 18 s).
-- **Escena 07 — tormenta lejana y cuerdas** (opcional): lluvia constante, un
+- **Escena 07 — tormenta lejana y cuerdas** (`03.wav`): lluvia constante, un
   único trueno muy lejano, cuerdas en Re menor (Rem–Si♭–Fa–Do) y piano de
   fieltro lento.
-- **Escena 08 — refugio bajo la lluvia** (opcional): lluvia apagada sobre el
+- **Escena 08 — refugio bajo la lluvia** (`04.wav`): lluvia apagada sobre el
   tejado vista desde dentro, un trueno lejano, pad cálido en La menor y una
   melodía de celesta.
 - **Síntesis base:** `rain` 0.55, `thunder` 0.50, `wind` 0.45, `rumble` 0.55,
@@ -374,10 +373,10 @@ pueden regenerarse con los scripts de audio.
   chasquidos y avivamientos, grillos lejanos y brisa suave.
 - **Escena 06 — brasas** (receta disponible, sin publicar): casi sin llama,
   crepitar, tintineo de ascuas y dos asentamientos de leña.
-- **Escena 07 — chimenea y guitarra** (opcional): chimenea sin silbidos y
+- **Escena 07 — chimenea y guitarra** (`03.wav`): chimenea sin silbidos y
   guitarra de nailon que arpegia Mim–Do–Sol–Re/Fa♯ en corcheas con una melodía
   arriba; pad cálido muy bajo.
-- **Escena 08 — brasas y piano** (opcional): brasas tranquilas, piano de
+- **Escena 08 — brasas y piano** (`04.wav`): brasas tranquilas, piano de
   fieltro en Mi♭ mayor y pad cálido.
 - **Síntesis base:** `intensity` 0.55, `crackle` 0.65, `rumble` 0.50, `flicker`
   0.45, `brightness` 0.55.
@@ -400,10 +399,10 @@ pueden regenerarse con los scripts de audio.
   ruedan cientos de guijarros.
 - **Escena 06 — cala tranquila:** chapoteos contra las rocas (uno cada ~2 s) con
   gorgoteos, dos olas pequeñas lejanas y un rumor grave.
-- **Escena 07 — mar en calma y flauta** (opcional): tres olas suaves, pad
+- **Escena 07 — mar en calma y flauta** (`03.wav`): tres olas suaves, pad
   Sol–Re–La que se abre despacio y una flauta lejana en pentatónica de Sol con
   frases que respiran.
-- **Escena 08 — atardecer en la cala** (opcional): chapoteos de cala, arpa en
+- **Escena 08 — atardecer en la cala** (`04.wav`): chapoteos de cala, arpa en
   La mayor (arpegio y frase) y cuerdas lejanas.
 - **Síntesis base:** `speed` 0.45, `depth` 0.60, `foam` 0.50, `wind` 0.25,
   `brightness` 0.55.
@@ -429,9 +428,9 @@ pueden regenerarse con los scripts de audio.
 - **Escena 06 — pequeña cascada:** chorro turbulento de banda ancha, golpe grave
   del agua, veintidós fuentes de burbujas y salpicaduras, con paso bajo a 7,5
   kHz.
-- **Escena 07 — arroyo y kalimba** (opcional): arroyo claro, kalimba en Do
+- **Escena 07 — arroyo y kalimba** (`03.wav`): arroyo claro, kalimba en Do
   mayor a 96 BPM y pad cálido Do–Lam–Fa–Sol.
-- **Escena 08 — río sereno y celesta** (opcional): río ancho y lento, celesta en
+- **Escena 08 — río sereno y celesta** (`04.wav`): río ancho y lento, celesta en
   Si♭ mayor y cuerdas.
 - **Síntesis base:** `flow` 0.55, `bubbles` 0.40, `width` 0.50, `air` 0.30,
   `brightness` 0.55.
@@ -455,9 +454,9 @@ pueden regenerarse con los scripts de audio.
   estrechos que afinan con la velocidad del aire y eco de valle.
 - **Escena 06 — ráfagas entre las hojas:** hojas agitadas cuya densidad sigue a
   la ráfaga, soplo medio y correteo ocasional de hojas secas.
-- **Escena 07 — brisa y flauta** (opcional): brisa entre pinos, drone Mi–Si
+- **Escena 07 — brisa y flauta** (`03.wav`): brisa entre pinos, drone Mi–Si
   y flauta pastoral en pentatónica de Mi menor.
-- **Escena 08 — valle con viento y cuerdas** (opcional): viento grave sin
+- **Escena 08 — valle con viento y cuerdas** (`04.wav`): viento grave sin
   aullidos, hojas, cuerdas en Sol mayor y notas sueltas de arpa.
 - **Síntesis base:** `gust` 0.55, `speed` 0.50, `air` 0.50, `brightness` 0.50.
 
@@ -479,9 +478,9 @@ pueden regenerarse con los scripts de audio.
   radio y seis destellos pentatónicos agudos en una reverb de 7 s.
 - **Escena 06 — vacío profundo:** drone subgrave en Mi (41, 62 y 82 Hz) con
   batidos lentos, tres tonos de cristal y reverb de 9 s.
-- **Escena 07 — deriva estelar** (opcional): pad Fa lidio (65–330 Hz), viento
+- **Escena 07 — deriva estelar** (`03.wav`): pad Fa lidio (65–330 Hz), viento
   solar y una celesta lejana con reverb de 6 s.
-- **Escena 08 — luz lejana** (opcional): drone Re–La–Do♯ y piano de fieltro a
+- **Escena 08 — luz lejana** (`04.wav`): drone Re–La–Do♯ y piano de fieltro a
   48 BPM en una sala enorme.
 - **Síntesis base:** `drone` 0.55, `shimmer` 0.35, `movement` 0.40, `brightness`
   0.50.
@@ -504,9 +503,9 @@ pueden regenerarse con los scripts de audio.
   con arpegios de kalimba y pad cálido.
 - **Escena 06 — nana de celesta:** melodía de celesta en Fa mayor a 48 BPM sobre
   cuerdas suaves (seis compases).
-- **Escena 07 — arpa de cuna** (opcional): nana original en Re mayor (72 BPM,
+- **Escena 07 — arpa de cuna** (`03.wav`): nana original en Re mayor (72 BPM,
   3/4, doce compases) con arpa y cuerdas suaves.
-- **Escena 08 — nana al piano** (opcional): nana de piano de fieltro en Sol
+- **Escena 08 — nana al piano** (`04.wav`): nana de piano de fieltro en Sol
   mayor con acompañamiento quebrado y pad cálido.
 - **Síntesis base:** `pads` 0.55, `notes` 0.55, `tempo` 0.50, `sparkle` 0.40,
   `brightness` 0.55.
@@ -530,9 +529,9 @@ pueden regenerarse con los scripts de audio.
 - **Escena 06 — campanas de viento y respiración:** tres rachas de campanas
   pentatónicas en Re, aire que respira cada 7,5 s (ocho respiraciones por
   minuto) y drone en Re–La.
-- **Escena 07 — cuencos y flauta** (opcional): dos cuencos (Re y La), drone en
+- **Escena 07 — cuencos y flauta** (`03.wav`): dos cuencos (Re y La), drone en
   Re y una flauta suave en pentatónica de Re con notas largas.
-- **Escena 08 — jardín zen** (opcional): fuente pequeña, kalimba pentatónica en
+- **Escena 08 — jardín zen** (`04.wav`): fuente pequeña, kalimba pentatónica en
   Sol y drone Sol–Re.
 - **Síntesis base:** `drone` 0.55, `breath` 0.40, `bowls` 0.45, `brightness` 0.50.
 
@@ -553,9 +552,9 @@ pueden regenerarse con los scripts de audio.
   distintas distancias, un cuco lejano y hojas.
 - **Escena 06 — palomas al sol:** paloma torcaz, tórtola turca y tórtola
   europea, pájaros lejanos y brisa cálida.
-- **Escena 07 — mañana con arpa** (opcional): petirrojo y mirlo, arpa en Mi
+- **Escena 07 — mañana con arpa** (`03.wav`): petirrojo y mirlo, arpa en Mi
   mayor (arpegio y frase) y cuerdas muy bajas.
-- **Escena 08 — prado soleado y piano** (opcional): pinzón, carbonero y
+- **Escena 08 — prado soleado y piano** (`04.wav`): pinzón, carbonero y
   petirrojo, hojas, piano de fieltro en Re mayor y cuerdas.
 - **Síntesis base:** `birds` 0.60, `variety` 0.55, `wind` 0.30, `leaves` 0.40,
   `brightness` 0.55.
@@ -578,9 +577,9 @@ pueden regenerarse con los scripts de audio.
   estridente.
 - **Escena 06 — grillos arbóreos:** cuatro trinos continuos (2,4–3,1 kHz), dos
   saltamontes y grillos de campo lejanos.
-- **Escena 07 — pradera al anochecer** (opcional): ocho grillos, pad cálido en
+- **Escena 07 — pradera al anochecer** (`03.wav`): ocho grillos, pad cálido en
   Sol menor (Solm–Mi♭–Si♭–Fa) y celesta.
-- **Escena 08 — tarde de verano y guitarra** (opcional): grillos arbóreos y de
+- **Escena 08 — tarde de verano y guitarra** (`04.wav`): grillos arbóreos y de
   campo lejanos, brisa, guitarra de nailon en 6/8 (Re mayor) y pad.
 - **Síntesis base:** `crickets` 0.60, `cicadas` 0.45, `air` 0.30, `brightness`
   0.50.
@@ -603,10 +602,10 @@ pueden regenerarse con los scripts de audio.
   intensifica con la brisa, gotas en charcos, un arroyo lejano y pájaros.
 - **Escena 06 — pinar al atardecer:** siseo de pinos, dos crujidos de tronco,
   cucos lejanos y una tórtola.
-- **Escena 07 — claro del bosque** (opcional): petirrojo y mirlo, brisa grave
+- **Escena 07 — claro del bosque** (`03.wav`): petirrojo y mirlo, brisa grave
   y un arroyo lejano (todo por debajo de 2 kHz, sin hojarasca ni siseo),
   cuerdas en Fa mayor y una flauta suave.
-- **Escena 08 — musgo y gotas** (opcional): goteo tras la lluvia hecho solo de
+- **Escena 08 — musgo y gotas** (`04.wav`): goteo tras la lluvia hecho solo de
   gotas tonales con ataque suave (sin ráfagas de ruido), arroyo lejano, brisa
   grave, kalimba en Mi menor y pad cálido.
 - **Síntesis base:** `wind` 0.50, `leaves` 0.55, `birds` 0.35, `rustle` 0.45,
@@ -631,9 +630,9 @@ pueden regenerarse con los scripts de audio.
   reverb de bosque.
 - **Escena 06 — noche junto al lago:** cuatro sapos parteros con su nota de
   campanita, coros de ranitas lejanas, grillos y agua que lame la orilla.
-- **Escena 07 — noche estrellada** (opcional): coro lejano de grillos, brisa,
+- **Escena 07 — noche estrellada** (`03.wav`): coro lejano de grillos, brisa,
   pad cálido en Re♭ mayor y vibráfono suave.
-- **Escena 08 — nocturno junto al lago** (opcional): agua en la orilla, grillos
+- **Escena 08 — nocturno junto al lago** (`04.wav`): agua en la orilla, grillos
   lejanos, nocturno de piano en Si menor y cuerdas.
 - **Síntesis base:** `crickets` 0.55, `owl` 0.35, `wind` 0.30, `drone` 0.40,
   `brightness` 0.40.
@@ -655,9 +654,9 @@ pueden regenerarse con los scripts de audio.
   zumbido y movimiento del agua, todo por debajo de 1,8 kHz.
 - **Escena 06 — acuario:** corriente de burbujas de un aireador, pops en la
   superficie y el retorno del filtro.
-- **Escena 07 — burbujas y caja de música** (opcional): burbujeo suave y cálido,
+- **Escena 07 — burbujas y caja de música** (`03.wav`): burbujeo suave y cálido,
   caja de música (Fa–Sol–Mim–Lam) y pad.
-- **Escena 08 — acuario sereno** (opcional): aireador y filtro, pad Si♭ y
+- **Escena 08 — acuario sereno** (`04.wav`): aireador y filtro, pad Si♭ y
   vibráfono.
 - **Síntesis base:** `bubbles` 0.55, `pops` 0.50, `water` 0.50, `fizz` 0.40,
   `brightness` 0.50.
@@ -684,7 +683,7 @@ Principios:
   `dsp.js`, `sources.js`, `soundscapes.js`) y tiene sus propios instrumentos.
   Puede **portar** algoritmos de los generadores (copiándolos y adaptándolos),
   nunca importarlos: cambiar uno no puede alterar el otro. La única excepción
-  es **retocar una pista de sen** (7.17): un Worker propio,
+  es **editar una canción de sen por capas** (7.17): un Worker propio,
   `lab/scene-worker.js`, usa `scripts/lib/published.js` para calcular las capas
   de una pista publicada (o leer su WAV) y el motor solo recibe ese audio. Solo
   comparte además el favicon y la estética oscura, con CSS propio.
@@ -963,9 +962,10 @@ por parámetro.
 - **Transporte:** reproducir/pausa, detener (vuelve al inicio), posición y
   duración (`mm:ss,d`), región de escucha en bucle, rejilla, zoom y volumen de
   escucha (no afecta a la exportación).
-- **Biblioteca:** «Pistas de sen» (7.17), las cuatro familias con sus
-  instrumentos y las plantillas. Cada instrumento tiene un botón ▶ que suena
-  3 s de muestra sin añadir nada.
+- **Biblioteca:** las plantillas (Vacío y las canciones de sen, 7.17) y las
+  cuatro familias con sus instrumentos. Cada sección se puede plegar con su
+  título. Cada instrumento tiene un botón ▶ que suena 3 s de muestra sin añadir
+  nada.
 - **Línea de tiempo:** una fila por pista, con cabecera (nombre, color,
   silencio, solo, **volumen**, medidor y una «A» si tiene automatización) y sus
   elementos.
@@ -1037,16 +1037,15 @@ Los atajos de una letra no actúan mientras el foco está en un campo de texto.
 Al abrir el laboratorio sin proyecto guardado se ofrece empezar con:
 
 - **Vacío:** 3 min, Do mayor, sin pistas.
-- **Drone y campanas:** drone en Re con quinta, nube de campanas en pentatónica
-  mayor y aire.
-- **Noche en el estanque:** grillos, sapos parteros, gotas sobre agua y pad
-  grave en La menor.
-- **Amanecer:** pad que crece, pájaros (mirlo y petirrojo), arroyo y kalimba.
-- **Espacio profundo:** drone subgrave, vidrio, ruido marrón con oleaje y eco
-  largo.
+- Una de las **56 canciones de sen** ya publicadas (`assets/audio/<id>/01–04.wav`),
+  nombradas «Ambiente - NN»: «Bosque - 01» … «Bosque - 04», «Fuego - 01»…
+  El título de la escena aparece como descripción.
 
-Las plantillas son proyectos `sen-lab/3` incluidos en `lab/templates/`,
-compuestos con el motor del laboratorio; no derivan de los ambientes de la app.
+Elegir una canción abre su proyecto de capas (7.17), con una pista por capa a
+0 dB. La lista sale del catálogo de pistas publicadas (`publishedCatalog`) y se
+muestra también en la biblioteca, en **Plantillas**. Los cinco proyectos de
+`lab/templates/` quedan como material de prueba del motor; la interfaz ya no
+los ofrece.
 
 #### 7.5.5 Ejemplo de flujo
 
@@ -1624,7 +1623,7 @@ lab/
   worker.js                 Worker de escucha: compila y emite bloques
   export-worker.js          Worker de exportación: dos pasadas y WAV
   overview-worker.js        Worker de vistas: formas de onda resumidas
-  scene-worker.js           Worker de pistas de sen: capas con scripts/lib/published.js
+  scene-worker.js           Worker de canciones de sen: capas con scripts/lib/published.js
   player-worklet.js         AudioWorkletProcessor "lab-player"
   app/
     main.js                 Arranque, requisitos, acciones, transporte, teclado
@@ -1634,8 +1633,8 @@ lab/
     timeline.js             Línea de tiempo, selección, arrastres, regla
     inspector.js            Paneles del tema, pista, elemento y maestro
     controls.js             Deslizadores, notas y teclado, curvas, piano roll, automatización
-    library.js              Biblioteca, audición de 3 s, pistas de sen y plantillas
-    scenes.js               Catálogo y audio de las capas de pistas de sen
+    library.js              Biblioteca plegable, audición de 3 s y plantillas
+    scenes.js               Catálogo y audio de las capas de canciones de sen
     export.js               Diálogo de exportación y progreso
     standalone.js           Generador del script autónomo
     midi.js                 Lectura de MIDI e importación
@@ -1660,7 +1659,7 @@ lab/
       nature/animals.js     pajaro, rana
       nature/water.js       gotas, lluvia, arroyo, olas
       nature/air.js         viento, fuego, campanillas
-  templates/*.sen.json      Plantillas de inicio
+  templates/*.sen.json      Proyectos de ejemplo para las pruebas del motor
 scripts/
   render-lab.mjs            Render local de proyectos y WAV con senp
   test-lab.mjs              Pruebas del motor (`--full`: plantillas y script autónomo)
@@ -1681,7 +1680,8 @@ Las tres fases previstas están implementadas en la versión 4.0:
   `hit`, `phrase`, `cloud` y `span`, línea de tiempo, inspector, biblioteca con
   audición, escucha en directo, reverb y eco maestros, EQ y limitador,
   exportación WAV (tres finales, chunk `senp`), `.sen.json`,
-  `scripts/render-lab.mjs`, autoguardado, deshacer y las cinco plantillas.
+  `scripts/render-lab.mjs`, autoguardado, deshacer y las plantillas (Vacío o
+  cualquier canción de sen).
 - **Edición:** mini piano roll de frases, tempo y rejilla musical, eco
   sincronizado, script autónomo, modo compacto y forma de onda resumida en los
   elementos.
@@ -1753,16 +1753,15 @@ ambientes y exportaba un JSON `sen-lab/2`. En la versión 4.0:
    admite (al abrirlo se muestra un aviso).
 3. `/lab/` sirve el editor. La URL no cambió.
 
-### 7.17 Retocar una pista de sen
+### 7.17 Canciones de sen por capas
 
-Cualquiera de las 28 pistas publicadas de la app (`assets/audio/<id>/01–02.wav`)
+Cualquiera de las 56 canciones publicadas de la app (`assets/audio/<id>/01–04.wav`)
 se abre en el laboratorio **separada en capas**, para cambiar sus volúmenes (u
 otra mezcla) y exportarla de nuevo.
 
-- **Entrada:** «Retocar una pista de sen…» en el diálogo **Empezar** y en la
-  biblioteca («Pistas de sen»). Un diálogo lista los catorce ambientes con sus
-  dos pistas (título de cada una).
-- **Capas:** las pistas que salen del generador de paisajes (24 de 28) se
+- **Entrada:** las plantillas del diálogo **Empezar** y de la biblioteca
+  (`Plantillas`), una por canción: «Ambiente - NN».
+- **Capas:** las pistas que salen del generador de paisajes (52 de 56) se
   recalculan con su receta y semilla, y cada capa del `mix()` de la receta
   (lluvia, pájaros, pad, melodía…, con nombre en `soundscapes.js`) se entrega
   por separado: su parte seca más su reverb y el filtro final, todo lineal, así
@@ -1802,7 +1801,7 @@ index.html                  Entrada de la app
 SPEC.md                     Esta especificación
 README.md                   Guía breve
 assets/
-  audio/<id>/01..02.wav     Escenas publicadas
+  audio/<id>/01..04.wav     Escenas de audio
   audio/README.md           Nota sobre las escenas
   favicon.svg
 lab/                        Laboratorio (editor); estructura detallada en 7.13
@@ -1849,7 +1848,7 @@ laboratorio (`lab/engine/`) son independientes: no comparten código.
   de sesión y cruza pistas con un crossfade corto. Si falla, avisa mediante
   `onError` sin cortar la pista que ya suena.
 - **`src/core/variants.js`**: `resolveAudioVariants(directory, prefix)` devuelve
-  las rutas `01.wav` y `02.wav` que existan, en ese orden. La sesión empieza
+  las rutas `01.wav` … `04.wav` que existan, en ese orden. La sesión empieza
   siempre por la primera.
 - **`src/core/wake-lock.js`**: solicita y libera el bloqueo de pantalla; vuelve
   a solicitarlo al recuperar visibilidad o foco, cuando el sistema libera el
@@ -1908,12 +1907,14 @@ click nodo
 
 ### 8.5 Audio de la app
 
-- `01.wav` es la escena por defecto y `02.wav` la alternativa. Ambas son
-  paisajes de alta calidad: WAV PCM mono, 22,05 kHz, 16 bits con dither TPDF,
-  30 s, bucle sin costura y ≈ −23 LUFS.
+- `01.wav` es la escena por defecto y `02.wav` la alternativa de paisaje; `03.wav`
+  y `04.wav` son paisajes con melodía (escenas 07 y 08). Según el ambiente,
+  pueden proceder de la síntesis base (WAV PCM mono, 16 kHz, 16 bits, 16 s) o de
+  los paisajes de alta calidad (WAV PCM mono, 22,05 kHz, 16 bits con dither TPDF,
+  30 s).
 - Nivel: todas las escenas rondan −23 LUFS (las de alta calidad se normalizan a
   −23, o −24/−25 en las escenas musicales y espaciales) con pico ≤ −3 dBFS.
-- La app solo descarga la pista elegida en cada sesión.
+- La app solo descarga la escena elegida en cada sesión.
 - Reproducción: una voz `AudioBufferSourceNode` con `loop = true` y su propio
   `GainNode`, conectada a la ganancia maestra de la sesión.
 - Ganancia maestra: `session.gain × fadeIn × 0.9`.
@@ -1946,8 +1947,7 @@ parámetro `scene` (0, 1 o 2) y devuelve 16 s de audio mono a 16 kHz.
 
 - Define `BASE_VARIANTS` (escena 0 de cada ambiente) y `VARIANTS` (escenas 1 y 2
   con parámetros propios).
-- Renderiza sus escenas con numeración de generación (`01.wav`–`03.wav`); no
-  son las pistas publicadas de la app.
+- Renderiza y escribe `assets/audio/<id>/01.wav`, `02.wav` y `03.wav`.
 - Aplica un crossfade de 1,5 s para que el bucle no tenga costura.
 - Normaliza el pico de cada receta; Fuego usa además una compresión suave para
   que sus chasquidos no dejen la escena demasiado baja.
@@ -1965,10 +1965,10 @@ Los valores de “Síntesis base” de la sección 6 son los parámetros por def
 de esta síntesis (`BASE_CONTROLS`).
 
 Los scripts mantienen su numeración de generación (`01`–`08`). La app solo lee
-`01.wav` y `02.wav`. La tabla `PUBLISHED` de `soundscapes.js` dice qué dos
-escenas se publican y `make-soundscapes.mjs --publish` las escribe con su
-nombre definitivo. Para publicar otras escenas, cambia la tabla o renombra los
-archivos a mano.
+`01.wav` … `04.wav`. La tabla `PUBLISHED` de `soundscapes.js` dice de qué
+escena sale cada pista publicada, y `make-soundscapes.mjs --publish` las
+escribe directamente con su nombre publicado. Para publicar otra escena,
+cambia la tabla o renombra el archivo a mano.
 
 ### 8.8 Paisajes de alta calidad (escenas 04–08)
 
@@ -2017,7 +2017,7 @@ exactamente los mismos archivos.
 `scripts/make-soundscapes.mjs` escribe `04.wav` … `08.wav` sin tocar las
 escenas 01–03 y muestra la sonoridad y la reducción del limitador de cada
 archivo. Acepta `--only=<id>[,<id>]`, `--scene=<n>[,<n>]` (por ejemplo
-`--scene=7,8` para las musicales) y `--publish` (escribe `01.wav` y `02.wav`
+`--scene=7,8` para las musicales) y `--publish` (escribe `01.wav` … `04.wav`
 según `PUBLISHED`; regenerar así da los mismos archivos publicados).
 
 `scripts/analyze-audio.mjs [ruta] [--png=<carpeta>]` revisa cualquier WAV:
@@ -2095,8 +2095,8 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 
 - [ ] Cada uno de los 14 ambientes inicia una sesión.
 - [ ] La barra de progreso avanza con la duración elegida.
-- [ ] El audio carga siempre `01.wav` por defecto (dos escenas por ambiente en
-  el repositorio actual) y suena en bucle.
+- [ ] El audio carga siempre `01.wav` por defecto (cuatro escenas por ambiente
+  en el repositorio actual) y suena en bucle.
 - [ ] La URL muestra `#<id>/<pista>` (por ejemplo `#mar/01`) y cambia al pasar
   de pista.
 - [ ] No hay controles inferiores durante la sesión.
@@ -2109,7 +2109,7 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 
 ### 11.4 Audio
 
-- [ ] Las 28 escenas publicadas existen: `01.wav` y `02.wav` en cada ambiente.
+- [ ] Las 56 escenas existen: `01.wav` … `04.wav` en cada ambiente.
 - [ ] Si se borra una escena, deja de elegirse.
 - [ ] Si solo queda una, siempre suena esa.
 - [ ] Si no queda ninguna, aparece “Audio no disponible” y la sesión sigue.
@@ -2177,7 +2177,7 @@ defecto, actualiza también `defaultDurationMin` y el texto inicial del botón e
   `make-audio-variants.mjs --only=<id>`.
 - Escenas 04–08: edita la receta en `scripts/lib/soundscapes.js` (o la fuente en
   `scripts/lib/sources.js`); regenera con `make-soundscapes.mjs --only=<id>`.
-  Las escenas con melodía (07–08) son opcionales y no se publican.
+  Las musicales (07–08) se publican renombrándolas a `03.wav` y `04.wav`.
 - Verifica con `node scripts/analyze-audio.mjs assets/audio/<id>` que el bucle
   no hace clic y que el nivel está en el rango habitual.
 
@@ -2222,11 +2222,11 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
-- **4.4:** el repositorio publica solo dos escenas por ambiente (`01.wav` y
-  `02.wav`); se retiran `03.wav` y `04.wav`, la tabla `PUBLISHED` queda en dos
-  pistas y la app muestra `1/2`.
+- **4.5:** se recuperan las cuatro escenas por ambiente (`01.wav` … `04.wav`,
+  56 pistas publicadas). El laboratorio ofrece **Vacío** o cualquiera de esas
+  canciones como plantilla de inicio, abierta por capas (7.17).
 - **4.3:** dos escenas nuevas por ambiente con melodía sutil y pad (escenas
-  07–08, publicadas entonces como `03.wav` y `04.wav`); nuevos instrumentos suaves
+  07–08, publicadas como `03.wav` y `04.wav`); nuevos instrumentos suaves
   (piano de fieltro, arpa, guitarra de nailon, vibráfono y flauta); la app lee
   hasta cuatro escenas (`1/4`); `--scene` admite varias escenas y `--publish`
   escribe las pistas publicadas. Laboratorio: los cinco instrumentos nuevos,
@@ -2259,6 +2259,8 @@ la siguiente sesión.
 - **3.1:** tres paisajes sonoros de alta calidad por ambiente (escenas 04–06,
   22,05 kHz, 30 s, deterministas, bucle sin costura y −23 LUFS), selección
   entre seis escenas y herramienta de análisis de audio.
+- **3.6:** el repositorio conserva dos escenas por ambiente; la app sigue
+  eligiendo al azar entre las disponibles y muestra `1/2`.
 - **3.5:** se retira la X del selector de duración; se cierra al elegir una
   opción, con `Escape` o tocando fuera.
 - **3.4:** las etiquetas visibles de duración pasan a `10 MIN`, `15 MIN` y

@@ -1,5 +1,5 @@
 /**
- * Pistas de sen en el laboratorio: catálogo de pistas publicadas y audio de
+ * Canciones de sen en el laboratorio: catálogo de pistas publicadas y audio de
  * sus capas (calculado en `scene-worker.js` y guardado en memoria).
  *
  *   const scenes = createSceneSource();
