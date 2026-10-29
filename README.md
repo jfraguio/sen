@@ -24,12 +24,11 @@ ES y el audio necesitan un servidor.
 - Menú de constelación con **14 ambientes** identificados solo por su icono.
 - Selector de duración con tres opciones: **10, 15 y 30 minutos**.
 - Sesión a pantalla completa con animación propia, progreso y fundido final.
-- **Escenas de audio por ambiente**: el motor puede generar hasta ocho
-  (`01.wav` … `08.wav`): tres de síntesis base, tres paisajes de alta calidad y
-  dos paisajes con melodía sutil y pad. **El repositorio conserva cuatro por
-  ambiente, `01.wav` … `04.wav`** (01–02 paisaje, 03–04 con melodía), y la
-  sesión empieza siempre por `01.wav`.
-- **Indicador de pista discreto** arriba a la izquierda (`1/4`, `2/4`…): al
+- **Dos escenas de audio por ambiente** (`01.wav` y `02.wav`), elegidas entre
+  los paisajes de alta calidad que genera el motor. La sesión empieza siempre
+  por `01.wav`; el resto de escenas del generador son opcionales y no se
+  publican.
+- **Indicador de pista discreto** arriba a la izquierda (`1/2`, `2/2`…): al
   pulsarlo se pasa a la siguiente pista del ambiente. La URL indica el ambiente
   y la pista (`#mar/01`). Arriba a la derecha hay una **X** para cerrar y volver
   al menú.
@@ -46,7 +45,7 @@ ambiente están en **[`SPEC.md`](SPEC.md)**.
 index.html
 SPEC.md
 assets/
-  audio/<id>/01.wav … 04.wav (cuatro por ambiente)
+  audio/<id>/01.wav, 02.wav (dos por ambiente)
   audio/README.md
   favicon.svg
 lab/
@@ -77,32 +76,29 @@ src/
 
 ## Regenerar el audio
 
-El motor genera ocho escenas sintéticas por ambiente; el repositorio conserva
-cuatro, renombradas `01.wav` (por defecto) … `04.wav`. Las demás se pueden
-regenerar:
-
-- **01–03**, síntesis base (`scripts/lib/synth.js`): 16 s, mono, 16 kHz.
-- **04–06**, paisajes de alta calidad (`scripts/lib/soundscapes.js`): 30 s, mono,
-  22,05 kHz, bucle sin costura, deterministas y a ≈ −23 LUFS.
-- **07–08**, los mismos paisajes con una melodía sutil (piano de fieltro, arpa,
-  guitarra, celesta, vibráfono, kalimba o flauta) y, cuando encaja, un pad
-  sostenido. Se publican como `03.wav` y `04.wav`.
+El motor puede generar ocho escenas por ambiente, pero el repositorio publica
+solo dos, renombradas `01.wav` y `02.wav`. Son paisajes de alta calidad
+(`scripts/lib/soundscapes.js`): 30 s, mono, 22,05 kHz, 16 bits con dither,
+bucle sin costura y ≈ −23 LUFS.
 
 ```bash
-node scripts/make-audio-variants.mjs              # 01–03 de todos
-node scripts/make-audio-variants.mjs --only=lluvia
-node scripts/make-soundscapes.mjs                 # 04–08 de todos
-node scripts/make-soundscapes.mjs --only=mar,fuego
-node scripts/make-soundscapes.mjs --scene=7,8     # solo las musicales
-node scripts/make-soundscapes.mjs --publish       # escribe 01–04 tal como se publican
-node scripts/analyze-audio.mjs                    # nivel, picos y costura
+# Publicar las dos pistas de todos los ambientes (01/02)
+node scripts/make-soundscapes.mjs --publish
+
+# Publicar solo algunos
+node scripts/make-soundscapes.mjs --publish --only=mar,fuego
+
+# Generar escenas de trabajo 04–08 (no las publica)
+node scripts/make-soundscapes.mjs
+
+# Revisar nivel, picos y costura del bucle
+node scripts/analyze-audio.mjs
 ```
 
-Los archivos se escriben en `assets/audio/<id>/`. La app solo lee `01.wav` …
-`04.wav`; la tabla `PUBLISHED` de `scripts/lib/soundscapes.js` dice de qué
-escena sale cada una y `--publish` las escribe con ese nombre. La app los
-descubre con peticiones `HEAD` al iniciar cada sesión, así que puedes borrar
-cualquier escena sin tocar código.
+La tabla `PUBLISHED` de `scripts/lib/soundscapes.js` decide qué dos escenas se
+publican y con qué nombre. La app solo lee `01.wav` y `02.wav`, los descubre con
+peticiones `HEAD` al iniciar cada sesión y respeta los que existan: si borras
+uno, se usa el otro; si no queda ninguno, la sesión continúa solo con luz.
 
 ## Laboratorio
 
