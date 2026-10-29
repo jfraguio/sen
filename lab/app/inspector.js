@@ -31,6 +31,54 @@ export function createInspector(root, store, actions) {
     return numberControl(def, binding, syncers);
   }
 
+  /** Agrupa los parámetros del timbre para no mostrar una lista larga. */
+  function paramGroups(track) {
+    const defs = paramDefs(track.instrument);
+    const byKey = new Map(defs.map((d) => [d.key, d]));
+    const used = new Set();
+    const out = [];
+    const add = (label, keys) => {
+      const list = keys.map((k) => byKey.get(k)).filter(Boolean);
+      if (!list.length) return;
+      for (const d of list) used.add(d.key);
+      out.push({ label, defs: list });
+    };
+    if (track.family === 'sustain') {
+      add('Fuente', ['partials', 'rolloff', 'voices', 'detune', 'sub', 'wave', 'pulseWidth', 'vowel', 'inharmonic', 'breath']);
+      add('Filtro', ['filterType', 'cutoff', 'q', 'filterEnv', 'filterTime', 'sweepDepth', 'sweepRate']);
+      add('Modulación', ['vibratoDepth', 'vibratoRate', 'tremoloDepth', 'tremoloRate', 'drift', 'beat']);
+      add('Espacio', ['width']);
+    } else if (track.family === 'strike') {
+      if (byKey.has('fmRatio')) {
+        add('Operador FM', ['fmRatio', 'fmIndex', 'fmTime']);
+        add('Envolvente', ['decay', 'brightness', 'hardness']);
+        add('Golpe', ['velocityCurve']);
+        add('Espacio', ['width']);
+      } else {
+        add('Material', ['decay', 'brightness', 'hardness', 'inharmonic', 'beat']);
+        add('Movimiento', ['tremoloDepth', 'tremoloRate']);
+        add('Golpe', ['velocityCurve']);
+        add('Espacio', ['width']);
+      }
+    } else if (track.family === 'noise') {
+      add('Color', ['color']);
+      add('Filtro', ['filterType', 'cutoff', 'q']);
+      add('Movimiento', ['movement', 'moveRate', 'moveDepth', 'moveTarget', 'wavePeriod', 'waveShape']);
+      add('Estéreo', ['stereo']);
+    } else if (track.family === 'nature') {
+      add('Comportamiento', [
+        'species', 'individuals', 'songRate', 'register', 'syllables', 'shape', 'callsPerMin', 'callRate',
+        'pulses', 'sync', 'bout', 'rest', 'surface', 'rate', 'intensity', 'flow', 'sources', 'period',
+        'size', 'foam', 'pebbles', 'strength', 'gustiness', 'howl', 'howlPitch', 'leaves', 'crackle',
+        'pops', 'hiss', 'material', 'tubes', 'wind', 'pitch',
+      ]);
+      add('Espacio', ['distance', 'pan', 'spread', 'variation']);
+    }
+    const rest = defs.filter((d) => !used.has(d.key));
+    if (rest.length) out.push({ label: 'Otros', defs: rest });
+    return out;
+  }
+
   const head = (title, sub, extra = null) => h('div', { class: 'ins-head' },
     h('h2', {}, title, sub ? h('small', {}, sub) : null),
     extra,
@@ -199,7 +247,7 @@ export function createInspector(root, store, actions) {
       const t = findTrack(state.project, id);
       if (t && document.activeElement !== color) color.value = t.color;
     });
-    const timbre = paramDefs(track.instrument).map((def) => control(def, tb('params', def.key)));
+    const timbre = paramGroups(track).map((g) => section(g.label, ...g.defs.map((def) => control(def, tb('params', def.key)))));
     const mix = MIX_DEFS.map((def) => control(def, tb('mix', def.key)));
     const isLayer = track.family === 'layer';
     const src = track.source;
@@ -225,7 +273,7 @@ export function createInspector(root, store, actions) {
         h('div', { class: 'ins-actions' },
           h('button', { type: 'button', class: 'btn', onclick: () => actions.auditionTrack(id) }, '▶ Escuchar'),
           h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.addElement(id, state.playhead) }, '+ Elemento en el cabezal'))),
-      timbre.length ? section('Timbre', ...timbre) : null,
+      ...timbre,
       section('Mezcla', ...mix),
       section('Automatización', automationSection(id)),
       section(null, h('div', { class: 'ins-actions' },

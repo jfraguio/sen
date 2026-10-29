@@ -270,27 +270,20 @@ function boot() {
     }
   }
 
-  /** Abre una opción de inicio: el tema vacío o una canción de sen. */
+  /** Abre una plantilla de la biblioteca: el tema vacío o una canción de sen. */
   async function openTemplate(t) {
     if (layersBusy) return;
     if (t.blank) {
       if (!confirmDiscard()) return;
       loadProject(createProject({ seed: 'vacio' }));
-      $('start-dialog').close();
       actions.closeSheet();
       return;
     }
-    const fromStart = $('start-dialog').open;
-    const status = fromStart ? $('start-status') : null;
-    const buttons = fromStart ? $('start-templates').querySelectorAll('button') : [];
-    for (const b of buttons) b.disabled = true;
-    if (!status) notify(`Preparando «${t.name}»… (unos segundos)`);
-    const r = await loadSceneProject(t.ambient, t.track, status);
-    for (const b of buttons) b.disabled = false;
+    notify(`Preparando «${t.name}»… (unos segundos)`);
+    const r = await loadSceneProject(t.ambient, t.track);
     if (!r) return;
-    $('start-dialog').close();
     actions.closeSheet();
-    if (!status) notify(`${t.name}: ${r.layers.length} ${r.layers.length === 1 ? 'capa' : 'capas'} a 0 dB.`);
+    notify(`${t.name}: ${r.layers.length} ${r.layers.length === 1 ? 'capa' : 'capas'} a 0 dB.`);
   }
 
   const actions = {
@@ -362,6 +355,7 @@ function boot() {
     auditionInstrument(inst) {
       audio.audition(state.project, createTrack(inst, state.project), { seconds: 3 });
     },
+
     soloElement(id, on) {
       if (on) {
         if (soloOverride === id) return;
@@ -635,10 +629,11 @@ function boot() {
   $('redo').addEventListener('click', () => store.redo());
   $('new').addEventListener('click', () => {
     if (!confirmDiscard()) return;
-    showStart();
+    loadProject(createProject({ seed: 'vacio' }));
+    actions.closeSheet();
+    updateSaveState();
   });
   $('open').addEventListener('click', () => $('open-file').click());
-  $('start-open').addEventListener('click', () => $('open-file').click());
   $('open-file').addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -689,7 +684,6 @@ function boot() {
     const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
     if (String.fromCharCode(...head) === 'MThd') {
       await importMidi(file);
-      $('start-dialog').close();
       return;
     }
     let read;
@@ -702,24 +696,6 @@ function boot() {
     if (!confirmDiscard()) return;
     loadProject(read.project, read.warnings);
     writeMeta({ downloadedRevision: null });
-    $('start-dialog').close();
-  }
-
-  async function showStart() {
-    const box = $('start-templates');
-    const templateCard = (t) => h('button', { type: 'button', class: 'template-card', onclick: () => openTemplate(t) },
-      h('strong', {}, t.name), h('span', {}, t.title));
-    box.textContent = '';
-    box.append(h('p', { class: 'muted' }, 'Cargando las canciones de sen…'));
-    $('start-dialog').showModal();
-    try {
-      const list = startTemplates(await getCatalog());
-      box.textContent = '';
-      for (const t of list) box.append(templateCard(t));
-    } catch (err) {
-      box.textContent = '';
-      box.append(h('p', { class: 'warn' }, `No se pudieron cargar las canciones de sen: ${err.message}`));
-    }
   }
 
   /* ------------------------------------------------------------ arrastrar archivos */
@@ -915,7 +891,6 @@ function boot() {
   requestAnimationFrame(() => timeline.fit());
   if (saved?.warnings?.length) notify(saved.warnings.join(' '));
   ensureLayers(state.project);
-  if (!saved) showStart();
 
   // Exponer para depuración en consola.
   window.senLab = { store, audio, gridSeconds };

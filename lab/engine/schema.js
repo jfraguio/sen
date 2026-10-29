@@ -27,11 +27,11 @@ export const LIMITS = {
 };
 
 export const FAMILIES = [
-  { id: 'sustain', label: 'Notas sostenidas', short: 'Sostenidas', types: ['tone'] },
-  { id: 'strike', label: 'Notas puntuales', short: 'Puntuales', types: ['hit', 'phrase', 'cloud'] },
-  { id: 'noise', label: 'Ruidos', short: 'Ruidos', types: ['span'] },
-  { id: 'nature', label: 'Simulaciones', short: 'Simulaciones', types: ['span'] },
-  { id: 'layer', label: 'Capas de pistas de sen', short: 'Capas', types: ['clip'] },
+  { id: 'sustain', label: 'Sostenidos', short: 'Sostenidos', types: ['tone'] },
+  { id: 'strike', label: 'Puntuales', short: 'Puntuales', types: ['hit', 'phrase', 'cloud'] },
+  { id: 'noise', label: 'Texturas', short: 'Texturas', types: ['span'] },
+  { id: 'nature', label: 'Naturaleza', short: 'Naturaleza', types: ['span'] },
+  { id: 'layer', label: 'Capas de sen', short: 'Capas', types: ['clip'] },
 ];
 
 export const ELEMENT_TYPES = {
@@ -72,11 +72,18 @@ export const PARAMS = {
   vowel: num('Vocal (a–o–u)', 0, 1, 0.3, { step: 0.01 }),
   inharmonic: num('Inarmonicidad', 0, 1, 0.4, { step: 0.01 }),
   breath: num('Soplo', 0, 1, 0.35, { step: 0.01 }),
+  wave: opt('Forma de onda', o([['sierra', 'Sierra'], ['pulso', 'Pulso'], ['cuadrada', 'Cuadrada'], ['triangulo', 'Triángulo']]), 'sierra'),
+  pulseWidth: num('Ancho de pulso', 0.05, 0.95, 0.5, { step: 0.01 }),
+  filterEnv: num('Envolvente del filtro', 0, 4, 0, { step: 0.05, unit: 'oct' }),
+  filterTime: num('Caída de la envolvente', 0.01, 4, 0.2, { log: true, unit: 's' }),
   // Puntuales
   decay: num('Decaimiento', 0.2, 30, 5, { log: true, unit: 's' }),
   brightness: num('Brillo', 0, 1, 0.5, { step: 0.01 }),
   hardness: num('Dureza del golpe', 0, 1, 0.4, { step: 0.01 }),
   velocityCurve: num('Curva de velocidad', 0, 1, 0.5, { step: 0.01 }),
+  fmRatio: num('Relación FM', 0.25, 12, 2, { step: 0.01, log: true }),
+  fmIndex: num('Profundidad FM', 0, 12, 3, { step: 0.01 }),
+  fmTime: num('Caída FM', 0.02, 10, 1.2, { log: true, unit: 's' }),
   // Ruido
   color: opt('Color', o([['blanco', 'Blanco'], ['rosa', 'Rosa'], ['marron', 'Marrón']]), 'rosa'),
   movement: opt('Movimiento', o([['ninguno', 'Ninguno'], ['rafagas', 'Ráfagas'], ['oleaje', 'Oleaje']]), 'rafagas'),
@@ -129,7 +136,9 @@ export const PARAMS = {
 
 const SUSTAIN_COMMON = ['partials', 'rolloff', 'voices', 'detune', 'drift', 'filterType', 'cutoff', 'q',
   'vibratoDepth', 'vibratoRate', 'tremoloDepth', 'tremoloRate', 'sweepDepth', 'sweepRate', 'width'];
+const ANALOG_COMMON = [...SUSTAIN_COMMON, 'wave', 'pulseWidth', 'filterEnv', 'filterTime', 'sub'];
 const STRIKE_COMMON = ['decay', 'brightness', 'hardness', 'inharmonic', 'beat', 'velocityCurve', 'width'];
+const FM_COMMON = ['decay', 'brightness', 'hardness', 'velocityCurve', 'width', 'fmRatio', 'fmIndex', 'fmTime'];
 const NATURE_COMMON = ['distance', 'pan', 'spread', 'variation'];
 
 /* ------------------------------------------------------------ instrumentos */
@@ -178,6 +187,47 @@ export const INSTRUMENTS = {
     description: 'Una sinusoide pura, para graves y tonos de prueba.',
     params: ['drift', 'vibratoDepth', 'vibratoRate', 'tremoloDepth', 'tremoloRate', 'width'],
     defaults: { drift: 0, width: 0 },
+  },
+  // Sintetizadores de estética ochentera
+  pad80: {
+    family: 'sustain', label: 'Pad 80', color: '#7ad7ff',
+    description: 'Pad analógico de los ochenta: pulso y sierra desafinados, coro por voces y filtro lento.',
+    params: ANALOG_COMMON,
+    defaults: {
+      partials: 28, rolloff: 1.05, voices: 4, detune: 9, drift: 3, cutoff: 2800, q: 0.8,
+      sweepDepth: 0.35, sweepRate: 0.05, width: 0.85, wave: 'pulso', pulseWidth: 0.32,
+      filterEnv: 0.5, filterTime: 1.2, sub: 0.12,
+    },
+  },
+  brass80: {
+    family: 'sustain', label: 'Metales 80', color: '#ffc966',
+    description: 'Metales sintéticos con sierra desafinada y una apertura de filtro rápida al atacar.',
+    params: ANALOG_COMMON,
+    defaults: {
+      partials: 32, rolloff: 1, voices: 3, detune: 7, drift: 2, cutoff: 1600, q: 0.7,
+      sweepDepth: 0.1, sweepRate: 0.05, width: 0.6, wave: 'sierra', pulseWidth: 0.5,
+      filterEnv: 2.4, filterTime: 0.22, sub: 0,
+    },
+  },
+  bass80: {
+    family: 'sustain', label: 'Bajo 80', color: '#b18cff',
+    description: 'Bajo analógico con pulso, subgrave y filtro resonante que cae rápido.',
+    params: ANALOG_COMMON,
+    defaults: {
+      partials: 24, rolloff: 1, voices: 2, detune: 4, drift: 1, cutoff: 700, q: 1.1,
+      sweepDepth: 0, sweepRate: 0.05, width: 0.1, wave: 'pulso', pulseWidth: 0.5,
+      filterEnv: 2.8, filterTime: 0.14, sub: 0.55,
+    },
+  },
+  lead80: {
+    family: 'sustain', label: 'Lead 80', color: '#ff9ad5',
+    description: 'Lead de sierra con vibrato y filtro abierto, para melodías brillantes.',
+    params: ANALOG_COMMON,
+    defaults: {
+      partials: 32, rolloff: 1, voices: 3, detune: 5, drift: 2, cutoff: 3800, q: 0.9,
+      vibratoDepth: 8, vibratoRate: 5.2, sweepDepth: 0.2, sweepRate: 0.06, width: 0.4,
+      wave: 'sierra', pulseWidth: 0.5, filterEnv: 1.4, filterTime: 0.5, sub: 0.05,
+    },
   },
   // Notas puntuales
   campana: {
@@ -242,6 +292,18 @@ export const INSTRUMENTS = {
     description: 'Burbuja de Minnaert afinada (el tono sube al final).',
     params: ['decay', 'brightness', 'velocityCurve', 'width'],
     defaults: { decay: 0.6, brightness: 0.5 },
+  },
+  fmPiano: {
+    family: 'strike', label: 'Piano FM', color: '#8fb7ff',
+    description: 'Piano eléctrico de FM: campana metálica y cuerpo cálido, al estilo de los ochenta.',
+    params: FM_COMMON,
+    defaults: { decay: 7.5, brightness: 0.55, hardness: 0.25, fmRatio: 1, fmIndex: 2.2, fmTime: 1.4 },
+  },
+  fmBell: {
+    family: 'strike', label: 'Campana FM', color: '#d8e0ff',
+    description: 'Campana digital de FM con parciales metálicos y cola larga.',
+    params: FM_COMMON,
+    defaults: { decay: 13, brightness: 0.6, hardness: 0.3, fmRatio: 3.5, fmIndex: 4.8, fmTime: 2.8 },
   },
   // Ruidos
   ruido: {
@@ -340,6 +402,50 @@ export const INSTRUMENTS = {
     defaults: {},
   },
 };
+
+/**
+ * Agrupación de la biblioteca: primero el gesto (sostenido, puntual, textura,
+ * naturaleza) y dentro, el timbre. Solo afecta a la presentación; los IDs y las
+ * familias del motor no cambian.
+ */
+export const INSTRUMENT_GROUPS = [
+  {
+    id: 'sostenidos', label: 'Sostenidos',
+    subgroups: [
+      { id: 'sintes', label: 'Sintes', instruments: ['pad', 'pad80', 'brass80', 'bass80', 'lead80'] },
+      { id: 'drone', label: 'Drone', instruments: ['drone'] },
+      { id: 'cuerdas', label: 'Cuerdas', instruments: ['cuerdas'] },
+      { id: 'vientos', label: 'Vientos', instruments: ['flauta'] },
+      { id: 'voces', label: 'Voces', instruments: ['coro'] },
+      { id: 'cristal', label: 'Cristal y puro', instruments: ['vidrio', 'seno'] },
+    ],
+  },
+  {
+    id: 'puntuales', label: 'Puntuales',
+    subgroups: [
+      { id: 'teclados', label: 'Teclados', instruments: ['piano', 'fmPiano', 'celesta', 'cajaMusica'] },
+      { id: 'laminas', label: 'Láminas', instruments: ['marimba', 'vibrafono', 'kalimba'] },
+      { id: 'pulsadas', label: 'Cuerdas pulsadas', instruments: ['arpa', 'guitarra', 'pulsada'] },
+      { id: 'campanas', label: 'Campanas y cuencos', instruments: ['campana', 'fmBell', 'cuenco'] },
+      { id: 'gotas', label: 'Gotas', instruments: ['gotaTonal'] },
+    ],
+  },
+  {
+    id: 'texturas', label: 'Texturas',
+    subgroups: [
+      { id: 'ruido', label: 'Ruido', instruments: ['ruido'] },
+    ],
+  },
+  {
+    id: 'naturaleza', label: 'Naturaleza',
+    subgroups: [
+      { id: 'agua', label: 'Agua', instruments: ['gotas', 'lluvia', 'arroyo', 'olas'] },
+      { id: 'aire', label: 'Aire', instruments: ['viento', 'campanillas'] },
+      { id: 'animales', label: 'Animales', instruments: ['grillo', 'cigarra', 'pajaro', 'rana'] },
+      { id: 'fuego', label: 'Fuego', instruments: ['fuego'] },
+    ],
+  },
+];
 
 /** Definiciones resueltas de los parámetros de un instrumento. */
 export function paramDefs(instrumentId) {

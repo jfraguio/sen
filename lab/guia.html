@@ -264,7 +264,7 @@
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="primeros-pasos">Primeros pasos</h2>
-        <p>La primera vez se abre <b>Empezar</b>: elige <b>Vacío</b> o una de las 56 canciones de sen. Las canciones se nombran «Ambiente - NN» («Bosque - 01», «Fuego - 02»…) y se abren separadas en capas (ver <a href="#pistas-sen">más abajo</a>). Todo se puede cambiar después.</p>
+        <p>El laboratorio arranca con un <b>tema vacío</b>. <b>Nuevo</b> crea otro tema vacío sin preguntar nada. Si quieres partir de una canción, abre <b>Plantillas</b> en la biblioteca: están las 56 canciones de sen, nombradas «Ambiente - NN» («Bosque - 01», «Fuego - 02»…) y se abren separadas en capas (ver <a href="#pistas-sen">más abajo</a>). Todo se puede cambiar después.</p>
         <div class="cards">
           <div class="card"><b>Vacío</b><span>3 minutos, Do mayor, sin pistas.</span></div>
           <div class="card"><b>Bosque - 01</b><span>Bosque después de la lluvia: goteo, pájaros, arroyo y hojas.</span></div>
@@ -276,7 +276,7 @@
 
         <h3>Un tema en seis pasos</h3>
         <ol class="steps">
-          <li>Elige <b>Vacío</b>. Sin nada seleccionado, el inspector (derecha) muestra el tema: pon la tonalidad en <b>Re</b>, escala <b>pentatónica mayor</b>.</li>
+          <li>El tema ya empieza vacío. Sin nada seleccionado, el inspector (derecha) muestra el tema: pon la tonalidad en <b>Re</b>, escala <b>pentatónica mayor</b>.</li>
           <li>Arrastra <b>Drone</b> desde la biblioteca (izquierda) al principio de la línea de tiempo. En el inspector, deja las notas <code>Re2</code> y <code>La2</code> y un fundido de entrada de 10 s.</li>
           <li>Arrastra <b>Campana</b> a 0:20. Se crea una <b>nube</b> de notas: ponle 6 notas por minuto, registro <code>Re4</code>–<code>Re6</code> y «pasos cercanos» en 0,7.</li>
           <li>Arrastra <b>Grillos</b> a 0:30, elige la curva <b>crece</b> y sube la <b>distancia</b> a 0,6.</li>
@@ -288,7 +288,7 @@
         <h2 id="pistas-sen">Canciones de sen por capas</h2>
         <p>Cualquiera de las pistas que suenan en la app (las cuatro de cada ambiente) se puede abrir en el laboratorio <b>separada en sus capas</b>: lluvia, pájaros, pad, melodía… Cada capa es una pista del laboratorio a 0 dB, así que, sin tocar nada, el tema suena exactamente como en la app.</p>
         <ol class="steps">
-          <li><b>Nuevo</b> → elige una canción de sen en <b>Empezar</b> (o, en la biblioteca, <b>Plantillas</b>). Tarda unos segundos en calcular las capas.</li>
+          <li>En la biblioteca, abre <b>Plantillas</b> y elige una canción de sen. Tarda unos segundos en calcular las capas.</li>
           <li>Ajusta el <b>volumen de cada capa con el deslizador de su cabecera</b> (doble clic lo devuelve a 0 dB). Por ejemplo, baja el «Pad» 6 dB. También puedes silenciar (<b>M</b>), escuchar una sola (<b>S</b>), moverla en el estéreo, darle fundidos, automatizarla o añadir instrumentos nuevos encima.</li>
           <li><b>Exportar</b> ya trae el preajuste <b>Escena para sen</b> y la sonoridad de la pista. Descarga el WAV y sustituye con él el archivo que indica el diálogo (por ejemplo <code>assets/audio/bosque/03.wav</code>).</li>
         </ol>
@@ -316,7 +316,7 @@
           <tr><th>Zona</th><th>Para qué sirve</th></tr>
           <tr><td>Cabecera</td><td>Volver a sen, nombre del tema, estado de guardado («sin descargar» si aún no has bajado el proyecto), estas instrucciones (<b>?</b>), deshacer y rehacer, <b>Nuevo</b>, <b>Abrir</b>, <b>Proyecto</b> (descarga el <code>.sen.json</code>) y <b>Exportar</b>.</td></tr>
           <tr><td>Transporte</td><td>Reproducir/pausa, detener (vuelve al inicio), posición, región en bucle, rejilla de ajuste, zoom y volumen de escucha. El volumen no afecta a lo que exportas.</td></tr>
-          <tr><td>Biblioteca</td><td>Las plantillas (Vacío y las canciones de sen) y las cuatro familias de instrumentos. Cada sección se puede plegar con su título para recorrer el panel con comodidad. El botón <b>▶</b> de cada instrumento hace sonar una muestra de 3 s sin añadir nada.</td></tr>
+          <tr><td>Biblioteca</td><td>Instrumentos agrupados por gesto (<b>Sostenidos</b>, <b>Puntuales</b>, <b>Texturas</b> y <b>Naturaleza</b>) y, dentro, por timbre, y <b>Plantillas</b>. Cada sección y subsección se pliega con su título y empieza plegada. El botón <b>▶</b> hace sonar una muestra de 3 s sin añadir nada.</td></tr>
           <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja sus fundidos, su curva y una forma de onda resumida.</td></tr>
           <tr><td>Inspector</td><td>Los controles de lo que tengas seleccionado: el tema (sin selección), una pista, un elemento o el bus maestro.</td></tr>
           <tr><td>Pie</td><td>Medidor de salida, sonoridad a corto plazo (LUFS), pico, carga del motor, tonalidad y tempo. Aquí aparecen también los avisos.</td></tr>
@@ -334,10 +334,10 @@
         <h3>Familias y tipos de elemento</h3>
         <table>
           <tr><th>Familia</th><th>Qué es</th><th>Elementos</th></tr>
-          <tr><td>Notas sostenidas</td><td>Pad, drone, cuerdas, flauta suave, coro, vidrio, seno: tonos que duran lo que dura el elemento.</td><td><b>Tono</b></td></tr>
-          <tr><td>Notas puntuales</td><td>Campana, cuenco, kalimba, caja de música, celesta, marimba, vibráfono, piano de fieltro, arpa, guitarra de nailon, cuerda pulsada, gota tonal: golpes que decaen solos.</td><td><b>Nube</b>, <b>golpe</b>, <b>frase</b></td></tr>
-          <tr><td>Ruidos</td><td>Ruido de color filtrado y con movimiento: aire, rumor, oleaje abstracto.</td><td><b>Tramo</b></td></tr>
-          <tr><td>Simulaciones</td><td>Naturaleza generada al azar: grillos, cigarras, pájaros, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas.</td><td><b>Tramo</b></td></tr>
+          <tr><td>Sostenidos</td><td>Pad, drone, cuerdas, flauta suave, coro, vidrio, seno, pad 80, metales 80, bajo 80 y lead 80: tonos que duran lo que dura el elemento.</td><td><b>Tono</b></td></tr>
+          <tr><td>Puntuales</td><td>Campana, cuenco, kalimba, caja de música, celesta, marimba, vibráfono, piano de fieltro, arpa, guitarra de nailon, cuerda pulsada, gota tonal, piano FM y campana FM: golpes que decaen solos.</td><td><b>Nube</b>, <b>golpe</b>, <b>frase</b></td></tr>
+          <tr><td>Texturas</td><td>Ruido de color filtrado y con movimiento: aire, rumor, oleaje abstracto.</td><td><b>Tramo</b></td></tr>
+          <tr><td>Naturaleza</td><td>Naturaleza generada al azar: grillos, cigarras, pájaros, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas.</td><td><b>Tramo</b></td></tr>
           <tr><td>Capas de pistas de sen</td><td>Una capa de una canción de la app, tal como suena allí. Solo aparecen al abrir una canción de sen desde las <a href="#pistas-sen">plantillas</a>.</td><td><b>Capa de audio</b></td></tr>
         </table>
         <ul>
@@ -365,7 +365,7 @@
         <h2 id="instrumentos">Instrumentos</h2>
         <p>Todos los parámetros tienen un valor por defecto que ya suena bien. Doble clic en un control lo devuelve a ese valor.</p>
 
-        <h3>Notas sostenidas</h3>
+        <h3>Sostenidos</h3>
         <table>
           <tr><td>Pad</td><td>Armónicos suaves con varias voces ligeramente desafinadas.</td></tr>
           <tr><td>Drone</td><td>Pocas parciales graves con batidos lentos y subgrave opcional.</td></tr>
@@ -374,10 +374,14 @@
           <tr><td>Coro</td><td>Voces con formantes que van de «a» a «o» y «u».</td></tr>
           <tr><td>Vidrio</td><td>Parciales inarmónicos sostenidos, brillo frío.</td></tr>
           <tr><td>Seno</td><td>Una sinusoide pura: graves y tonos de prueba.</td></tr>
+          <tr><td>Pad 80</td><td>Pad analógico de los ochenta: pulso y sierra desafinados, amplitud estéreo y filtro lento.</td></tr>
+          <tr><td>Metales 80</td><td>Metales sintéticos con sierra desafinada y el filtro abriéndose al atacar.</td></tr>
+          <tr><td>Bajo 80</td><td>Bajo analógico con pulso, subgrave y filtro resonante que cae rápido.</td></tr>
+          <tr><td>Lead 80</td><td>Lead de sierra con vibrato y filtro abierto, para melodías.</td></tr>
         </table>
-        <p class="muted">Controles comunes: parciales, caída de armónicos, voces, desafinación, deriva lenta, filtro, vibrato, trémolo, barrido de filtro y ancho estéreo. La flauta tiene solo vibrato, deriva, soplo, filtro, trémolo y ancho.</p>
+        <p class="muted">Controles comunes: parciales, caída de armónicos, voces, desafinación, deriva lenta, filtro, vibrato, trémolo, barrido de filtro y ancho estéreo. Los sintes 80 añaden forma de onda (sierra, pulso, cuadrada o triángulo), ancho de pulso, envolvente de filtro (octavas y caída) y subgrave. La flauta tiene solo vibrato, deriva, soplo, filtro, trémolo y ancho.</p>
 
-        <h3>Notas puntuales</h3>
+        <h3>Puntuales</h3>
         <table>
           <tr><td>Campana</td><td>Parciales de campana y golpe metálico.</td></tr>
           <tr><td>Cuenco</td><td>Modos inarmónicos que baten, como un cuenco tibetano.</td></tr>
@@ -391,13 +395,15 @@
           <tr><td>Guitarra de nailon</td><td>Cuerda cálida y más corta, buena para arpegios.</td></tr>
           <tr><td>Cuerda pulsada</td><td>Entre arpa y guitarra suave (otro modelo, más sencillo).</td></tr>
           <tr><td>Gota tonal</td><td>Gota de agua afinada cuyo tono sube al final.</td></tr>
+          <tr><td>Piano FM</td><td>FM de dos operadores: campana metálica y cuerpo cálido de piano eléctrico.</td></tr>
+          <tr><td>Campana FM</td><td>FM de dos operadores con parciales metálicos y cola larga.</td></tr>
         </table>
-        <p class="muted">Controles comunes: decaimiento, brillo, dureza del golpe, inarmonicidad, batido, respuesta a la velocidad y ancho estéreo.</p>
+        <p class="muted">Controles comunes: decaimiento, brillo, dureza del golpe, inarmonicidad, batido, respuesta a la velocidad y ancho estéreo. Los FM cambian inarmonicidad y batido por relación FM, profundidad FM y caída FM.</p>
 
-        <h3>Ruidos</h3>
+        <h3>Texturas</h3>
         <p>Un único instrumento, <b>Ruido</b>: color (blanco, rosa o marrón), filtro y movimiento. Hay dos tipos de movimiento: <b>ráfagas</b> (cambios aleatorios suaves del nivel, del filtro o de ambos) y <b>oleaje</b> (ciclos regulares de 3–20 s que suben y bajan).</p>
 
-        <h3>Simulaciones</h3>
+        <h3>Naturaleza</h3>
         <table>
           <tr><td>Grillos</td><td>Individuos, registro, llamadas por segundo, pulsos por llamada y sincronía.</td></tr>
           <tr><td>Cigarras</td><td>Individuos, registro, duración de tandas y pausas.</td></tr>

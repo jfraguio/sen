@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 4.5<br>
+**Versión:** 4.8<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de música ambiental
 
@@ -740,10 +740,10 @@ No objetivos:
 
 | Familia | Etiqueta en la UI | Qué es | Tipos de elemento |
 | --- | --- | --- | --- |
-| `sustain` | Notas sostenidas | Pads, drones, cuerdas, flauta, coros: tonos que duran lo que dura el elemento. | `tone` |
-| `strike` | Notas puntuales | Campanas, cuencos, kalimba, piano, arpa, guitarra, vibráfono: golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
-| `noise` | Ruidos | Ruido de color filtrado y con movimiento (aire, rumor, oleaje abstracto). | `span` |
-| `nature` | Simulaciones | Generadores estocásticos de naturaleza: grillos, pájaros, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas. | `span` |
+| `sustain` | Sostenidos | Pads, drones, cuerdas, flauta, coros y sintes analógicos 80: tonos que duran lo que dura el elemento. | `tone` |
+| `strike` | Puntuales | Campanas, cuencos, kalimba, piano, arpa, guitarra, vibráfono y FM 80: golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
+| `noise` | Texturas | Ruido de color filtrado y con movimiento (aire, rumor, oleaje abstracto). | `span` |
+| `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, pájaros, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas. | `span` |
 | `layer` | Capas de pistas de sen | Una capa de una pista publicada de la app, en bucle (7.17). No está en la biblioteca. | `clip` |
 
 #### 7.3.3 Tipos de elemento
@@ -822,7 +822,7 @@ y `olas:<n>`.
 Todos los parámetros tienen un valor por defecto que suena bien por sí solo.
 Rangos entre paréntesis; unidades en 7.10.2.
 
-#### 7.4.1 Notas sostenidas (`sustain`)
+#### 7.4.1 Sostenidos (`sustain`)
 
 | Instrumento | Nombre | Síntesis |
 | --- | --- | --- |
@@ -833,17 +833,23 @@ Rangos entre paréntesis; unidades en 7.10.2.
 | `coro` | Coro | Fuente rica con tres formantes vocales interpolables (a–o–u). |
 | `vidrio` | Vidrio | Parciales inarmónicos sostenidos, brillo frío. |
 | `seno` | Seno | Una sinusoide pura, para graves y tonos de prueba. |
+| `pad80` | Pad 80 | Pad analógico: pulso/sierra desafinado, coro por voces, filtro lento y subgrave. |
+| `brass80` | Metales 80 | Sinte de metales con sierra desafinada y apertura rápida del filtro al atacar. |
+| `bass80` | Bajo 80 | Bajo analógico de pulso, subgrave y filtro resonante con caída rápida. |
+| `lead80` | Lead 80 | Lead de sierra con vibrato y filtro abierto para melodías. |
 
 Parámetros comunes: parciales (1–32), caída de armónicos (0,5–3), voces (1–7),
 desafinación entre voces (0–30 cents), deriva lenta de afinación (0–20 cents),
 filtro (paso bajo, alto o banda; 40–18 000 Hz; Q 0,5–12), vibrato
 (0–50 cents, 0,05–8 Hz), trémolo (0–1, 0,05–8 Hz), barrido de filtro
-(0–4 octavas, 0,01–1 Hz) y ancho estéreo (0–1). Propios: `drone` subgrave
-(0–1) y batido (0–2 Hz); `coro` vocal (0–1); `vidrio` inarmonicidad (0–1).
+(0–4 octavas, 0,01–1 Hz), ancho estéreo (0–1) y, en los sintes analógicos,
+forma de onda (sierra, pulso, cuadrada o triángulo), ancho de pulso (0,05–0,95),
+envolvente de filtro (0–4 octavas, caída 0,01–4 s) y subgrave (0–1). Propios:
+`drone` batido (0–2 Hz); `coro` vocal (0–1); `vidrio` inarmonicidad (0–1).
 `flauta` usa solo vibrato, deriva, soplo (0–1), corte del filtro, trémolo y
 ancho.
 
-#### 7.4.2 Notas puntuales (`strike`)
+#### 7.4.2 Puntuales (`strike`)
 
 | Instrumento | Nombre | Síntesis |
 | --- | --- | --- |
@@ -859,18 +865,22 @@ ancho.
 | `guitarra` | Guitarra de nailon | Cuerda modal pulsada cerca del puente (p = 0,14), más corta y cálida. |
 | `pulsada` | Cuerda pulsada | Karplus-Strong, entre arpa y guitarra suave. |
 | `gotaTonal` | Gota tonal | Burbuja de Minnaert afinada (el tono sube al final). |
+| `fmPiano` | Piano FM | FM de dos operadores: campana metálica y cuerpo cálido de piano eléctrico. |
+| `fmBell` | Campana FM | FM de dos operadores con parciales metálicos y cola larga. |
 
 Parámetros comunes: decaimiento (0,2–30 s), brillo (0–1), dureza del golpe
 (0–1), inarmonicidad (0–1), batido (0–3 Hz), curva de velocidad (0–1) y ancho
 estéreo (0–1); el vibráfono cambia inarmonicidad y batido por trémolo (0–1,
-0,05–8 Hz). Polifonía: 16 golpes simultáneos por pista y 64 en total; al
-superarla se corta el más antiguo con un fundido de 10 ms.
+0,05–8 Hz). Los FM sustituyen inarmonicidad y batido por relación FM (0,25–12),
+profundidad FM (0–12) y caída FM (0,02–10 s). Polifonía: 16 golpes simultáneos
+por pista y 64 en total; al superarla se corta el más antiguo con un fundido de
+10 ms.
 
 Un elemento nuevo de una pista de notas puntuales es una **nube**; el selector
 «Tipo» del inspector lo convierte en golpe o frase conservando inicio,
 duración y nivel.
 
-#### 7.4.3 Ruidos (`noise`)
+#### 7.4.3 Texturas (`noise`)
 
 Un único instrumento, `ruido`, con:
 
@@ -883,7 +893,7 @@ Un único instrumento, `ruido`, con:
     asimetría subida/bajada).
 - Estéreo: correlación entre canales (0 mono, 1 totalmente decorrelado).
 
-#### 7.4.4 Simulaciones (`nature`)
+#### 7.4.4 Naturaleza (`nature`)
 
 | Instrumento | Nombre | Parámetros propios |
 | --- | --- | --- |
@@ -945,12 +955,12 @@ por parámetro.
 ├────────────┬───────────────────────────────────────────────┬─────────────┤
 │ Biblioteca │ 0:00     0:30     1:00     1:30     2:00   ▼   │ Inspector   │
 │            │                                     cabezal   │             │
-│ Sostenidas │ Pad      M S ▮▮ │████████ Re3 La3 Mi4 ███████ │ (pista o    │
+│ Sostenidos │ Pad      M S ▮▮ │████████ Re3 La3 Mi4 ███████ │ (pista o    │
 │ Puntuales  │ Campana  M S ▮▮ │   · ·  ·░░ nube ░░·  ·   ·  │  elemento   │
-│ Ruidos     │ Grillos  M S ▮▮ │        ▒▒▒▒▒▒ crece ▒▒▒▒▒▒▒ │  seleccio-  │
-│ Simulac.   │ Aire     M S ▮▮ │▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │  nado)      │
-│ Plantillas │ + pista                                       │             │
-│            │ Maestro  reverb · eco · eq · techo            │             │
+│ Texturas   │ Grillos  M S ▮▮ │        ▒▒▒▒▒▒ crece ▒▒▒▒▒▒▒ │  seleccio-  │
+│ Naturaleza │ Aire     M S ▮▮ │▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │  nado)      │
+│ Sonidos    │ + pista                                       │             │
+│ Plantillas │ Maestro  reverb · eco · eq · techo            │             │
 ├────────────┴───────────────────────────────────────────────┴─────────────┤
 │ nivel ▮▮▮▮▮▯ −14 LUFS · pico −2,1 · motor 18 % · Do mayor · sin tempo     │
 └──────────────────────────────────────────────────────────────────────────┘
@@ -962,10 +972,11 @@ por parámetro.
 - **Transporte:** reproducir/pausa, detener (vuelve al inicio), posición y
   duración (`mm:ss,d`), región de escucha en bucle, rejilla, zoom y volumen de
   escucha (no afecta a la exportación).
-- **Biblioteca:** las plantillas (Vacío y las canciones de sen, 7.17) y las
-  cuatro familias con sus instrumentos. Cada sección se puede plegar con su
-  título. Cada instrumento tiene un botón ▶ que suena 3 s de muestra sin añadir
-  nada.
+- **Biblioteca:** instrumentos agrupados por gesto (**Sostenidos**,
+  **Puntuales**, **Texturas** y **Naturaleza**) y, dentro, por timbre, y
+  **Plantillas** (Vacío y canciones). Cada sección y subsección se puede plegar
+  y empieza plegada. Cada instrumento tiene un botón ▶ que suena 3 s de muestra
+  sin añadir nada.
 - **Línea de tiempo:** una fila por pista, con cabecera (nombre, color,
   silencio, solo, **volumen**, medidor y una «A» si tiene automatización) y sus
   elementos.
@@ -1034,7 +1045,11 @@ Los atajos de una letra no actúan mientras el foco está en un campo de texto.
 
 #### 7.5.4 Plantillas
 
-Al abrir el laboratorio sin proyecto guardado se ofrece empezar con:
+El laboratorio arranca siempre con un tema vacío (3 min, Do mayor, sin pistas).
+No hay diálogo de inicio: **Nuevo** crea otro tema vacío sin ofrecer canciones
+ni importaciones.
+
+Las plantillas están en la biblioteca, en **Plantillas**:
 
 - **Vacío:** 3 min, Do mayor, sin pistas.
 - Una de las **56 canciones de sen** ya publicadas (`assets/audio/<id>/01–04.wav`),
@@ -1042,14 +1057,13 @@ Al abrir el laboratorio sin proyecto guardado se ofrece empezar con:
   El título de la escena aparece como descripción.
 
 Elegir una canción abre su proyecto de capas (7.17), con una pista por capa a
-0 dB. La lista sale del catálogo de pistas publicadas (`publishedCatalog`) y se
-muestra también en la biblioteca, en **Plantillas**. Los cinco proyectos de
-`lab/templates/` quedan como material de prueba del motor; la interfaz ya no
-los ofrece.
+0 dB. La lista sale del catálogo de pistas publicadas (`publishedCatalog`). Los
+cinco proyectos de `lab/templates/` quedan como material de prueba del motor;
+la interfaz ya no los ofrece.
 
 #### 7.5.5 Ejemplo de flujo
 
-1. Abrir `/lab/` y elegir **Vacío**. Poner la tonalidad en Re pentatónica mayor.
+1. Abrir `/lab/` (ya hay un tema vacío) y poner la tonalidad en Re pentatónica mayor.
 2. Arrastrar **Drone** al inicio; en el inspector, notas `D2` y `A2`, fundido
    de entrada de 10 s.
 3. Arrastrar **Campana** a 0:20 (crea una **nube**): 6 notas por minuto,
@@ -1633,7 +1647,7 @@ lab/
     timeline.js             Línea de tiempo, selección, arrastres, regla
     inspector.js            Paneles del tema, pista, elemento y maestro
     controls.js             Deslizadores, notas y teclado, curvas, piano roll, automatización
-    library.js              Biblioteca plegable, audición de 3 s y plantillas
+    library.js              Biblioteca plegable por gesto/timbre y plantillas
     scenes.js               Catálogo y audio de las capas de canciones de sen
     export.js               Diálogo de exportación y progreso
     standalone.js           Generador del script autónomo
@@ -1650,8 +1664,8 @@ lab/
     master.js               EQ, limitador (pico real), sonoridad BS.1770
     wav.js                  Escritura RIFF por trozos, chunks INFO y senp, lectura
     voices/
-      sustain.js            pad, drone, cuerdas, flauta, coro, vidrio, seno
-      strike.js             campana, cuenco, kalimba, cajaMusica, celesta, marimba, vibrafono, piano, arpa, guitarra, pulsada, gotaTonal
+      sustain.js            pad, drone, cuerdas, flauta, coro, vidrio, seno y sintes analógicos 80
+      strike.js             campana, cuenco, kalimba, cajaMusica, celesta, marimba, vibrafono, piano, arpa, guitarra, pulsada, gotaTonal y FM 80
       layer.js              capa (capas de pistas de sen)
       noise.js              ruido
       nature/kit.js         Planificación, sílabas y partículas
@@ -1666,16 +1680,16 @@ scripts/
 ```
 
 Añadir un instrumento: definir sus parámetros en `engine/schema.js`,
-implementar la voz en `engine/voices/`, registrarla en `engine/index.js` y, si
-cambia la salida de proyectos existentes, subir `ENGINE_VERSION`. La UI no
-necesita cambios. Si se añade un módulo al motor, va también en
-`ENGINE_MODULES` (orden de dependencias).
+implementar la voz en `engine/voices/`, registrarla en `engine/index.js`,
+añadirla a `INSTRUMENT_GROUPS` para que aparezca en la biblioteca y, si cambia
+la salida de proyectos existentes, subir `ENGINE_VERSION`. Si se añade un
+módulo al motor, va también en `ENGINE_MODULES` (orden de dependencias).
 
 ### 7.14 Alcance implementado
 
 Las tres fases previstas están implementadas en la versión 4.0:
 
-- **Base:** los instrumentos del catálogo (hoy 31: 7 sostenidas, 12 puntuales,
+- **Base:** los instrumentos del catálogo (hoy 37: 11 sostenidas, 14 puntuales,
   ruido y 11 simulaciones con todas sus especies y superficies), elementos `tone`,
   `hit`, `phrase`, `cloud` y `span`, línea de tiempo, inspector, biblioteca con
   audición, escucha en directo, reverb y eco maestros, EQ y limitador,
@@ -1759,8 +1773,8 @@ Cualquiera de las 56 canciones publicadas de la app (`assets/audio/<id>/01–04.
 se abre en el laboratorio **separada en capas**, para cambiar sus volúmenes (u
 otra mezcla) y exportarla de nuevo.
 
-- **Entrada:** las plantillas del diálogo **Empezar** y de la biblioteca
-  (`Plantillas`), una por canción: «Ambiente - NN».
+- **Entrada:** las plantillas de la biblioteca (`Plantillas`), una por canción:
+  «Ambiente - NN».
 - **Capas:** las pistas que salen del generador de paisajes (52 de 56) se
   recalculan con su receta y semilla, y cada capa del `mix()` de la receta
   (lluvia, pájaros, pad, melodía…, con nombre en `soundscapes.js`) se entrega
@@ -2222,6 +2236,15 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **4.8:** se retira la sección **Sonidos de sen**; **Nuevo** crea siempre un
+  tema vacío sin diálogo de inicio; la biblioteca y sus subgrupos empiezan
+  plegados.
+- **4.7:** biblioteca reorganizada por gesto y timbre (Sostenidos, Puntuales,
+  Texturas y Naturaleza, con subgrupos plegables); inspector agrupado por
+  fuente, filtro, modulación y espacio.
+- **4.6:** sintetizadores de estética ochentera: **Pad 80**, **Metales 80**,
+  **Bajo 80** y **Lead 80** (sierra/pulso, envolvente de filtro y subgrave) y
+  **Piano FM** y **Campana FM** (FM de dos operadores).
 - **4.5:** se recuperan las cuatro escenas por ambiente (`01.wav` … `04.wav`,
   56 pistas publicadas). El laboratorio ofrece **Vacío** o cualquiera de esas
   canciones como plantilla de inicio, abierta por capas (7.17).

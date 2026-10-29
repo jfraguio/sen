@@ -113,14 +113,16 @@ cualquier escena sin tocar código.
   volúmenes o añadir instrumentos y exportar el WAV con el formato de la app.
   Sin tocar nada, suena igual que en la app.
 - **Línea de tiempo** con pistas y elementos: notas sostenidas (pad, drone,
-  cuerdas, flauta suave, coro, vidrio, seno), notas puntuales (campana, cuenco,
-  kalimba, caja de música, celesta, marimba, vibráfono, piano de fieltro, arpa,
-  guitarra de nailon, cuerda pulsada, gota tonal) como golpes, frases o nubes
+  cuerdas, flauta suave, coro, vidrio, seno, pad 80, metales 80, bajo 80 y
+  lead 80), notas puntuales (campana, cuenco, kalimba, caja de música, celesta,
+  marimba, vibráfono, piano de fieltro, arpa, guitarra de nailon, cuerda
+  pulsada, gota tonal, piano FM y campana FM) como golpes, frases o nubes
   generativas, ruido de color y **simulaciones** (grillos, cigarras, pájaros
   por especie, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas).
   Cada pista tiene silencio, solo y volumen en su cabecera.
-- **Biblioteca plegable:** cada familia y la lista de plantillas se despliegan
-  o pliegan desde su título para recorrer el panel con comodidad.
+- **Biblioteca plegable por gesto y timbre:** Sostenidos, Puntuales, Texturas y
+  Naturaleza, con subgrupos como Sintes, Teclados, Láminas, Agua o Animales.
+  Las secciones y subsecciones empiezan plegadas.
 - **Escucha en directo** mientras editas; región de escucha en bucle.
 - Tonalidad, tempo opcional, reverb y eco maestros, automatización por pista,
   deshacer, autoguardado, plantillas (Vacío y las canciones de sen), modo

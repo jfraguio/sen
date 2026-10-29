@@ -1,8 +1,8 @@
 /**
  * Notas puntuales: campana, cuenco, kalimba, caja de música, celesta,
  * marimba, vibráfono, piano de fieltro, arpa y guitarra de nailon (síntesis
- * modal), cuerda pulsada (Karplus-Strong) y gota tonal (burbuja de Minnaert
- * afinada).
+ * modal), cuerda pulsada (Karplus-Strong), gota tonal (burbuja de Minnaert
+ * afinada) y los FM de estética ochentera (piano y campana).
  *
  * Los elementos `hit`, `phrase` y `cloud` se planifican como golpes; cada
  * golpe es una voz con su propio decaimiento.
@@ -34,7 +34,7 @@ export const MODAL_SETS = {
   vidrio: [[1, 1, 1], [2.32, 0.3, 0.5], [4.25, 0.15, 0.3], [6.63, 0.05, 0.2]],
 };
 
-const STRIKE_GAIN = { campana: 1, cuenco: 1, kalimba: 1.3, cajaMusica: 1.5, celesta: 1.2, marimba: 1.8, vibrafono: 1, piano: 1.1, arpa: 0.9, guitarra: 1, pulsada: 3.2, gotaTonal: 2 };
+const STRIKE_GAIN = { campana: 1, cuenco: 1, kalimba: 1.3, cajaMusica: 1.5, celesta: 1.2, marimba: 1.8, vibrafono: 1, piano: 1.1, arpa: 0.9, guitarra: 1, pulsada: 3.2, gotaTonal: 2, fmPiano: 1.1, fmBell: 1.15 };
 const ATTACKS = { kalimba: 0.003, celesta: 0.004, cuenco: 0.006, marimba: 0.0015, vibrafono: 0.003, piano: 0.005, arpa: 0.002, guitarra: 0.002 };
 const TAIL_DB = 8.06; // ln(10^(70/20)): de 0 a −70 dB
 
@@ -155,6 +155,7 @@ export function compileStrikeElement(track, el, ctx) {
 export function strikeLength(inst, p, freq) {
   if (inst === 'gotaTonal') return Math.min(6, (p.decay / 6.91) * TAIL_DB + 0.01);
   if (inst === 'pulsada') return Math.min(40, (p.decay / 6.91) * TAIL_DB * 1.1 + 0.02);
+  if (inst === 'fmPiano' || inst === 'fmBell') return Math.min(45, (p.decay / 6.91) * TAIL_DB + 0.02);
   const modes = MODAL_SETS[inst] || MODAL_SETS.campana;
   const maxScale = Math.max(...modes.map((m) => m[2]));
   const bright = p.brightness ?? 0.5;
@@ -164,6 +165,14 @@ export function strikeLength(inst, p, freq) {
 export function createStrikeVoice(inst, p, freq, amp, vel, pan, seed, sr, i0) {
   if (inst === 'pulsada') return new KarplusVoice({ freq, amp, decay: p.decay, brightness: p.brightness, hardness: p.hardness, pan, seed, sr, i0 });
   if (inst === 'gotaTonal') return new BubbleVoice({ freq, amp, decay: p.decay, brightness: p.brightness, pan, seed, sr, i0 });
+  if (inst === 'fmPiano' || inst === 'fmBell') {
+    return new FMVoice({
+      freq, amp, vel,
+      decay: p.decay, brightness: p.brightness ?? 0.5, hardness: p.hardness ?? 0.3,
+      ratio: p.fmRatio ?? 2, index: p.fmIndex ?? 3, time: p.fmTime ?? 1.2,
+      pan, seed, sr, i0,
+    });
+  }
   return createModalVoice({
     modes: MODAL_SETS[inst] || MODAL_SETS.campana,
     freq, amp, vel,
@@ -335,6 +344,70 @@ class KarplusVoice {
       }
       L[off + q] += out * this.gl;
       R[off + q] += out * this.gr;
+    }
+  }
+}
+
+/* ------------------------------------------------------------ FM (2 operadores) */
+
+class FMVoice {
+  constructor({ freq, amp, vel = 0.7, decay, brightness = 0.5, hardness = 0.3, ratio = 2, index = 3, time = 1.2, pan, seed, sr, i0 }) {
+    this.sr = sr;
+    this.f = clamp(freq, 20, sr * 0.42);
+    this.ratio = clamp(ratio, 0.25, 12);
+    this.tau = Math.max(0.02, decay / 6.91);
+    this.modTau = Math.max(0.01, time);
+    this.attack = 0.0015 + (1 - clamp(hardness, 0, 1)) * 0.006;
+    this.amp = amp * 0.95;
+    this.index = index * (0.35 + 0.65 * clamp(vel, 0, 1)) * (0.45 + 0.55 * clamp(brightness, 0, 1));
+    const phC = noiseAt(seed, 3) * 0.5 + 0.5;
+    const phM = noiseAt(seed, 5) * 0.5 + 0.5;
+    this.phaseC = (phC + (this.f * i0) / sr) % 1;
+    this.phaseM = (phM + (this.f * this.ratio * i0) / sr) % 1;
+    this.incC = this.f / sr;
+    this.incM = (this.f * this.ratio) / sr;
+    [this.gl, this.gr] = panGains(pan);
+    // Golpe de púa: un soplo metálico muy breve.
+    this.seed = seed;
+    this.strikeAmp = amp * clamp(hardness, 0, 1) * 0.35;
+    this.strikeTau = (0.001 + clamp(hardness, 0, 1) * 0.003) * sr;
+    this.strikeLen = Math.round(this.strikeTau * 7);
+    this.bp = new Svf(2).set(clamp(freq * (2 + brightness * 4), 300, sr * 0.4), 0.9, sr);
+    this.kill = 0;
+    this.killLeft = 0;
+    this.done = false;
+  }
+
+  stop(frames) {
+    if (!this.kill) {
+      this.kill = Math.max(1, frames);
+      this.killLeft = this.kill;
+    }
+  }
+
+  process(L, R, off, n, i) {
+    const sr = this.sr;
+    for (let q = 0; q < n; q++) {
+      const t = (i + q) / sr;
+      const ampEnv = (1 - Math.exp(-t / this.attack)) * Math.exp(-t / this.tau);
+      const modEnv = Math.exp(-t / this.modTau);
+      const mod = sineCycle(this.phaseM) * this.index * modEnv;
+      let y = sineCycle(this.phaseC + mod) * ampEnv * this.amp;
+      const si = i + q;
+      if (si < this.strikeLen) {
+        y += this.bp.tick(noiseAt(this.seed, si) * Math.exp(-si / this.strikeTau)) * this.strikeAmp;
+      }
+      if (this.kill) {
+        y *= this.killLeft / this.kill;
+        if (this.killLeft > 0) this.killLeft--;
+        else this.done = true;
+      }
+      L[off + q] += y * this.gl;
+      R[off + q] += y * this.gr;
+      this.phaseC += this.incC;
+      if (this.phaseC >= 1) this.phaseC -= 1;
+      this.phaseM += this.incM;
+      if (this.phaseM >= 1) this.phaseM -= 1;
     }
   }
 }

@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { compile, createRenderer, renderToWav, ENGINE_MODULES, auditionProject } from '../lab/engine/index.js';
 import {
-  INSTRUMENTS, LabFileError, canonicalProject, createElement, createProject, createSceneProject, createTrack, layerKey, normalizeProject,
+  INSTRUMENTS, INSTRUMENT_GROUPS, LabFileError, canonicalProject, createElement, createProject, createSceneProject, createTrack, layerKey, normalizeProject,
 } from '../lab/engine/schema.js';
 import { publishedLayers } from './lib/published.js';
 import { decodeWavChannels, readSenpProject } from '../lab/engine/wav.js';
@@ -148,7 +148,11 @@ function smallProject(over = {}) {
     }
   }
   ok(all, `los ${playable.length} instrumentos suenan en la audición, sin NaN ni saturación`);
+  const listed = INSTRUMENT_GROUPS.flatMap((g) => g.subgroups.flatMap((s) => s.instruments));
+  ok(playable.length === listed.length && playable.every((id) => listed.filter((x) => x === id).length === 1),
+    'la biblioteca agrupa todos los instrumentos una sola vez');
 }
+
 
 /* ------------------------------------------------------------ capas de pistas de sen */
 

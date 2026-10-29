@@ -1,9 +1,11 @@
 /**
- * Notas sostenidas: pad, drone, cuerdas, flauta suave, coro, vidrio y seno.
+ * Notas sostenidas: pad, drone, cuerdas, flauta suave, coro, vidrio, seno y
+ * los sintetizadores analógicos de estética ochentera (pad, metales, bajo y
+ * lead).
  *
  * Cada nota de un elemento `tone` es una voz con varias subvoces desafinadas
  * (unísono), timbre por tabla de onda o parciales, filtro de estado variable y
- * moduladores (vibrato, deriva, trémolo y barrido de filtro).
+ * moduladores (vibrato, deriva, trémolo, barrido y envolvente de filtro).
  */
 
 import {
@@ -80,11 +82,16 @@ class SustainVoice {
       const H = Math.min(maxH, Math.max(1, Math.round(p.partials || 1)));
       const amps = [];
       const phases = [];
+      const wave = p.wave || null;
+      const pulseWidth = clamp(p.pulseWidth ?? 0.5, 0.05, 0.95);
       for (let h = 1; h <= H; h++) {
         let a = Math.pow(h, -(p.rolloff || 1));
-        if (inst === 'drone' && h % 2 === 0) a *= 0.7;
+        if (wave === 'pulso') a *= Math.abs(Math.sin(Math.PI * h * pulseWidth));
+        else if (wave === 'cuadrada') a *= h % 2 ? 1 : 0;
+        else if (wave === 'triangulo') a *= h % 2 ? (h % 4 === 1 ? 1 : -1) : 0;
+        else if (inst === 'drone' && h % 2 === 0) a *= 0.7;
         amps.push(a);
-        phases.push(inst === 'cuerdas' ? 0 : rng.next());
+        phases.push(wave || inst === 'cuerdas' ? 0 : rng.next());
       }
       this.table = makeWavetable(amps, phases);
     } else if (this.kind === 'partials') {
@@ -115,8 +122,8 @@ class SustainVoice {
         }
       }
     }
-    // Subgrave del drone
-    this.sub = inst === 'drone' ? (p.sub || 0) * 0.7 : 0;
+    // Subgrave (drone y sintetizadores analógicos)
+    this.sub = (p.sub || 0) * 0.7;
     if (this.sub) {
       this.subInc = quantizeFreq(f / 2, period, sr) / sr;
       const ph = rng.next() + this.subInc * i0;
@@ -163,6 +170,8 @@ class SustainVoice {
     const phT = rng.next();
     const phS = rng.next();
     const cutoff = p.cutoff ?? 18000;
+    const filterEnv = p.filterEnv || 0;
+    const filterTime = Math.max(0.01, p.filterTime || 0.2);
     const env = this.env;
     const base = 0.24 * noteGain * (inst === 'flauta' ? 0.6 : 1);
     this.ctl = new Control(3, (i, out) => {
@@ -170,7 +179,7 @@ class SustainVoice {
       const cents = vibDepth * sineCycle(vibRate * t + phV) + driftDepth * drift(t * driftRate);
       out[0] = Math.pow(2, cents / 1200);
       out[1] = env.gainAt(i) * base * (1 - tremDepth * (0.5 + 0.5 * sineCycle(tremRate * t + phT)));
-      out[2] = cutoff * Math.pow(2, sweepDepth * sineCycle(sweepRate * t + phS));
+      out[2] = cutoff * Math.pow(2, filterEnv * Math.exp(-t / filterTime) + sweepDepth * sineCycle(sweepRate * t + phS));
     });
   }
 

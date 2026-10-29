@@ -133,27 +133,32 @@ export class LabAudio {
     this.worker.postMessage({ type: 'audition', id, project: { key: project.key, tuning: project.tuning, master: project.master }, track, note, seconds });
   }
 
+  playBuffer(buf) {
+    if (!this.ctx) return;
+    try {
+      this.auditionSrc?.stop();
+    } catch {
+      /* ya parado */
+    }
+    if (!this.auditionGain) {
+      this.auditionGain = this.ctx.createGain();
+      this.auditionGain.connect(this.ctx.destination);
+    }
+    this.auditionGain.gain.value = this.volume;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(this.auditionGain);
+    src.start();
+    this.auditionSrc = src;
+  }
+
   onWorker(m) {
     if (m.type === 'audition') {
       if (m.id !== this.auditionId || !this.ctx) return;
       const buf = this.ctx.createBuffer(2, m.L.length, m.rate);
       buf.copyToChannel(m.L, 0);
       buf.copyToChannel(m.R, 1);
-      try {
-        this.auditionSrc?.stop();
-      } catch {
-        /* ya parado */
-      }
-      if (!this.auditionGain) {
-        this.auditionGain = this.ctx.createGain();
-        this.auditionGain.connect(this.ctx.destination);
-      }
-      this.auditionGain.gain.value = this.volume;
-      const src = this.ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(this.auditionGain);
-      src.start();
-      this.auditionSrc = src;
+      this.playBuffer(buf);
     } else if (m.type === 'status') this.h.onStatus?.(m);
     else if (m.type === 'compiled') this.h.onCompiled?.(m);
     else if (m.type === 'error') this.h.onError?.(m.message);
