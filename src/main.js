@@ -44,26 +44,12 @@ const MENU_BACKDROP = {
   pointer: { x: 0, y: 0 },
 };
 
-/* Posiciones del menú en porcentaje del lienzo de la constelación. */
-const NODE_LAYOUT = [
-  [18, 10],
-  [50, 8],
-  [82, 12],
-  [30, 27],
-  [69, 25],
-  [14, 45],
-  [47, 43],
-  [83, 47],
-  [27, 63],
-  [59, 61],
-  [87, 66],
-  [18, 80],
-  [50, 82],
-  [82, 84],
-];
-
-/* Índices en el orden en que se dibuja la línea que une los nodos. */
-const NODE_PATH = [0, 1, 2, 4, 3, 5, 6, 7, 10, 9, 8, 11, 12, 13];
+/* Cuadrícula del menú: tres columnas en vertical y cinco en horizontal.
+   Las posiciones se calculan en píxeles y se convierten a porcentaje para que
+   los nodos queden alineados y la constelación pase por sus centros. */
+let NODE_LAYOUT = [];
+/** Orden de la línea, en serpentina por filas. */
+let NODE_PATH = [];
 
 let active = null;
 /** Pista pendiente al cambiar de hash mientras hay una sesión en marcha. */
@@ -73,6 +59,46 @@ let durationMinutes = APP.defaultDurationMin;
 /* --------------------------------------------------------------------------
    Cuadrícula
    -------------------------------------------------------------------------- */
+
+/**
+ * Centros de los nodos en % del contenedor. En vertical caben tres columnas
+ * (la última fila queda centrada a media columna); en horizontal, cinco.
+ */
+function gridLayout(width, height) {
+  const count = ambients.length;
+  const portrait = height > width;
+  const cols = portrait ? 3 : 5;
+  const rows = Math.ceil(count / cols);
+  const step = Math.min(width / cols, height / rows);
+  const left = (width - step * cols) / 2;
+  // En vertical la cuadrícula se pega arriba (deja aire para la duración);
+  // en horizontal se centra.
+  const top = (height - step * rows) * (portrait ? 0.06 : 0.5);
+  const positions = [];
+  for (let i = 0; i < count; i++) {
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const inRow = Math.min(cols, count - row * cols);
+    const x = inRow < cols
+      ? width / 2 + (col - (inRow - 1) / 2) * step
+      : left + step * (col + 0.5);
+    const y = top + step * (row + 0.5);
+    positions.push([(x / width) * 100, (y / height) * 100]);
+  }
+  return { positions, cols };
+}
+
+/** Recorrido en serpentina por filas: 0,1,2, 5,4,3, 6,7,8… */
+function serpentinePath(count, cols) {
+  const order = [];
+  for (let start = 0; start < count; start += cols) {
+    const row = [];
+    for (let i = start; i < Math.min(count, start + cols); i++) row.push(i);
+    if ((start / cols) % 2) row.reverse();
+    order.push(...row);
+  }
+  return order;
+}
 
 function smoothPath(points) {
   if (points.length < 2) return '';
@@ -92,6 +118,7 @@ function smoothPath(points) {
 }
 
 function drawConstellationLines() {
+  if (!NODE_LAYOUT.length) return;
   const points = NODE_PATH.map((index) => NODE_LAYOUT[index]);
   const path = smoothPath(points);
   els.lines.innerHTML = `
@@ -109,7 +136,28 @@ function drawConstellationLines() {
   `;
 }
 
+function layoutConstellation() {
+  const rect = els.grid.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const { positions, cols } = gridLayout(rect.width, rect.height);
+  NODE_LAYOUT = positions;
+  NODE_PATH = serpentinePath(ambients.length, cols);
+  [...els.grid.children].forEach((node, index) => {
+    const [x, y] = positions[index];
+    node.style.setProperty('--x', x.toFixed(3));
+    node.style.setProperty('--y', y.toFixed(3));
+  });
+  drawConstellationLines();
+}
+
 function buildGrid() {
+  const rect = els.grid.getBoundingClientRect();
+  if (rect.width && rect.height) {
+    const { positions, cols } = gridLayout(rect.width, rect.height);
+    NODE_LAYOUT = positions;
+    NODE_PATH = serpentinePath(ambients.length, cols);
+  }
+
   ambients.forEach((ambient, index) => {
     const button = document.createElement('button');
     const [x, y] = NODE_LAYOUT[index] || [50, 50];
@@ -142,6 +190,7 @@ function buildGrid() {
   });
 
   drawConstellationLines();
+  new ResizeObserver(() => layoutConstellation()).observe(els.grid);
 }
 
 /* --------------------------------------------------------------------------

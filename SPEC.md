@@ -89,12 +89,16 @@ Al cargar `/`:
   magenta, cian y turquesa que derivan, cintas de aurora, polvo, un mandala
   (flor de la vida y hexagrama) que respira muy tenue, 320 estrellas con
   paralaje según el puntero y estrellas fugaces ocasionales.
-- Se generan catorce botones circulares, uno por ambiente, en las posiciones
-  definidas en `NODE_LAYOUT`. Cada nodo tiene un halo, un anillo rúnico
+- Se generan catorce botones circulares, uno por ambiente, en una cuadrícula
+  calculada (`gridLayout`): **tres columnas** si el lienzo es vertical y
+  **cinco** si es horizontal, con celdas cuadradas, centrada y con la última
+  fila incompleta centrada a media celda. Se recalcula al cambiar el tamaño
+  (`ResizeObserver`). Cada nodo tiene un halo, un anillo rúnico
   (`ringSvg()`: marcas, arco y gemas) que gira despacio y un sigilo de estilo
   alquímico que se dibuja trazo a trazo al entrar. La entrada escalonada de
   nodos e iconos dura ~1,2 s y solo se ejecuta al cargar la página.
-- Se dibuja una línea suave que une los nodos en el orden de `NODE_PATH`, con
+- Se dibuja una línea suave que une los nodos en serpentina por filas
+  (`serpentinePath`): izquierda a derecha, derecha a izquierda, etc., con
   un flujo de luz que la recorre.
 - La constelación y el título se desplazan ligeramente con el puntero
   (paralaje).
@@ -2271,8 +2275,8 @@ comprueba automáticamente los del motor.
 7. Añade sus tres paisajes a `SCENES` y sus dos escenas con melodía a `MUSICAL`
    en `scripts/lib/soundscapes.js` y genéralos con
    `node scripts/make-soundscapes.mjs --only=<id>`.
-8. Añade una posición en `NODE_LAYOUT` y un índice en `NODE_PATH` en
-   `src/main.js`.
+8. Añade el ambiente a `ambients`: la cuadrícula del menú y la línea se
+   recalculan solas a partir del número de ambientes.
 
 ### 12.2 Cambiar la duración
 
