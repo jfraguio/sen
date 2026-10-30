@@ -5,7 +5,7 @@
 
 import { LabFileError, normalizeProject } from '../engine/schema.js';
 import { readSenpProject } from '../engine/wav.js';
-import { slugify } from '../engine/index.js';
+import { fileBase } from './util.js';
 
 const KEY = 'sen-lab/current';
 const META = 'sen-lab/meta';
@@ -64,7 +64,7 @@ export function downloadBlob(blob, filename) {
 }
 
 export function projectFileName(project) {
-  return `${slugify(project.name)}.sen.json`;
+  return `${fileBase(project.name)}.sen.json`;
 }
 
 /** Descarga el proyecto y lo marca como descargado. */

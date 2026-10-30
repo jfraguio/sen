@@ -735,16 +735,17 @@ const LAYER_COLORS = ['#8fbdff', '#9ed6a0', '#e6d891', '#f0b37e', '#c6b2ff', '#9
  */
 export function createSceneProject(info) {
   const nn = String(info.track).padStart(2, '0');
+  const file = info.file || `${nn}.wav`;
   const duration = Math.round(clampNum(info.duration, LIMITS.minDuration, LIMITS.maxLoop) * 1000) / 1000;
   const lufs = LOUDNESS_TARGETS.includes(info.lufs) ? info.lufs : -23;
   const p = createProject({
-    name: `${info.name} · ${nn} · ${info.title}`,
-    notes: `Pista ${nn} de ${info.name} en sen («${info.title}»). Para usarla en la app: Exportar → «Escena para sen» y sustituye assets/audio/${info.ambient}/${nn}.wav por el WAV descargado.`,
+    name: nn,
+    notes: `Pista ${nn} de ${info.name} en sen. Para usarla en la app: Exportar → «Escena para sen» y sustituye assets/audio/${info.ambient}/${file} por el WAV descargado.`,
     seed: `sen-${info.ambient}-${nn}`,
     duration,
     end: { mode: 'loop', fadeOut: 4 },
     export: { ...EXPORT_DEFAULTS, ...EXPORT_PRESETS.escena, loudness: lufs, range: 'all' },
-    scene: { ambient: info.ambient, track: info.track, lufs },
+    scene: { ambient: info.ambient, track: info.track, lufs, name: info.name, file },
   });
   delete p.export.label;
   p.master.eq = { on: false, lowCut: 20, highCut: 20000, tilt: 0 };
@@ -753,7 +754,7 @@ export function createSceneProject(info) {
     t.id = `capa${k + 1}`;
     t.name = layerName;
     t.color = LAYER_COLORS[k % LAYER_COLORS.length];
-    t.source = { ambient: info.ambient, track: info.track, layer: k, name: layerName, title: `${info.name} · ${nn} · ${info.title}` };
+    t.source = { ambient: info.ambient, track: info.track, layer: k, name: layerName, file, ambientName: info.name };
     const e = createElement(t, p, 0, 'clip');
     e.id = `e${k + 1}`;
     e.length = duration;
@@ -883,6 +884,24 @@ export function normalizeProject(raw) {
   out.seed = p.seed === undefined ? 'sen' : String(p.seed);
   out.createdAt = typeof p.createdAt === 'string' ? p.createdAt : base.createdAt;
   out.engine = typeof p.engine === 'string' ? p.engine : ENGINE_VERSION;
+  if (p.scene && typeof p.scene === 'object' && Number.isInteger(p.scene.track) && p.scene.track >= 1) {
+    const text = (v) => (typeof v === 'string' ? v.slice(0, 120) : '');
+    const nn = String(p.scene.track).padStart(2, '0');
+    out.scene = {
+      ambient: text(p.scene.ambient),
+      track: p.scene.track,
+      name: text(p.scene.name),
+      file: text(p.scene.file) || `${nn}.wav`,
+    };
+    if (LOUDNESS_TARGETS.includes(p.scene.lufs)) out.scene.lufs = p.scene.lufs;
+    // Los proyectos de antes llamaban al tema «Ambiente · NN · título de la
+    // escena». Ahora, por defecto, el tema se llama como el archivo.
+    if (!out.name.trim() || /^\s*[^·]+·\s*\d{1,2}\s*·\s*\S/.test(out.name)) out.name = nn;
+    if (/^Pista \d{1,2} de .+ en sen \(«.+»\)\./.test(out.notes)) {
+      const ambientName = out.scene.name || out.scene.ambient;
+      out.notes = `Pista ${nn} de ${ambientName} en sen. Para usarla en la app: Exportar → «Escena para sen» y sustituye assets/audio/${out.scene.ambient}/${out.scene.file} por el WAV descargado.`;
+    }
+  } else delete out.scene;
 
   const dur = Number(p.duration);
   out.duration = Number.isFinite(dur) ? clampNum(dur, LIMITS.minDuration, LIMITS.maxDuration) : 180;
@@ -958,7 +977,10 @@ export function normalizeProject(raw) {
     const track = { ...t, id: uniq(t.id, 't'), family: inst.family, name: typeof t.name === 'string' && t.name ? t.name : inst.label };
     if (inst.family === 'layer') {
       const text = (v) => (typeof v === 'string' ? v.slice(0, 120) : '');
-      track.source = { ambient: t.source.ambient, track: t.source.track, layer: t.source.layer, name: text(t.source.name), title: text(t.source.title) };
+      track.source = {
+        ambient: t.source.ambient, track: t.source.track, layer: t.source.layer,
+        name: text(t.source.name), file: text(t.source.file), ambientName: text(t.source.ambientName),
+      };
     }
     track.color = /^#[0-9a-f]{6}$/i.test(t.color || '') ? t.color : inst.color;
     const params = { ...(t.params || {}) };

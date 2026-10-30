@@ -9,14 +9,14 @@ import { INSTRUMENTS, INSTRUMENT_GROUPS } from '../engine/schema.js';
 /** Opción para empezar un tema desde cero. */
 export const BLANK_TEMPLATE = { blank: true, name: 'Vacío', title: '3 min, Do mayor, sin pistas.' };
 
-/** Nombre visible de una pista publicada como plantilla: «Bosque - 01». */
+/** Nombre visible de una pista publicada como plantilla: «Lluvia 01». */
 export function templateName(ambientName, track) {
-  return `${ambientName} - ${String(track).padStart(2, '0')}`;
+  return `${ambientName} ${String(track).padStart(2, '0')}`;
 }
 
 /**
  * Opciones para empezar: el tema vacío y una plantilla por cada canción
- * publicada, con el nombre «Ambiente - NN» y el título de la escena.
+ * publicada, con el nombre «Ambiente NN» y el archivo debajo («01.wav»).
  */
 export function startTemplates(catalog) {
   return [
@@ -25,7 +25,7 @@ export function startTemplates(catalog) {
       ambient: amb.id,
       track: t.track,
       name: templateName(amb.name, t.track),
-      title: t.title,
+      file: t.file,
     }))),
   ];
 }
@@ -83,12 +83,15 @@ export function createLibrary(root, store, actions) {
     /** Sustituye la lista de plantillas por las canciones publicadas de sen. */
     setTemplates(list) {
       templates.body.textContent = '';
-      templates.body.append(...list.map((t) => h('button', {
-        type: 'button',
-        class: 'lib-template',
-        title: t.title,
-        onclick: () => actions.loadTemplate(t),
-      }, t.name, h('small', {}, t.title))));
+      templates.body.append(...list.map((t) => {
+        const sub = t.file || t.title;
+        return h('button', {
+          type: 'button',
+          class: 'lib-template',
+          title: sub,
+          onclick: () => actions.loadTemplate(t),
+        }, t.name, sub ? h('small', {}, sub) : null);
+      }));
     },
   };
 }

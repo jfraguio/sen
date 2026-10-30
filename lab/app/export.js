@@ -3,9 +3,9 @@
  * cancelación), proyecto `.sen.json` y script autónomo.
  */
 
-import { h, toast, announce } from './util.js';
+import { h, toast, announce, fileBase } from './util.js';
 import { EXPORT_PRESETS } from '../engine/schema.js';
-import { ENGINE_MODULES, slugify } from '../engine/index.js';
+import { ENGINE_MODULES } from '../engine/index.js';
 import { downloadBlob, downloadProject } from './storage.js';
 import { buildStandalone } from './standalone.js';
 
@@ -154,9 +154,7 @@ export function createExportDialog(store, actions) {
       busy(false);
       update();
       if (m.type === 'done') {
-        const stamp = new Date();
-        const pad = (v) => String(v).padStart(2, '0');
-        const name = `${slugify(project.name)}-${stamp.getFullYear()}${pad(stamp.getMonth() + 1)}${pad(stamp.getDate())}-${pad(stamp.getHours())}${pad(stamp.getMinutes())}.wav`;
+        const name = `${fileBase(project.name)}.wav`;
         downloadBlob(new Blob(m.buffers, { type: 'audio/wav' }), name);
         const s = m.stats;
         const f = (v) => (Number.isFinite(v) ? v.toFixed(1).replace('.', ',') : '—');
@@ -209,9 +207,9 @@ export function createExportDialog(store, actions) {
         if (!res.ok) throw new Error(`no se pudo leer ${m}`);
         return [m, await res.text()];
       }));
-      const slug = slugify(state.project.name);
-      const text = buildStandalone(sources, state.project, o, slug);
-      downloadBlob(new Blob([text], { type: 'text/javascript' }), `${slug}.render.mjs`);
+      const fileBaseName = fileBase(state.project.name);
+      const text = buildStandalone(sources, state.project, o, fileBaseName);
+      downloadBlob(new Blob([text], { type: 'text/javascript' }), `${fileBaseName}.render.mjs`);
       announce('Script descargado.');
     } catch (err) {
       toast(`No se pudo generar el script: ${err.message}`, { error: true });

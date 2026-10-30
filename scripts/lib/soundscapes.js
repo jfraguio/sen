@@ -2825,7 +2825,12 @@ export const PUBLISHED = {
   bosque: [5, 6, 7, 8, 9, 10], burbujas: [5, 6, 7, 8, 9, 10], cuento: [4, 6, 7, 8, 9, 10], meditacion: [4, 6, 7, 8, 9, 10], bichos: [4, 6, 7, 8, 9, 10],
 };
 
-/** Catálogo de pistas publicadas, en el orden de la app: `[{ id, name, tracks: [{ track, scene, title }] }]`. */
+/**
+ * Catálogo de pistas publicadas, en el orden de la app:
+ * `[{ id, name, tracks: [{ track, scene, file }] }]`. `file` es el nombre del
+ * archivo publicado (`01.wav` … `06.wav`); los títulos de escena del generador
+ * (`SCENES`) son solo etiquetas internas y no salen en la interfaz.
+ */
 export function publishedCatalog() {
   return Object.keys(AMBIENT_NAMES).map((id) => ({
     id,
@@ -2833,7 +2838,7 @@ export function publishedCatalog() {
     tracks: PUBLISHED[id].map((scene, k) => ({
       track: k + 1,
       scene: scene === 'base' ? null : scene,
-      title: scene === 'base' ? 'Escena original' : SCENES[id][scene - FIRST_SCENE].title,
+      file: `${String(k + 1).padStart(2, '0')}.wav`,
     })),
   }));
 }

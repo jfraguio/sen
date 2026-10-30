@@ -106,7 +106,7 @@ async function layerSamples(p) {
     const [ambient, track] = key.split('/');
     const res = await publishedLayers(ambient, Number(track), async (rel) => new Uint8Array(fs.readFileSync(path.join(root, rel))));
     res.layers.forEach((l, k) => samples.set(layerKey({ ambient, track: Number(track), layer: k }), { rate: res.sampleRate, data: l.data }));
-    console.log(`  capas de ${res.name} · ${String(res.track).padStart(2, '0')} · ${res.title}: ${res.layers.map((l) => l.name).join(', ')}`);
+    console.log(`  capas de ${res.name} · ${res.file}: ${res.layers.map((l) => l.name).join(', ')}`);
   }
   return samples;
 }

@@ -148,12 +148,21 @@ Al iniciar una sesión:
 6. Se comprueban las escenas disponibles del ambiente con peticiones `HEAD`.
 7. El orden es siempre `01.wav`, `02.wav` … `06.wav`. Se empieza por
    `01.wav`; si no existe, por la primera disponible. El indicador arranca en
-   `1/N`.
+   `1/N`. Si la sesión se abre desde `#<id>/<pista>`, se empieza por esa pista
+   (y si no existe, por la primera).
 8. Se reproduce la pista en bucle y se arranca la animación del ambiente y el
    reloj de sesión.
 9. Se solicita el Screen Wake Lock.
 10. Se añade `#<id>/<pista>` al historial mediante `pushState`, por ejemplo
-    `#mar/01`.
+    `#mar/01`. Si se entró directamente por URL, se usa `replaceState`.
+
+Al cargar el menú (`/`), un hash `#<id>/<pista>` (por ejemplo `#bosque/02`)
+abre esa sesión directamente, con su animación y esa pista. Cambiar el hash
+con una sesión abierta (o usar Atrás/Adelante entre pistas) cierra la actual
+y abre la indicada. Como no hay gesto
+del usuario, el navegador puede bloquear el audio: en ese caso se muestra
+«Toca para activar el sonido» y el primer toque activa el audio sin cerrar la
+sesión.
 
 Durante la sesión:
 
@@ -240,7 +249,8 @@ disponible no se muestra ningún error: la app funciona igual.
 - Al pulsar el indicador se avanza cíclicamente por ese orden: `1/N`, `2/N`…
   y de nuevo `1/N`. No se reinicia el reloj de la sesión.
 - El hash de la URL indica el número real del archivo que está sonando, por
-  ejemplo `#mar/01` o `#mar/03`.
+  ejemplo `#mar/01` o `#mar/03`. Al abrir `#<id>/<pista>` desde el menú se
+  inicia directamente esa sesión y esa pista.
 - Si el usuario borra una escena, deja de elegirse en la siguiente sesión.
 - Si solo queda una, el indicador muestra `1/1` desactivado y siempre suena esa.
 - Si no queda ninguna, se aplica el comportamiento de “Audio no disponible”.
@@ -1119,8 +1129,9 @@ Las plantillas están en la biblioteca, en **Plantillas**:
 
 - **Vacío:** 3 min, Do mayor, sin pistas.
 - Una de las **84 canciones de sen** ya publicadas (`assets/audio/<id>/01–06.wav`),
-  nombradas «Ambiente - NN»: «Bosque - 01» … «Bosque - 06», «Fuego - 01»…
-  El título de la escena aparece como descripción.
+  nombradas «Ambiente NN»: «Bosque 01» … «Bosque 06», «Fuego 01»…
+  Debajo aparece el nombre del archivo («01.wav» … «06.wav»). No se usan los
+  títulos de las escenas del generador.
 
 Elegir una canción abre su proyecto de capas (7.17), con una pista por capa a
 0 dB. La lista sale del catálogo de pistas publicadas (`publishedCatalog`). Los
@@ -1398,7 +1409,7 @@ Proceso, en un Worker de exportación propio:
    hay 16 bits, y escribe el PCM en trozos de ~1 MB que se acumulan en un
    `Blob`. Nunca se guarda el tema entero en `Float32`, así que la memoria
    necesaria es aproximadamente el tamaño del WAV.
-3. Al terminar, se descarga `<nombre-del-tema>-<AAAAMMDD-HHmm>.wav` y se
+3. Al terminar, se descarga `<nombre-del-tema>.wav` y se
    informa de la sonoridad final, el pico y la reducción máxima del limitador
    (`stats` incluye también el pico real).
    Si el limitador ha bajado más de 0,5 LU la sonoridad, se avisa de que el
@@ -1840,7 +1851,7 @@ se abre en el laboratorio **separada en capas**, para cambiar sus volúmenes (u
 otra mezcla) y exportarla de nuevo.
 
 - **Entrada:** las plantillas de la biblioteca (`Plantillas`), una por canción:
-  «Ambiente - NN».
+  «Ambiente NN», con el archivo publicado debajo («01.wav»).
 - **Capas:** todas las pistas salen del generador de paisajes y se
   recalculan con su receta y semilla, y cada capa del `mix()` de la receta
   (lluvia, pájaros, pad, melodía…, con nombre en `soundscapes.js`) se entrega
@@ -1854,8 +1865,10 @@ otra mezcla) y exportarla de nuevo.
   familia `layer` (instrumento `capa`) por capa, a 0 dB, sin envíos, con un
   elemento `clip` que cubre el bucle; final en bucle con la duración de la
   pista; maestro sin ecualización (`eq.on: false`); exportación «Escena para
-  sen» con la sonoridad de la pista. Cada pista guarda su origen en `source`
-  (`{ ambient, track, layer, name, title }`) y el proyecto en `scene`. **No se
+  sen» con la sonoridad de la pista. El tema se llama como el archivo (`01`),
+  cada pista guarda su origen en `source`
+  (`{ ambient, track, layer, name, file, ambientName }`) y el proyecto en
+  `scene` (`{ ambient, track, lufs, name, file }`). **No se
   guarda audio**: al abrir o recuperar el proyecto, las capas se recalculan
   (unos segundos; el pie muestra «preparando las capas…»).
 - **Fidelidad:** sin cambios, la exportación coincide con la pista publicada
@@ -2193,8 +2206,8 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 - [ ] La barra de progreso avanza con la duración elegida.
 - [ ] El audio carga siempre `01.wav` por defecto (seis escenas por ambiente
   en el repositorio actual) y suena en bucle.
-- [ ] La URL muestra `#<id>/<pista>` (por ejemplo `#mar/01`) y cambia al pasar
-  de pista.
+- [ ] La URL muestra `#<id>/<pista>` (por ejemplo `#mar/01`), cambia al pasar
+  de pista y abrir `#<id>/<pista>` inicia directamente esa sesión.
 - [ ] No hay controles inferiores durante la sesión.
 - [ ] Un toque termina la sesión con fundido.
 - [ ] `Escape` termina la sesión.

@@ -25,6 +25,9 @@ const els = {
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+/** Aviso del escenario cuando el navegador bloquea el audio sin gesto. */
+const AUDIO_HINT = 'Toca para activar el sonido';
+
 const renderer = new AmbientRenderer(document.getElementById('canvas'));
 const menuRenderer = new AmbientRenderer(document.getElementById('menu-canvas'));
 const wakeLock = new WakeLock();
@@ -63,6 +66,8 @@ const NODE_LAYOUT = [
 const NODE_PATH = [0, 1, 2, 4, 3, 5, 6, 7, 10, 9, 8, 11, 12, 13];
 
 let active = null;
+/** Pista pendiente al cambiar de hash mientras hay una sesión en marcha. */
+let pendingRoute = null;
 let durationMinutes = APP.defaultDurationMin;
 
 /* --------------------------------------------------------------------------
@@ -274,7 +279,7 @@ function closeDuration({ returnFocus = true } = {}) {
    Sesión
    -------------------------------------------------------------------------- */
 
-function startSession(ambient, trigger) {
+function startSession(ambient, trigger, { track = null, gesture = true } = {}) {
   if (active) return;
 
   closeDuration({ returnFocus: false });
@@ -291,6 +296,8 @@ function startSession(ambient, trigger) {
     ending: false,
     finishing: false,
     audioFailed: false,
+    awaitingAudio: false,
+    wantedIndex: 0,
     noteTimer: 0,
     tracks: [],
     trackIndex: -1,
@@ -316,6 +323,12 @@ function startSession(ambient, trigger) {
   els.stage.focus({ preventScroll: true });
 
   audio.prepare();
+  // Si la sesión se abre desde una URL (sin gesto), el navegador puede dejar
+  // el audio en pausa: el primer toque lo activa en vez de cerrar la sesión.
+  if (!gesture && !audio.running) {
+    active.awaitingAudio = true;
+    showAudioHint();
+  }
   resolveAudioVariants(ambient.audioDir)
     .then((paths) => {
       if (!active || active.token !== token) return;
@@ -324,7 +337,9 @@ function startSession(ambient, trigger) {
         return;
       }
       active.tracks = paths;
-      playTrack(0, token, { initial: true });
+      const wanted = track ? paths.findIndex((path, index) => trackNumber(path, index) === track) : 0;
+      active.wantedIndex = wanted >= 0 ? wanted : 0;
+      playTrack(active.wantedIndex, token, { initial: true });
     })
     .catch(() => notifyAudioFailure(token));
 
@@ -341,7 +356,20 @@ function startSession(ambient, trigger) {
   });
   active.session.start();
 
-  setSessionUrl(ambient, '01');
+  setSessionUrl(ambient, track || '01', { replace: !gesture });
+}
+
+/** «Audio no disponible» y «toca para activar» comparten el aviso del escenario. */
+function showAudioHint() {
+  els.note.textContent = AUDIO_HINT;
+  els.note.hidden = false;
+  els.live.textContent = `${AUDIO_HINT}.`;
+  els.stage.setAttribute('aria-label', AUDIO_HINT);
+}
+
+function hideAudioHint() {
+  els.note.textContent = 'Audio no disponible';
+  els.note.hidden = true;
 }
 
 function trackNumber(path, index) {
@@ -359,6 +387,35 @@ function setSessionUrl(ambient, number, { replace = false } = {}) {
   } catch {
     /* sites embebidos o file:// pueden bloquear el historial */
   }
+}
+
+/** «#bosque/02» → `{ ambient, track: '02' }`; si no es una pista válida, `null`. */
+function routeFromHash(hash = location.hash) {
+  const match = /^#([a-z]{2,20})\/(\d{1,2})\/?$/i.exec(hash.trim());
+  if (!match) return null;
+  const ambient = ambients.find((item) => item.id === match[1].toLowerCase());
+  return ambient ? { ambient, track: String(Number(match[2])).padStart(2, '0') } : null;
+}
+
+/** Pista que suena ahora mismo, con su número de archivo (`01`…). */
+function currentTrackNumber() {
+  if (!active || active.trackIndex < 0 || !active.tracks.length) return null;
+  return trackNumber(active.tracks[active.trackIndex], active.trackIndex);
+}
+
+/** Cambia a la sesión de `#ambiente/NN`, cerrando la actual si es otra. */
+function switchRoute(route) {
+  if (!route) return;
+  if (active) {
+    if (active.ambient.id === route.ambient.id && currentTrackNumber() === route.track) return;
+    pendingRoute = route;
+    if (!active.ending) {
+      active.ending = true;
+      finishSession(active.token, 'manual');
+    }
+    return;
+  }
+  startSession(route.ambient, null, { track: route.track, gesture: false });
 }
 
 function updateTrackUI() {
@@ -402,6 +459,11 @@ async function playTrack(index, token, { initial = false } = {}) {
   }
 
   active.trackIndex = next;
+  if (active.awaitingAudio) active.awaitingAudio = false;
+  if (els.note.textContent === AUDIO_HINT) {
+    hideAudioHint();
+    els.stage.setAttribute('aria-label', `Sesión de ${active.ambient.name}. Toca para volver al menú.`);
+  }
   updateTrackUI();
   setSessionUrl(active.ambient, trackNumber(active.tracks[next], next), { replace: true });
   if (!initial) els.live.textContent = `Pista ${next + 1} de ${total}.`;
@@ -452,7 +514,7 @@ function finishSession(token, reason) {
   window.clearTimeout(active.noteTimer);
   els.note.hidden = true;
 
-  if (history.state && history.state.sen) {
+  if (!pendingRoute && history.state && history.state.sen) {
     try {
       history.replaceState(null, '', location.pathname + location.search);
     } catch {
@@ -477,6 +539,12 @@ function finishSession(token, reason) {
     renderer.stop();
     menuRenderer.resume();
     active = null;
+    const next = pendingRoute;
+    pendingRoute = null;
+    if (next) {
+      startSession(next.ambient, null, { track: next.track, gesture: false });
+      return;
+    }
     trigger?.focus?.({ preventScroll: true });
   }, 440);
 }
@@ -486,6 +554,7 @@ function notifyAudioFailure(token) {
   if (token && active.token !== token) return;
   if (active.audioFailed) return;
   active.audioFailed = true;
+  els.note.textContent = 'Audio no disponible';
   els.note.hidden = false;
   els.live.textContent = 'Audio no disponible. La sesión continúa solo con luz.';
   window.clearTimeout(active.noteTimer);
@@ -522,6 +591,12 @@ els.sessionClose.addEventListener('click', (event) => {
 
 els.stage.addEventListener('click', () => {
   if (!active || active.ending) return;
+  if (active.awaitingAudio) {
+    active.awaitingAudio = false;
+    audio.prepare();
+    if (active.tracks.length) playTrack(active.wantedIndex, active.token, { initial: true });
+    return;
+  }
   requestEnd();
 });
 
@@ -541,9 +616,21 @@ document.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('popstate', () => {
-  if (active && !active.ending) requestEnd();
+  const route = routeFromHash();
+  if (route) switchRoute(route);
+  else if (active && !active.ending) requestEnd();
+});
+
+// Cambiar el hash a mano (sin recargar) abre esa pista.
+window.addEventListener('hashchange', () => {
+  const route = routeFromHash();
+  if (route) switchRoute(route);
 });
 
 buildGrid();
 buildDurationOptions();
 menuRenderer.start(MENU_BACKDROP);
+
+// Una URL con `#ambiente/NN` entra directamente en esa pista.
+const route = routeFromHash();
+if (route) startSession(route.ambient, null, { track: route.track, gesture: false });

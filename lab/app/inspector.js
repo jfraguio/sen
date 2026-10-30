@@ -14,6 +14,18 @@ import {
 } from './controls.js';
 import { elementLabel } from './timeline.js';
 
+const capitalize = (text) => (text ? text[0].toUpperCase() + text.slice(1) : '');
+
+/** «01.wav» a partir del origen de una pista de sen. */
+function sourceFile(src) {
+  return src.file || `${String(src.track).padStart(2, '0')}.wav`;
+}
+
+/** «Lluvia 01»: nombre del ambiente y nombre del archivo, sin títulos de catálogo. */
+function sourceLabel(src) {
+  return `${src.ambientName || capitalize(src.ambient || '')} ${String(src.track).padStart(2, '0')}`.trim();
+}
+
 export function createInspector(root, store, actions) {
   const { state } = store;
   let syncers = [];
@@ -96,8 +108,9 @@ export function createInspector(root, store, actions) {
     const maxDur = p.end.mode === 'loop' ? LIMITS.maxLoop : LIMITS.maxDuration;
     const rootOptions = NOTE_NAMES.map((n, k) => ({ value: n, label: state.view.notation === 'latin' ? LATIN_NAMES[k] : n }));
     const transpose = h('input', { type: 'number', min: -24, max: 24, step: 1, value: '0', 'aria-label': 'Semitonos', style: { width: '64px' } });
+    const sc = p.scene;
     const out = [
-      head('Tema', 'sin selección: ajustes generales'),
+      head(sc ? sourceLabel(sc) : 'Tema', sc ? sourceFile(sc) : 'sin selección: ajustes generales'),
       section(null,
         textControl('Nombre', pb('name'), syncers),
         textControl('Notas', pb('notes'), syncers, { multiline: true, placeholder: 'Idea, referencias…' })),
@@ -251,13 +264,14 @@ export function createInspector(root, store, actions) {
     const mix = MIX_DEFS.map((def) => control(def, tb('mix', def.key)));
     const isLayer = track.family === 'layer';
     const src = track.source;
-    const srcTitle = isLayer ? src.title || `${src.ambient} · ${String(src.track).padStart(2, '0')}` : '';
+    const srcLabel = isLayer ? sourceLabel(src) : '';
+    const srcFile = isLayer ? sourceFile(src) : '';
     return [
-      head(track.name, isLayer ? `Capa de «${srcTitle}»` : `${family.label} · ${instrumentLabel(track)}`),
+      head(track.name, isLayer ? `Capa de «${srcLabel}» · ${srcFile}` : `${family.label} · ${instrumentLabel(track)}`),
       section(null,
         textControl('Nombre', { get: () => findTrack(state.project, id)?.name ?? '', set: (v, { gesture } = {}) => commit((d) => { findTrack(d, id).name = v || 'Pista'; }, gesture), done }, syncers),
         h('div', { class: 'ctl ctl--row' }, h('span', { class: 'ctl-label' }, 'Color'), color),
-        isLayer ? h('p', { class: 'help' }, `Capa «${src.name || track.name}» de la pista «${srcTitle}», tal como suena en la app. Cambia su volumen (también en la cabecera de la pista), su panorama, sus fundidos o automatízala; su timbre no se puede editar.`) : null,
+        isLayer ? h('p', { class: 'help' }, `Capa «${src.name || track.name}» de la pista «${srcLabel}» (${srcFile}), tal como suena en la app. Cambia su volumen (también en la cabecera de la pista), su panorama, sus fundidos o automatízala; su timbre no se puede editar.`) : null,
         isLayer ? null : enumControl({ label: 'Instrumento', options: sameFamily }, {
           get: () => findTrack(state.project, id)?.instrument,
           set: (v) => commit((d) => {

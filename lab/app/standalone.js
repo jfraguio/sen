@@ -71,7 +71,7 @@ export function buildStandalone(sources, project, options, fileName) {
 /**
  * ${String(project.name).replace(/\*\//g, '')} · script autónomo de sen lab.
  *
- * Uso:  node ${fileName}.render.mjs [salida.wav]
+ * Uso:  node ${JSON.stringify(`${fileName}.render.mjs`)} [salida.wav]
  *
  * Contiene el motor de síntesis del laboratorio y el proyecto. Con Node ≥ 18
  * escribe el mismo WAV que el botón «Exportar → WAV» con estas opciones.

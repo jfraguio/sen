@@ -4,7 +4,7 @@
  *
  *   const scenes = createSceneSource();
  *   const list = await scenes.catalog();
- *   const r = await scenes.load('bosque', 3);   // { name, title, sampleRate, duration, lufs, layers }
+ *   const r = await scenes.load('bosque', 3);   // { name, file, sampleRate, duration, lufs, layers }
  *   const samples = await scenes.samplesFor(project);   // { 'bosque/03#0': { rate, data, id }, … }
  */
 

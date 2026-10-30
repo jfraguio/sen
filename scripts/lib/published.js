@@ -18,24 +18,26 @@ export { publishedCatalog, AMBIENT_NAMES };
 export const publishedPath = (ambient, track) => `assets/audio/${ambient}/${String(track).padStart(2, '0')}.wav`;
 
 /**
- * `{ ambient, track, title, name, sampleRate, duration, lufs, layers: [{ name, data }] }`
- * con `data` en Float32Array mono.
+ * `{ ambient, track, name, file, sampleRate, duration, lufs, layers: [{ name, data }] }`
+ * con `data` en Float32Array mono. `file` es el nombre del WAV publicado
+ * (`01.wav` … `06.wav`); el título de la escena del generador no se expone.
  */
 export async function publishedLayers(ambient, track, readFile) {
   const list = PUBLISHED[ambient];
   if (!list || !(track >= 1 && track <= list.length)) throw new Error(`No existe la pista ${ambient}/${track}.`);
   const scene = list[track - 1];
   const name = AMBIENT_NAMES[ambient] || ambient;
+  const file = `${String(track).padStart(2, '0')}.wav`;
   if (scene === 'base') {
     const wav = decodeWav(await readFile(publishedPath(ambient, track)));
     return {
-      ambient, track, name, title: 'Escena original', sampleRate: wav.sampleRate, duration: wav.samples.length / wav.sampleRate, lufs: -23,
+      ambient, track, name, file, sampleRate: wav.sampleRate, duration: wav.samples.length / wav.sampleRate, lufs: -23,
       layers: [{ name: 'Escena completa', data: wav.samples }],
     };
   }
   const r = renderLayers(ambient, scene - FIRST_SCENE);
   return {
-    ambient, track, name, title: r.title, sampleRate: r.sampleRate, duration: r.layers[0].samples.length / r.sampleRate, lufs: r.lufs,
+    ambient, track, name, file, sampleRate: r.sampleRate, duration: r.layers[0].samples.length / r.sampleRate, lufs: r.lufs,
     layers: r.layers.map((l) => ({ name: l.name, data: l.samples })),
   };
 }

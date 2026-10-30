@@ -26,6 +26,11 @@ export class AmbientAudio {
     if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
   }
 
+  /** ¿El contexto de audio está en marcha? (Si no, hace falta un gesto.) */
+  get running() {
+    return this.ctx?.state === 'running';
+  }
+
   async play(src, { fade = 0.15, onError } = {}) {
     const token = ++this._loadToken;
     this.failed = false;

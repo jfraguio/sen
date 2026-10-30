@@ -31,7 +31,9 @@ ES y el audio necesitan un servidor.
   el cuento, la música). La sesión empieza siempre por `01.wav`.
 - **Indicador de pista discreto** arriba a la izquierda (`1/6`, `2/6`…): al
   pulsarlo se pasa a la siguiente pista del ambiente. La URL indica el ambiente
-  y la pista (`#mar/01`). Arriba a la derecha hay una **X** para cerrar y volver
+  y la pista (`#mar/01`); abrir `#ambiente/NN` (por ejemplo `#bosque/02`)
+  inicia directamente esa sesión con esa pista. Arriba a la derecha hay una **X**
+  para cerrar y volver
   al menú.
 - Audio sintético, sin cuentas, sin anuncios y sin peticiones a servidores.
 - **Laboratorio** en **`/lab/`**: un editor de música ambiental sintética para

@@ -50,6 +50,20 @@ export function fmtNum(v, step = 0.01) {
   return v.toFixed(d).replace('.', ',');
 }
 
+/**
+ * Nombre de archivo a partir del nombre del tema, tal cual lo escribió la
+ * persona: conserva mayúsculas, acentos y espacios y solo cambia lo que no
+ * puede formar parte de un nombre de archivo.
+ */
+export function fileBase(name, fallback = 'tema') {
+  const clean = String(name ?? '')
+    .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, '-')
+    .replace(/\s+/g, ' ')
+    .replace(/^[.\s]+|[-.\s]+$/g, '')
+    .slice(0, 120);
+  return clean || fallback;
+}
+
 const live = () => document.getElementById('live');
 
 export function announce(text) {

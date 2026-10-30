@@ -173,6 +173,10 @@ const correlation = (a, b) => {
   const { project, warnings, samples, r } = await sceneProject('bosque', 3);
   ok(!warnings.length && project.tracks.length === r.layers.length && project.tracks.every((t) => t.family === 'layer' && t.mix.gain === 0),
     `pista bosque/03 abierta en capas: ${project.tracks.map((t) => t.name).join(', ')}`);
+  ok(project.name === '03' && project.scene?.file === '03.wav' && project.tracks.every((t) => t.source.file === '03.wav'),
+    `el tema y sus capas llevan el nombre del archivo (${project.name}, ${project.scene?.file})`);
+  const legacy = normalizeProject({ ...project, name: 'Bosque · 03 · Bosque después de la lluvia' }).project;
+  ok(legacy.name === '03', `un proyecto guardado con el nombre de catálogo adopta el del archivo (${legacy.name})`);
   const res = await renderToWav(project, {}, { samples });
   const out = decodeWavChannels(new Uint8Array(join(res.parts)));
   const pub = decodeWavChannels(await readRepo('assets/audio/bosque/03.wav'));
