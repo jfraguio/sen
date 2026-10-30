@@ -24,12 +24,12 @@ ES y el audio necesitan un servidor.
 - Menú de constelación con **14 ambientes** identificados solo por su icono.
 - Selector de duración con tres opciones: **10, 15 y 30 minutos**.
 - Sesión a pantalla completa con animación propia, progreso y fundido final.
-- **Escenas de audio por ambiente**: el motor puede generar hasta ocho
-  (`01.wav` … `08.wav`): tres de síntesis base, tres paisajes de alta calidad y
-  dos paisajes con melodía sutil y pad. **El repositorio conserva cuatro por
-  ambiente, `01.wav` … `04.wav`** (01–02 paisaje, 03–04 con melodía), y la
-  sesión empieza siempre por `01.wav`.
-- **Indicador de pista discreto** arriba a la izquierda (`1/4`, `2/4`…): al
+- **Escenas de audio por ambiente**: el motor puede generar hasta diez
+  (`01.wav` … `10.wav`): tres de síntesis base y siete paisajes de alta
+  calidad. **El repositorio conserva seis por ambiente, `01.wav` … `06.wav`**:
+  bucles de 60 s de paisaje con una melodía baja (el sonido ambiente manda; en
+  el cuento, la música). La sesión empieza siempre por `01.wav`.
+- **Indicador de pista discreto** arriba a la izquierda (`1/6`, `2/6`…): al
   pulsarlo se pasa a la siguiente pista del ambiente. La URL indica el ambiente
   y la pista (`#mar/01`). Arriba a la derecha hay una **X** para cerrar y volver
   al menú.
@@ -46,7 +46,7 @@ ambiente están en **[`SPEC.md`](SPEC.md)**.
 index.html
 SPEC.md
 assets/
-  audio/<id>/01.wav … 04.wav (cuatro por ambiente)
+  audio/<id>/01.wav … 06.wav (seis por ambiente)
   audio/README.md
   favicon.svg
 lab/
@@ -77,29 +77,34 @@ src/
 
 ## Regenerar el audio
 
-El motor genera ocho escenas sintéticas por ambiente; el repositorio conserva
-cuatro, renombradas `01.wav` (por defecto) … `04.wav`. Las demás se pueden
+El motor genera diez escenas sintéticas por ambiente; el repositorio conserva
+seis, renombradas `01.wav` (por defecto) … `06.wav`. Las demás se pueden
 regenerar:
 
 - **01–03**, síntesis base (`scripts/lib/synth.js`): 16 s, mono, 16 kHz.
-- **04–06**, paisajes de alta calidad (`scripts/lib/soundscapes.js`): 30 s, mono,
-  22,05 kHz, bucle sin costura, deterministas y a ≈ −23 LUFS.
-- **07–08**, los mismos paisajes con una melodía sutil (piano de fieltro, arpa,
-  guitarra, celesta, vibráfono, kalimba o flauta) y, cuando encaja, un pad
-  sostenido. Se publican como `03.wav` y `04.wav`.
+- **04–06**, paisajes de alta calidad (`scripts/lib/soundscapes.js`): 60 s, mono,
+  22,05 kHz, bucle sin costura, deterministas y a ≈ −23 LUFS. Las publicadas
+  llevan una melodía baja compuesta para el bucle.
+- **07–08**, paisajes con una melodía (piano de fieltro, arpa, guitarra,
+  celesta, vibráfono, kalimba o flauta) en frases de 30 s y, cuando encaja, un
+  pad sostenido.
+- **09–10**, paisajes nuevos con melodía compuesta para el minuto entero.
+
+La música se nivela sola para quedar unos 10 LU por debajo del paisaje
+(`MUSIC_LU` en `soundscapes.js`); en el cuento la música es lo principal.
 
 ```bash
-node scripts/make-audio-variants.mjs              # 01–03 de todos
+node scripts/make-audio-variants.mjs              # 01–03 de todos (sobrescribe 01–03)
 node scripts/make-audio-variants.mjs --only=lluvia
-node scripts/make-soundscapes.mjs                 # 04–08 de todos
+node scripts/make-soundscapes.mjs                 # 04–10 de todos
 node scripts/make-soundscapes.mjs --only=mar,fuego
-node scripts/make-soundscapes.mjs --scene=7,8     # solo las musicales
-node scripts/make-soundscapes.mjs --publish       # escribe 01–04 tal como se publican
+node scripts/make-soundscapes.mjs --scene=9,10    # solo algunas escenas
+node scripts/make-soundscapes.mjs --publish       # escribe 01–06 tal como se publican
 node scripts/analyze-audio.mjs                    # nivel, picos y costura
 ```
 
 Los archivos se escriben en `assets/audio/<id>/`. La app solo lee `01.wav` …
-`04.wav`; la tabla `PUBLISHED` de `scripts/lib/soundscapes.js` dice de qué
+`06.wav`; la tabla `PUBLISHED` de `scripts/lib/soundscapes.js` dice de qué
 escena sale cada una y `--publish` las escribe con ese nombre. La app los
 descubre con peticiones `HEAD` al iniciar cada sesión, así que puedes borrar
 cualquier escena sin tocar código.

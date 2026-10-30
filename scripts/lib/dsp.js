@@ -10,7 +10,7 @@
  */
 
 export const SAMPLE_RATE = 22050;
-export const SECONDS = 30;
+export const SECONDS = 60;
 export const N = SAMPLE_RATE * SECONDS;
 const SR = SAMPLE_RATE;
 const TAU = Math.PI * 2;

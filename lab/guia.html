@@ -264,7 +264,7 @@
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="primeros-pasos">Primeros pasos</h2>
-        <p>El laboratorio arranca con un <b>tema vacío</b>. <b>Nuevo</b> crea otro tema vacío sin preguntar nada. Si quieres partir de una canción, abre <b>Plantillas</b> en la biblioteca: están las 56 canciones de sen, nombradas «Ambiente - NN» («Bosque - 01», «Fuego - 02»…) y se abren separadas en capas (ver <a href="#pistas-sen">más abajo</a>). Todo se puede cambiar después.</p>
+        <p>El laboratorio arranca con un <b>tema vacío</b>. <b>Nuevo</b> crea otro tema vacío sin preguntar nada. Si quieres partir de una canción, abre <b>Plantillas</b> en la biblioteca: están las 84 canciones de sen, nombradas «Ambiente - NN» («Bosque - 01», «Fuego - 02»…) y se abren separadas en capas (ver <a href="#pistas-sen">más abajo</a>). Todo se puede cambiar después.</p>
         <div class="cards">
           <div class="card"><b>Vacío</b><span>3 minutos, Do mayor, sin pistas.</span></div>
           <div class="card"><b>Bosque - 01</b><span>Bosque después de la lluvia: goteo, pájaros, arroyo y hojas.</span></div>
@@ -286,7 +286,7 @@
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="pistas-sen">Canciones de sen por capas</h2>
-        <p>Cualquiera de las pistas que suenan en la app (las cuatro de cada ambiente) se puede abrir en el laboratorio <b>separada en sus capas</b>: lluvia, pájaros, pad, melodía… Cada capa es una pista del laboratorio a 0 dB, así que, sin tocar nada, el tema suena exactamente como en la app.</p>
+        <p>Cualquiera de las pistas que suenan en la app (las seis de cada ambiente, bucles de 60 s) se puede abrir en el laboratorio <b>separada en sus capas</b>: lluvia, pájaros, pad, melodía… Cada capa es una pista del laboratorio a 0 dB, así que, sin tocar nada, el tema suena exactamente como en la app.</p>
         <ol class="steps">
           <li>En la biblioteca, abre <b>Plantillas</b> y elige una canción de sen. Tarda unos segundos en calcular las capas.</li>
           <li>Ajusta el <b>volumen de cada capa con el deslizador de su cabecera</b> (doble clic lo devuelve a 0 dB). Por ejemplo, baja el «Pad» 6 dB. También puedes silenciar (<b>M</b>), escuchar una sola (<b>S</b>), moverla en el estéreo, darle fundidos, automatizarla o añadir instrumentos nuevos encima.</li>
@@ -294,7 +294,7 @@
         </ol>
         <ul>
           <li>El timbre de una capa no se puede editar: es el sonido tal como lo genera la app. Si divides un elemento de una capa, la segunda parte sigue el audio donde iba.</li>
-          <li>Las cuatro pistas de síntesis antigua (la 1 de Mar, Río, Bichos y Noche) no se pueden separar y se abren como una sola capa.</li>
+          <li>La música de las pistas de sen está mezclada baja a propósito (el paisaje manda; en el Cuento, al revés). Si la quieres más presente, sube sus capas.</li>
           <li>El proyecto guarda <i>de qué pista viene</i> cada capa, no el audio: al abrirlo otra vez se recalcula. El script autónomo no puede hacerlo; para renderizarlo fuera del navegador usa <code>node scripts/render-lab.mjs</code>.</li>
         </ul>
 
@@ -535,7 +535,7 @@
           <p><b>El WAV contiene el proyecto.</b> Cada WAV exportado lleva dentro el proyecto completo. Arrástralo al laboratorio y se abrirá para seguir editándolo.</p>
         </div>
         <h3>Usar un tema como pista de sen</h3>
-        <p>Exporta con el preajuste <b>Escena para sen</b> y copia el archivo a mano en <code>assets/audio/&lt;ambiente&gt;/</code> con el número de la pista que sustituye (<code>01.wav</code> … <code>04.wav</code>). Si has retocado una pista de sen, el diálogo de exportar te dice qué archivo es. El laboratorio no publica nada por sí solo.</p>
+        <p>Exporta con el preajuste <b>Escena para sen</b> y copia el archivo a mano en <code>assets/audio/&lt;ambiente&gt;/</code> con el número de la pista que sustituye (<code>01.wav</code> … <code>06.wav</code>). Si has retocado una pista de sen, el diálogo de exportar te dice qué archivo es. El laboratorio no publica nada por sí solo.</p>
         <h3>Otras descargas</h3>
         <ul>
           <li><b>Descargar proyecto</b>: el <code>.sen.json</code> para reabrirlo o guardarlo en tu control de versiones.</li>

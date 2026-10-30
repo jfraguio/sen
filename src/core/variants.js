@@ -1,14 +1,14 @@
 /**
  * Descubre las escenas WAV disponibles en una carpeta.
  *
- * El repositorio conserva cuatro escenas por ambiente: `01.wav` (la que suena
- * por defecto), `02.wav` y dos versiones con melodía sutil, `03.wav` y
- * `04.wav`. El usuario puede borrar cualquiera sin tocar código; comprobamos
- * con HEAD cada vez que se inicia una escucha para usar solo las que sigan
+ * El repositorio conserva seis escenas por ambiente, de `01.wav` (la que
+ * suena por defecto) a `06.wav`: bucles de 60 s de paisaje con una melodía
+ * baja. El usuario puede borrar cualquiera sin tocar código; comprobamos con
+ * HEAD cada vez que se inicia una escucha para usar solo las que sigan
  * existiendo.
  */
 
-const VARIANTS = ['01.wav', '02.wav', '03.wav', '04.wav'];
+const VARIANTS = ['01.wav', '02.wav', '03.wav', '04.wav', '05.wav', '06.wav'];
 
 export function resolveAudioVariants(directory, prefix = '') {
   return Promise.all(

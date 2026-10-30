@@ -1,17 +1,18 @@
 /**
- * Genera las escenas de alta calidad 04.wav … 08.wav de cada ambiente con el
- * motor de `scripts/lib/soundscapes.js` (22,05 kHz, mono, 16 bits, 30 s, bucle
- * sin costura, sonoridad ≈ −23 LUFS). 04–06 son paisaje puro; 07–08 llevan
- * melodía sutil y pad. No toca las escenas 01–03.
+ * Genera las escenas de alta calidad 04.wav … 10.wav de cada ambiente con el
+ * motor de `scripts/lib/soundscapes.js` (22,05 kHz, mono, 16 bits, 60 s, bucle
+ * sin costura, sonoridad ≈ −23 LUFS). Todas las publicadas llevan una melodía
+ * baja bajo el paisaje (en el cuento, la música manda). No toca las escenas
+ * 01–03.
  *
  * Con `--publish` escribe directamente las pistas que usa la app (01.wav …
- * 04.wav) a partir de la tabla `PUBLISHED`; las de síntesis base no se tocan.
+ * 06.wav) a partir de la tabla `PUBLISHED`.
  *
  * Uso:
  *   node scripts/make-soundscapes.mjs
  *   node scripts/make-soundscapes.mjs --only=lluvia,fuego
  *   node scripts/make-soundscapes.mjs --only=mar --scene=5
- *   node scripts/make-soundscapes.mjs --scene=7,8
+ *   node scripts/make-soundscapes.mjs --scene=9,10
  *   node scripts/make-soundscapes.mjs --publish [--only=bosque]
  */
 

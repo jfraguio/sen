@@ -200,9 +200,9 @@ const correlation = (a, b) => {
   ok(!bad.project.tracks.length && bad.warnings.length === 1, 'una capa sin origen válido se descarta con aviso');
 }
 {
-  const { project, samples, r } = await sceneProject('mar', 1);
-  const res = await renderToWav(project, {}, { samples });
-  ok(r.layers.length === 1 && Math.abs(res.stats.duration - 16) < 0.001, `las pistas de síntesis base se abren como una sola capa (${res.stats.duration.toFixed(1)} s)`);
+  const { r } = await sceneProject('mar', 1);
+  const dur = r.layers[0].data.length / r.sampleRate;
+  ok(r.layers.length > 1 && Math.abs(dur - 60) < 0.001, `las pistas publicadas son bucles de 60 s separables en capas (mar/01: ${r.layers.length} capas, ${dur.toFixed(1)} s)`);
 }
 
 /* ------------------------------------------------------------ exportación */

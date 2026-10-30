@@ -1,11 +1,16 @@
 /**
- * Paisajes sonoros de alta calidad: escenas 04 a 08 de cada ambiente. Las 04–06
- * son paisaje puro; las 07–08 añaden una melodía sutil y, a veces, un pad.
+ * Paisajes sonoros de alta calidad: escenas 04 a 10 de cada ambiente. Las 04–06
+ * son paisajes (las que se publican llevan una melodía baja añadida), las
+ * 07–08 son paisaje con melodía y pad, y las 09–10 son paisajes nuevos con
+ * melodía.
  *
  * Cada escena es una receta determinista (semilla `<id>/<escena>`) que mezcla
- * fuentes de `sources.js` y devuelve 30 s de audio mono a 22,05 kHz que se
- * repite sin costura. `renderScene` aplica la masterización común: sonoridad
- * objetivo (≈ −23 LUFS, como las escenas 01–03) y limitador a −3 dBFS.
+ * fuentes de `sources.js` y devuelve 60 s de audio mono a 22,05 kHz que se
+ * repite sin costura. La música se escribe en frases de 30 s (dos por bucle)
+ * y `mix` la deja siempre por debajo del paisaje (`MUSIC_LU`), salvo en el
+ * cuento, donde la música es lo principal. `renderScene` aplica la
+ * masterización común: sonoridad objetivo (≈ −23 LUFS, como las escenas
+ * 01–03) y limitador a −3 dBFS.
  */
 
 import {
@@ -21,27 +26,50 @@ import * as S from './sources.js';
 const { Bus, scatter, gusts, vary } = S;
 
 /**
+ * Sonoridad de la música respecto a la del paisaje, en LU: claramente por
+ * debajo, de fondo. El paisaje es siempre lo principal (salvo en el cuento).
+ */
+const MUSIC_LU = -10;
+/** Señales marcadas como música (las devuelven `play`, `pads` y `tune`). */
+const MUSIC = new WeakSet();
+const asMusic = (x) => (MUSIC.add(x), x);
+
+/**
  * Mezcla capas [señal, dB, envío a reverb, cresta máxima en dB, 'Nombre']
  * normalizadas por nivel activo. La cresta limita los picos de cada capa
  * respecto a su nivel (gotas, chasquidos) para que la masterización no tenga
  * que aplastar. El nombre (opcional, siempre el último) identifica la capa en
  * el laboratorio. `post` es un proceso lineal (filtro) que se aplica al final.
  *
+ * Las capas de música (las que salen de `play`, `pads` o `tune`) se nivelan
+ * juntas para que su sonoridad quede `music` LU por debajo de la del paisaje;
+ * sus dB solo fijan el equilibrio entre ellas. Con `music: null`, o si la
+ * escena es solo música, no se tocan.
+ *
  * Con `renderLayers` activo, además de la mezcla se guarda cada capa por
  * separado (su parte seca más su reverb): como la reverb y `post` son
  * lineales, la suma de las capas es exactamente la mezcla.
  */
 let capture = null;
-function mix(layers, rv, post = null) {
+function mix(layers, rv, post = null, { music = MUSIC_LU } = {}) {
   const bus = new Bus();
   const parts = [];
+  const items = [];
   for (const layer of layers) {
     const named = typeof layer[layer.length - 1] === 'string';
     const [x, d = 0, wet = 0, crest = 20] = named ? layer.slice(0, -1) : layer;
     if (!x) continue;
     const y = normActive(tame(x, crest), 0.1);
-    bus.layer(y, { g: db(d), wet });
-    if (capture) parts.push({ name: named ? layer[layer.length - 1] : null, y, g: db(d), wet });
+    items.push({ name: named ? layer[layer.length - 1] : null, y, g: db(d), wet, music: MUSIC.has(x) });
+  }
+  if (music != null && items.some((it) => it.music) && items.some((it) => !it.music)) {
+    const group = (m) => items.reduce((s, it) => (it.music === m ? add(s, it.y, it.g) : s), buf());
+    const k = db(music - (loudness(group(true)) - loudness(group(false))));
+    for (const it of items) if (it.music) it.g *= k;
+  }
+  for (const { name, y, g, wet } of items) {
+    bus.layer(y, { g, wet });
+    if (capture) parts.push({ name, y, g, wet });
   }
   if (capture) {
     capture.push(parts.map(({ name, y, g, wet }, k) => {
@@ -91,39 +119,188 @@ function sequence(bus, notes, beat, inst, { humanize = 0.012, g = 1, d = 0, offs
 
 /* ------------------------------------------------- utilidades musicales */
 
+/**
+ * La música se escribe en frases de 30 s: el bucle de 60 s tiene `REPS`
+ * frases. `play` y `pads` repiten una frase hasta llenar el bucle; `compose`
+ * escribe el bucle entero (la segunda frase responde a la primera).
+ */
+const PHRASE = 30;
+const REPS = Math.round(SECONDS / PHRASE);
 /** Sala para la música: más larga y suave que la reverb del paisaje. */
 const HALL = { t60: 2.6, size: 1.5, damp: 5200, predelay: 0.025 };
 /** Timbres de pad: cálido (casi triangular) y cuerdas lejanas. */
 const WARM = { harm: 6, rolloff: 2.2, cents: 7 };
 const STRINGS = { harm: 10, rolloff: 1.1, vib: 0.003 };
-/** Pulso por defecto: 32 pulsos por bucle de 30 s (64 BPM). */
-const B32 = SECONDS / 32;
+/** Pulso por defecto: 32 pulsos por frase de 30 s (64 BPM). */
+const B32 = PHRASE / 32;
 
-/** Toca notas con un instrumento y devuelve la capa con su propia reverb. */
-function play(notes, beat, inst, { wet = 0.4, rv = HALL, ...opts } = {}) {
-  const b = new Bus();
-  sequence(b, notes, beat, inst, { ...opts, wet });
-  return b.render(rv);
+/**
+ * Tiempos de eventos colocados a mano, una tanda por frase: `make()` devuelve
+ * los tiempos de una frase (0–30 s) y se llama de nuevo en cada una, así que
+ * el azar cambia de una frase a otra.
+ */
+function perPhrase(make) {
+  return Array.from({ length: REPS }, (_, r) => make().map((t) => t + r * PHRASE)).flat();
 }
 
 /**
- * Acordes sostenidos repartidos por igual en el bucle. Cada acorde se funde
- * con el siguiente (la relajación de uno coincide con el ataque del otro) y
- * el cambio queda centrado en el límite del acorde; el último se pliega
- * sobre el primero, así que el bucle no tiene costura.
+ * Toca notas con un instrumento y devuelve la capa con su propia reverb. Las
+ * notas son de una frase y se repiten `reps` veces (por defecto, todo el bucle).
  */
-function pads(chords, { wet = 0.5, rv = HALL, fade = 2.5, ...opts } = {}) {
+function play(notes, beat, inst, { wet = 0.4, rv = HALL, reps = REPS, ...opts } = {}) {
   const b = new Bus();
-  const len = SECONDS / chords.length;
-  chords.forEach((c, k) => {
+  for (let r = 0; r < reps; r++) sequence(b, notes, beat, inst, { ...opts, wet, offset: r * PHRASE });
+  return asMusic(b.render(rv));
+}
+
+/**
+ * Acordes sostenidos de una frase, repartidos por igual y repetidos en cada
+ * frase del bucle. Cada acorde se funde con el siguiente (la relajación de
+ * uno coincide con el ataque del otro) y el cambio queda centrado en el
+ * límite del acorde; el último se pliega sobre el primero, así que el bucle
+ * no tiene costura.
+ */
+function pads(chords, { wet = 0.5, rv = HALL, fade = 2.5, reps = REPS, ...opts } = {}) {
+  const b = new Bus();
+  const all = Array.from({ length: reps }, () => chords).flat();
+  const len = SECONDS / all.length;
+  all.forEach((c, k) => {
     b.place(S.padChord(c.map(S.midi), len + fade, { attack: fade, release: fade, ...opts }), k * len - fade / 2, { wet });
   });
-  return b.render(rv);
+  return asMusic(b.render(rv));
 }
 
 /** Arpegio: por cada acorde, `pattern` = [pulso, índice de nota, velocidad]. */
 function arpeggio(chords, beatsPerChord, pattern) {
   return chords.flatMap((c, k) => pattern.map(([b, i, v]) => [k * beatsPerChord + b, c[i], v]));
+}
+
+/* ------------------------------------------------------- compositor */
+
+/** Escalas (semitonos desde la tónica). */
+const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+const MINOR = [0, 2, 3, 5, 7, 8, 10];
+const HARMONIC = [0, 2, 3, 5, 7, 8, 11];
+const DORIAN = [0, 2, 3, 5, 7, 9, 10];
+const MIXO = [0, 2, 4, 5, 7, 9, 10];
+const PENTA = [0, 2, 4, 7, 9];
+const PENTA_MINOR = [0, 3, 5, 7, 10];
+const pc = (m) => ((m % 12) + 12) % 12;
+
+/**
+ * Compone una melodía tranquila para el bucle entero: dos frases de 30 s
+ * sobre `prog` (los acordes de una frase, repartidos por igual, que se
+ * repiten en la segunda).
+ *
+ * - Ritmo: dos motivos que se alternan acorde a acorde y una cadencia larga
+ *   en el último acorde; `notes` es el número medio de notas por acorde y
+ *   `rest` la probabilidad de que un motivo entre tras un silencio.
+ * - Altura: la primera nota de cada acorde es una nota del acorde, cerca de
+ *   la anterior; las demás avanzan por grados de la escala siguiendo un arco
+ *   que sube hacia la mitad de la frase y vuelve. Las notas largas que no son
+ *   del acorde se recolocan en la nota del acorde más cercana.
+ * - Forma: la segunda frase repite la primera mitad de la primera y cambia
+ *   el resto; la primera termina abierta y la segunda reposa (en la tónica si
+ *   el último acorde la contiene).
+ *
+ * Devuelve notas [pulso, midi, velocidad, duración en pulsos].
+ */
+function compose(prog, { root, steps = MAJOR, lo = 67, hi = 81, beat = B32, notes = 3, rest = 0.3, maxLen = 4 } = {}) {
+  const P = Math.round(PHRASE / beat);
+  const n = prog.length;
+  const bpc = P / n;
+  const pool = [];
+  for (let m = lo; m <= hi; m++) if (steps.includes(pc(m - root))) pool.push(m);
+  const tones = (k) => prog[k].map(pc);
+  const nearestIn = (m, ok) => {
+    let best = null;
+    for (const c of pool) if (ok(c) && (best == null || Math.abs(c - m) < Math.abs(best - m) || (Math.abs(c - m) === Math.abs(best - m) && rnd() < 0.5))) best = c;
+    return best ?? (ok === anyNote ? Math.round(m) : nearestIn(m, anyNote));
+  };
+  const anyNote = () => true;
+
+  // Ritmos (en pulsos dentro del acorde).
+  const motif = () => {
+    const grid = [];
+    for (let b = 1; b < bpc; b++) grid.push(b);
+    const want = Math.max(0, Math.min(grid.length, notes - 1 + irand(-1, 1)));
+    const picks = new Set();
+    while (picks.size < want) {
+      const b = pick(grid);
+      if (b % 2 === 0 || chance(0.55)) picks.add(b);
+    }
+    const first = chance(rest) && bpc >= 2 ? 1 : 0;
+    return [...new Set([first, ...picks])].filter((b) => b >= first).sort((a, b) => a - b);
+  };
+  const motifs = [motif(), motif()];
+  const cadence = bpc >= 4 && chance(0.6) ? [0, Math.round(bpc / 2)] : [0];
+  const rhythm = (k) => (k === n - 1 ? cadence : motifs[k % 2]);
+
+  const mid = Math.round((lo + hi) / 2);
+  let cur = nearestIn(mid - 3, (c) => tones(0).includes(pc(c)));
+  // `lift` sube el arco: la segunda frase llega un poco más alto antes de reposar.
+  const phrase = (fromK, prefix, close, lift) => {
+    const out = [...prefix];
+    for (let k = fromK; k < n; k++) {
+      const ch = tones(k);
+      const isTone = (c) => ch.includes(pc(c));
+      const on = rhythm(k);
+      const arc = Math.sin((Math.PI * (k + 0.5)) / n);
+      const target = Math.min(hi - 1, lo + (hi - lo) * (0.2 + 0.55 * arc) + lift * arc);
+      on.forEach((b, j) => {
+        const last = k === n - 1 && j === on.length - 1;
+        let m;
+        if (last) {
+          const want = close
+            ? (ch.includes(pc(root)) ? [pc(root)] : [ch[0]])
+            : ch.filter((p) => p !== pc(root));
+          const ok = (c) => want.includes(pc(c));
+          m = nearestIn(cur, (c) => ok(c) && c !== cur);
+          if (!ok(m) || Math.abs(m - cur) > 5) m = nearestIn(cur, ok);
+        } else if (j === 0) {
+          const aim = cur + Math.max(-5, Math.min(5, (target - cur) * 0.6)) + rand(-2, 2);
+          m = nearestIn(aim, isTone);
+          if (m === cur && chance(0.7)) m = nearestIn(aim + (chance(0.5) ? 3 : -3), (c) => isTone(c) && c !== cur);
+        } else {
+          const i = pool.indexOf(nearestIn(cur, anyNote));
+          let dir = Math.sign(target - cur) || (chance(0.5) ? 1 : -1);
+          if (chance(0.3)) dir = -dir;
+          const size = chance(0.65) ? 1 : 2;
+          if (i + dir * size < 0 || i + dir * size >= pool.length) dir = -dir;
+          m = pool[Math.max(0, Math.min(pool.length - 1, i + dir * size))];
+        }
+        out.push({ b: k * bpc + b, m, strong: j === 0, last });
+        cur = m;
+      });
+    }
+    return out;
+  };
+
+  const half = Math.floor(n / 2);
+  const first = phrase(0, [], false, 0);
+  const keep = first.filter((x) => x.b < half * bpc);
+  cur = keep.length ? keep[keep.length - 1].m : cur;
+  const second = phrase(half, keep.map((x) => ({ ...x })), true, 4);
+  const all = [...first, ...second.map((x) => ({ ...x, b: x.b + P }))];
+
+  return all.map((x, i) => {
+    const next = i + 1 < all.length ? all[i + 1].b : all[0].b + 2 * P;
+    const len = Math.min(maxLen, next - x.b) * 0.95;
+    const k = Math.floor((x.b % P) / bpc);
+    // Nota larga fuera del acorde: a la nota del acorde más cercana.
+    const m = len >= 2 && !tones(k).includes(pc(x.m)) ? nearestIn(x.m, (c) => tones(k).includes(pc(c))) : x.m;
+    const vel = x.last ? 0.5 : x.strong ? rand(0.58, 0.68) : rand(0.44, 0.54);
+    return [x.b, m, vel, len];
+  });
+}
+
+/**
+ * Melodía de `compose` tocada por `inst` a lo largo de todo el bucle: capa de
+ * música con su propia sala. Las opciones que no son de sonido van al
+ * compositor.
+ */
+function tune(prog, inst, { beat = B32, wet = 0.45, rv = HALL, humanize, ...opts } = {}) {
+  return play(compose(prog, { beat, ...opts }), beat, inst, { wet, rv, humanize, reps: 1 });
 }
 
 function waveTimes(base, spread = 0.6) {
@@ -154,11 +331,17 @@ export const SCENES = {
         const drips = new Bus();
         const plops = bank(10, () => S.plop(450, 1000));
         poisson(0.5, (t) => drips.place(pick(plops), t, { g: vary(0, 3), d: rand(0.05, 0.4) }));
+        // Si menor: Bm – G – D – A, celesta suave.
+        const prog = [[47, 54, 59, 62], [43, 50, 55, 59], [50, 54, 57, 62], [45, 52, 57, 61]];
+        const celesta = tune(prog, S.celesta, { root: 2, lo: 69, hi: 83, wet: 0.5 });
+        const pad = pads(prog, WARM);
         return mix([
           [leaves, 0, 0.2, 'Gotas en las hojas'],
           [drips.dry, 1, 0.25, 'Goterones'],
           [bed, -9, 0.3, 'Lluvia fina'],
           [far, -17, 0.4, 'Lluvia lejana'],
+          [celesta, 0, 'Celesta'],
+          [pad, -8, 'Pad'],
         ], { t60: 1.1, size: 0.9, damp: 6000 });
       },
     },
@@ -170,11 +353,17 @@ export const SCENES = {
         const plops = scatter(buf(), bank(20, () => S.plop(350, 850)), 2.2, { env: inten, spreadDb: 4 });
         const surface = band(dust(3500, { env: inten, shape: 2.5 }), 2500, 9000);
         const far = mul(band(pink(), 200, 2500), inten);
+        // Do mayor con séptimas: Fmaj7 – Em7 – Dm7 – Cmaj7, vibráfono.
+        const prog = [[41, 48, 52, 57], [40, 47, 50, 55], [38, 45, 48, 53], [36, 43, 47, 52]];
+        const vib = tune(prog, S.vibes, { root: 0, lo: 64, hi: 79, notes: 2.5, wet: 0.5 });
+        const pad = pads(prog.map((c) => c.map((m) => m + 12)), STRINGS);
         return mix([
           [plinks, 0, 0.3, 'Gotas en el agua'],
           [plops, -3, 0.3, 'Plops graves'],
           [surface, -14, 0.2, 'Superficie del agua'],
           [far, -16, 0.5, 'Lluvia lejana'],
+          [vib, 0, 'Vibráfono'],
+          [pad, -9, 'Pad de cuerdas'],
         ], { t60: 1.6, size: 1.4, damp: 5500 });
       },
     },
@@ -208,15 +397,23 @@ export const SCENES = {
         const drops = scatter(buf(), bank(80, S.leafDrop), 35, { env: inten });
         const w = S.wind(gusts(0.07, 0.1, 0.8, 1.3), { lo: 200, hi: 650, low: 0.6, hiss: 0.1 });
         const tb = new Bus();
-        tb.place(S.thunder({ dur: 13, dist: 0.85 }), rand(5, 6.5), { wet: 0.7 });
-        tb.place(S.thunder({ dur: 9, dist: 0.95 }), rand(20, 22), { g: db(-7), wet: 0.8 });
+        for (let r = 0; r < REPS; r++) {
+          tb.place(S.thunder({ dur: 13, dist: 0.85 }), r * PHRASE + rand(5, 6.5), { wet: 0.7 });
+          tb.place(S.thunder({ dur: 9, dist: 0.95 }), r * PHRASE + rand(20, 22), { g: db(-7), wet: 0.8 });
+        }
         const th = tb.render({ t60: 3.5, size: 2, damp: 2500, predelay: 0.04, lowcut: 30 });
+        // Re menor: Dm – B♭ – F – C, piano de fieltro grave y cuerdas.
+        const prog = [[50, 53, 57, 62], [46, 50, 53, 58], [45, 48, 53, 57], [43, 48, 52, 55]];
+        const piano = tune(prog, S.feltPiano, { root: 2, steps: MINOR, lo: 62, hi: 76, notes: 2.5, wet: 0.45 });
+        const strings = pads(prog, STRINGS);
         return mix([
           [rain, -1, 0.2, 'Lluvia'],
           [wash, -8, 0.3, 'Lluvia lejana'],
           [drops, -4, 0.2, 'Gotas en las hojas'],
           [w, -12, 0.2, 'Viento'],
           [th, 4, 'Truenos'],
+          [piano, 0, 'Piano'],
+          [strings, -7, 'Pad de cuerdas'],
         ], { t60: 1.2, size: 1.2, damp: 5000 });
       },
     },
@@ -228,15 +425,23 @@ export const SCENES = {
         const roofTaps = scatter(buf(), bank(80, S.roofTap), 110, { env: inten, centerDb: 0, spreadDb: 5 });
         const gutter = add(S.babble({ sources: 6, fLo: 600, fHi: 2200, rateLo: 6, rateHi: 14, loose: 0.4 }), S.flow({ lo: 500, hi: 3500, turb: 0.6, rate: 14 }), 0.5);
         const tb = new Bus();
-        tb.place(S.thunder({ dur: 14, dist: 0.5, crack: 0.35 }), rand(7.5, 9), { wet: 0.45 });
-        tb.place(S.thunder({ dur: 9, dist: 0.9 }), rand(22.5, 24), { g: db(-8), wet: 0.75 });
+        for (let r = 0; r < REPS; r++) {
+          tb.place(S.thunder({ dur: 14, dist: 0.5, crack: 0.35 }), r * PHRASE + rand(7.5, 9), { wet: 0.45 });
+          tb.place(S.thunder({ dur: 9, dist: 0.9 }), r * PHRASE + rand(22.5, 24), { g: db(-8), wet: 0.75 });
+        }
         const th = tb.render({ t60: 3.2, size: 2, damp: 3000, predelay: 0.03, lowcut: 30 });
+        // La menor: Am – Dm – F – Em, arpa y pad cálido.
+        const prog = [[45, 52, 57, 60], [50, 53, 57, 62], [41, 48, 53, 57], [40, 47, 52, 55]];
+        const harp = tune(prog, S.harp, { root: 9, steps: MINOR, lo: 64, hi: 79, wet: 0.45 });
+        const pad = pads(prog, WARM);
         return mix([
           [roofTaps, 0, 0.12, 'Golpes en el tejado'],
           [roofBed, -5, 0.12, 'Lluvia en el tejado'],
           [gutter, -5, 0.15, 'Canalón'],
           [mul(band(pink(), 200, 3500), inten), -10, 0.3, 'Lluvia lejana'],
           [th, 2, 'Truenos'],
+          [harp, 0, 'Arpa'],
+          [pad, -8, 'Pad'],
         ], { t60: 0.8, size: 0.8, damp: 5000 });
       },
     },
@@ -249,8 +454,10 @@ export const SCENES = {
         const rain = S.rainBed(5500, { lo: 350, hi: 7000, env: rainEnv });
         const glass = scatter(buf(), bank(60, S.glassTap), 45, { env: gust, spreadDb: 5 });
         const tb = new Bus();
-        tb.place(S.thunder({ dur: 12, dist: 0.8 }), rand(2.5, 4), { wet: 0.7 });
-        tb.place(S.thunder({ dur: 10, dist: 0.9 }), rand(17, 18.5), { g: db(-5), wet: 0.8 });
+        for (let r = 0; r < REPS; r++) {
+          tb.place(S.thunder({ dur: 12, dist: 0.8 }), r * PHRASE + rand(2.5, 4), { wet: 0.7 });
+          tb.place(S.thunder({ dur: 10, dist: 0.9 }), r * PHRASE + rand(17, 18.5), { g: db(-5), wet: 0.8 });
+        }
         const th = tb.render({ t60: 3.5, size: 2, damp: 2500, predelay: 0.04, lowcut: 30 });
         return mix([
           [w, 0, 0.2, 'Viento'],
@@ -267,7 +474,15 @@ export const SCENES = {
       title: 'Chimenea',
       render() {
         const f = S.hearth({ size: 1, crackle: 2.2, sizzle: 0.9, pops: 0.07, flare: 0.12, whistle: 0.02, flicker: 2 });
-        return mix([[f, 0, 0.16, 22, 'Fuego']], { t60: 0.5, size: 0.55, damp: 4500 });
+        // Sol mayor: G – Em – C – D, guitarra de nailon.
+        const prog = [[43, 50, 55, 59], [40, 47, 55, 59], [48, 52, 55, 60], [50, 54, 57, 62]];
+        const guitar = tune(prog, S.nylon, { root: 7, lo: 62, hi: 76, notes: 3.5, wet: 0.3, rv: { t60: 1.6, size: 1, damp: 5000, predelay: 0.015 } });
+        const pad = pads(prog, WARM);
+        return mix([
+          [f, 0, 0.16, 22, 'Fuego'],
+          [guitar, 0, 'Guitarra'],
+          [pad, -9, 'Pad'],
+        ], { t60: 0.5, size: 0.55, damp: 4500 });
       },
     },
     {
@@ -277,10 +492,16 @@ export const SCENES = {
         const night = new Bus();
         cricketChorus(night, 5, { dLo: 0.7, dHi: 1 });
         const breeze = S.wind(gusts(0.05, 0, 0.6, 1.5), { lo: 280, hi: 800, low: 0.3, hiss: 0.05 });
+        // Mi menor: Em – C – G – D, ocarina lejana.
+        const prog = [[40, 47, 52, 55], [48, 52, 55, 60], [43, 50, 55, 59], [50, 54, 57, 62]];
+        const lead = tune(prog, S.softLead, { root: 4, steps: MINOR, lo: 64, hi: 76, notes: 2, wet: 0.5, humanize: 0.02, rv: { t60: 3, size: 1.8, damp: 4500, predelay: 0.03 } });
+        const pad = pads(prog, WARM);
         return mix([
           [f, 0, 0.08, 22, 'Fuego'],
           [night.render({ t60: 1.4, size: 1.4 }), -24, 'Grillos'],
           [breeze, -21, 0.1, 'Brisa'],
+          [lead, 0, 'Ocarina'],
+          [pad, -10, 'Pad'],
         ], { t60: 0.9, size: 1.5, damp: 4500 });
       },
     },
@@ -294,7 +515,7 @@ export const SCENES = {
         });
         const embers = lp(scatter(buf(), tinkle, 1.2, { spreadDb: 6 }), 6000);
         const settle = new Bus();
-        for (const t of [rand(6, 9), rand(19, 23)]) {
+        for (const t of perPhrase(() => [rand(6, 9), rand(19, 23)])) {
           const ev = buf(sec(0.8));
           put(ev, modal([[rand(90, 140), 1, 0.06], [rand(220, 320), 0.4, 0.03]], { dur: 0.3, strike: 0.5, strikeLp: 1200 }), 0, 0.7);
           for (let i = 0; i < irand(12, 24); i++) put(ev, S.woodCrack(), sec(rand(0, 0.7) ** 1.5), rand(0.08, 0.4));
@@ -315,15 +536,21 @@ export const SCENES = {
       render() {
         const b = new Bus();
         const sizes = [1, 0.78, 0.9];
-        waveTimes([1.5, 11.2, 20.8]).forEach((t, i) => {
-          b.place(S.wave({ build: rand(2.6, 3.4), crash: rand(0.35, 0.5), wash: rand(6, 7.5), size: sizes[i], bright: rand(3000, 3800), foam: 0.9 }), t, { wet: 0.2 });
+        perPhrase(() => waveTimes([1.5, 11.2, 20.8])).forEach((t, i) => {
+          b.place(S.wave({ build: rand(2.6, 3.4), crash: rand(0.35, 0.5), wash: rand(6, 7.5), size: sizes[i % 3], bright: rand(3000, 3800), foam: 0.9 }), t, { wet: 0.2 });
         });
         const surf = mul(add(lp(brown(), 350), band(pink(), 200, 1400), 0.5), gusts(0.05, 0.5, 1, 1));
         const breeze = S.wind(gusts(0.06, 0, 0.6, 1.5), { lo: 400, hi: 1000, low: 0.2, hiss: 0.1 });
+        // Fa mayor: F – Dm – B♭ – C, piano de fieltro.
+        const prog = [[41, 48, 53, 57], [50, 53, 57, 62], [46, 50, 53, 58], [48, 52, 55, 60]];
+        const piano = tune(prog, S.feltPiano, { root: 5, lo: 65, hi: 79, notes: 2.5, wet: 0.45 });
+        const strings = pads(prog, STRINGS);
         return mix([
           [b.dry, 0, 0.2, 'Olas'],
           [surf, -12, 0.3, 'Rumor del mar'],
           [breeze, -20, 'Brisa'],
+          [piano, 0, 'Piano'],
+          [strings, -8, 'Pad de cuerdas'],
         ], { t60: 1.3, size: 1.6, damp: 4500 });
       },
     },
@@ -331,13 +558,19 @@ export const SCENES = {
       title: 'Orilla de guijarros',
       render() {
         const b = new Bus();
-        waveTimes([0.5, 8.2, 15.4, 22.9], 0.4).forEach((t) => {
+        perPhrase(() => waveTimes([0.5, 8.2, 15.4, 22.9], 0.4)).forEach((t) => {
           b.place(S.wave({ build: rand(2.2, 2.8), crash: rand(0.3, 0.4), wash: rand(5, 6), size: rand(0.8, 1), bright: rand(3600, 4400), foam: 0.6, pebbles: 1 }), t, { wet: 0.15 });
         });
         const surf = mul(lp(brown(), 300), gusts(0.05, 0.5, 1, 1));
+        // La mayor pentatónica sobre A – F♯m – D – E, kalimba.
+        const prog = [[45, 52, 57, 61], [42, 49, 54, 57], [50, 54, 57, 62], [52, 56, 59, 64]];
+        const kalimba = tune(prog, S.kalimba, { root: 9, steps: PENTA, lo: 64, hi: 81, notes: 3.5, wet: 0.4 });
+        const pad = pads(prog, WARM);
         return mix([
           [b.dry, 0, 0.15, 'Olas y guijarros'],
           [surf, -14, 0.3, 'Rumor del mar'],
+          [kalimba, 0, 'Kalimba'],
+          [pad, -9, 'Pad'],
         ], { t60: 1.0, size: 1.3, damp: 5000 });
       },
     },
@@ -347,7 +580,7 @@ export const SCENES = {
         const b = new Bus();
         const laps = bank(8, () => S.lap({ size: rand(0.5, 1) }));
         poisson(0.5, (t) => b.place(pick(laps), t, { g: vary(0, 3), d: rand(0, 0.35) }));
-        for (const t of [rand(3, 5), rand(17, 19)]) b.place(S.wave({ build: 2, crash: 0.3, wash: 4, size: 0.5, bright: 2400, foam: 0.5 }), t, { d: 0.6 });
+        for (const t of perPhrase(() => [rand(3, 5), rand(17, 19)])) b.place(S.wave({ build: 2, crash: 0.3, wash: 4, size: 0.5, bright: 2400, foam: 0.5 }), t, { d: 0.6 });
         const gurgle = S.babble({ sources: 4, fLo: 250, fHi: 800, rateLo: 0.5, rateHi: 1.5, loose: 0.1, damp: 0.8 });
         const hush = mul(lp(brown(), 300), gusts(0.05, 0.6, 1, 1));
         return mix([
@@ -363,10 +596,16 @@ export const SCENES = {
     {
       title: 'Arroyo de montaña',
       render() {
+        // Re mayor: D – G – Bm – A, arpa.
+        const prog = [[50, 54, 57, 62], [43, 50, 55, 59], [47, 54, 59, 62], [45, 52, 57, 61]];
+        const harp = tune(prog, S.harp, { root: 2, lo: 66, hi: 81, notes: 3, wet: 0.45 });
+        const pad = pads(prog, STRINGS);
         return mix([
           [S.babble({ sources: 16, fLo: 450, fHi: 2600, rateLo: 4, rateHi: 14 }), 0, 0.15, 'Burbujeo'],
           [S.flow({ lo: 400, hi: 5000, turb: 0.5, rate: 12 }), -8, 0.15, 'Corriente'],
           [lp(brown(), 200), -18, 'Fondo grave'],
+          [harp, 0, 'Arpa'],
+          [pad, -9, 'Pad de cuerdas'],
         ], { t60: 0.8, size: 0.7, damp: 6000 });
       },
     },
@@ -376,11 +615,17 @@ export const SCENES = {
         const b = new Bus();
         const laps = bank(6, () => S.lap({ size: rand(0.3, 0.6), lo: 180, hi: 1600 }));
         poisson(0.25, (t) => b.place(pick(laps), t, { g: vary(0, 3), d: rand(0.1, 0.4) }));
+        // Mi♭ mayor: E♭ – Cm – A♭ – B♭, piano de fieltro.
+        const prog = [[46, 51, 55, 58], [48, 51, 55, 60], [44, 48, 51, 56], [46, 50, 53, 58]];
+        const piano = tune(prog, S.feltPiano, { root: 3, lo: 63, hi: 77, notes: 2.5, wet: 0.45 });
+        const pad = pads(prog, WARM);
         return mix([
           [S.babble({ sources: 7, fLo: 180, fHi: 650, rateLo: 0.8, rateHi: 3, damp: 0.8, rise: [0.15, 0.4], loose: 0.15 }), 0, 0.25, 'Burbujeo grave'],
           [S.flow({ lo: 120, hi: 1400, turb: 0.35, rate: 4 }), -3, 0.2, 'Corriente'],
           [b.dry, -6, 0.25, 'Chapoteos'],
           [lp(brown(), 250), -10, 'Fondo grave'],
+          [piano, 0, 'Piano'],
+          [pad, -9, 'Pad'],
         ], { t60: 1.4, size: 1.5, damp: 4500 });
       },
     },
@@ -403,14 +648,30 @@ export const SCENES = {
       title: 'Brisa entre pinos',
       render() {
         const gust = gusts(0.11, 0, 1, 1.6);
-        return mix([[S.wind(gust, { lo: 700, hi: 2600, q: 0.6, low: 0.25, hiss: 0.7 }), 0, 0.12, 'Brisa']], { t60: 0.9, size: 1.2, damp: 6000 }, lowpass(7500));
+        // Mi menor: Em – C – G – D, flauta de madera.
+        const prog = [[40, 47, 52, 55], [48, 52, 55, 60], [43, 50, 55, 59], [50, 54, 57, 62]];
+        const flute = tune(prog, S.softLead, { root: 4, steps: MINOR, lo: 64, hi: 79, notes: 2, wet: 0.5, humanize: 0.02, rv: { t60: 3.2, size: 1.8, damp: 5000, predelay: 0.03 } });
+        const pad = pads(prog, WARM);
+        return mix([
+          [S.wind(gust, { lo: 700, hi: 2600, q: 0.6, low: 0.25, hiss: 0.7 }), 0, 0.12, 'Brisa'],
+          [flute, 0, 'Flauta'],
+          [pad, -9, 'Pad'],
+        ], { t60: 0.9, size: 1.2, damp: 6000 }, lowpass(7500));
       },
     },
     {
       title: 'Viento de montaña',
       render() {
         const gust = gusts(0.07, 0.08, 1, 1.3);
-        return mix([[S.wind(gust, { lo: 200, hi: 750, q: 0.7, low: 1, hiss: 0.15, howl: 0.55, howlF: [270, 390, 540], howlQ: 32 }), 0, 0.25, 'Viento']], { t60: 2.2, size: 1.8, damp: 4000, lowcut: 80 });
+        // Re menor: Dm – F – C – Am, piano de fieltro y cuerdas.
+        const prog = [[50, 53, 57, 62], [45, 48, 53, 57], [43, 48, 52, 55], [45, 48, 52, 57]];
+        const piano = tune(prog, S.feltPiano, { root: 2, steps: MINOR, lo: 62, hi: 76, notes: 2, wet: 0.5 });
+        const strings = pads(prog, STRINGS);
+        return mix([
+          [S.wind(gust, { lo: 200, hi: 750, q: 0.7, low: 1, hiss: 0.15, howl: 0.55, howlF: [270, 390, 540], howlQ: 32 }), 0, 0.25, 'Viento'],
+          [piano, 0, 'Piano'],
+          [strings, -6, 'Pad de cuerdas'],
+        ], { t60: 2.2, size: 1.8, damp: 4000, lowcut: 80 });
       },
     },
     {
@@ -439,9 +700,13 @@ export const SCENES = {
       render() {
         const pad = evolvingPad([73.42, 110, 146.83, 185, 220, 329.63], { harm: 8, rolloff: 1.6, swellHz: 0.06, gains: [1, 0.8, 0.7, 0.55, 0.5, 0.3] });
         const solar = mul(bp(pink(), range(lfo(0.03), 300, 2200), 2.5), range(lfo(0.05), 0.3, 1));
+        // Sobre el pad de Re: vibráfono pentatónico, muy espaciado.
+        const prog = [[50, 57, 62, 66], [50, 57, 64, 69], [50, 57, 62, 66], [50, 54, 57, 64]];
+        const vib = tune(prog, S.vibes, { root: 2, steps: PENTA, lo: 66, hi: 81, notes: 2, rest: 0.5, wet: 0.75, rv: { t60: 6, size: 2.2, damp: 4500, predelay: 0.04 } });
         return mix([
           [pad, 0, 0.6, 'Pad'],
           [solar, -15, 0.7, 'Viento solar'],
+          [vib, 0, 'Vibráfono'],
         ], { t60: 6.5, size: 2.2, damp: 4000, predelay: 0.03 }, lowpass(5500));
       },
     },
@@ -451,7 +716,7 @@ export const SCENES = {
       render() {
         const drone = evolvingPad([55, 82.5, 110], { harm: 12, rolloff: 1.7, swellHz: 0.04, swellLo: 0.5 });
         const sweeps = new Bus();
-        for (const t of [rand(1, 3), rand(11, 13), rand(21, 23)]) {
+        for (const t of perPhrase(() => [rand(1, 3), rand(11, 13), rand(21, 23)])) {
           const d = rand(6, 8);
           const n = sec(d);
           const f0 = rand(300, 450), f1 = rand(1800, 2600);
@@ -460,14 +725,18 @@ export const SCENES = {
         }
         const pings = new Bus();
         const scale5 = [880, 987.77, 1108.73, 1318.51, 1479.98];
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 6 * REPS; i++) {
           const f = pick(scale5);
           pings.place(modal([[f, 1, 2.2], [f * 2.0, 0.08, 0.9], [f * 3.0, 0.03, 0.5]], { dur: 7, attack: 0.02 }), i * 5 + rand(0.5, 3.5), { g: vary(0, 3), wet: 0.9 });
         }
+        // Sobre el drone de La: voz lejana pentatónica, notas largas.
+        const prog = [[45, 52, 57, 61], [45, 52, 57, 64], [45, 54, 57, 61], [45, 52, 57, 59]];
+        const lead = tune(prog, S.softLead, { root: 9, steps: PENTA, lo: 61, hi: 76, notes: 1.5, rest: 0.5, wet: 0.7, humanize: 0.03, rv: { t60: 6, size: 2.4, damp: 4000, predelay: 0.05 } });
         return mix([
           [drone, 0, 0.5, 'Drone'],
           [sweeps.dry, -12, 0.8, 'Barridos'],
           [pings.dry, -8, 0.9, 'Destellos'],
+          [lead, 0, 'Voz lejana'],
         ], { t60: 7, size: 2.4, damp: 4500, predelay: 0.04 }, lowpass(6000));
       },
     },
@@ -482,7 +751,7 @@ export const SCENES = {
         }
         const drone = mul(additive(parts), swell);
         const glass = new Bus();
-        for (const t of [rand(2, 4), rand(12, 14), rand(21, 24)]) {
+        for (const t of perPhrase(() => [rand(2, 4), rand(12, 14), rand(21, 24)])) {
           const f = pick([1046.5, 1318.5, 1568, 1760]);
           glass.place(modal([[f, 1, 3], [f * 2.76, 0.25, 1.5], [f * 5.4, 0.08, 0.6]], { dur: 10, attack: 0.04 }), t, { g: vary(0, 2), wet: 1 });
         }
@@ -501,7 +770,7 @@ export const SCENES = {
       title: 'Caja de música',
       lufs: -24,
       render() {
-        const beat = SECONDS / 32;
+        const beat = PHRASE / 32;
         const melody = [
           [0, 76], [1, 79], [2, 84], [4, 83], [5, 81], [6, 76],
           [8, 77], [9, 81], [10, 84], [11, 81], [12, 79], [15, 74],
@@ -513,10 +782,13 @@ export const SCENES = {
         const low = roots.flatMap((r, k) => [[k * 4, r, 0.55], [k * 4 + 2, fifths[k], 0.45]]);
         const chords = [[48, 52, 55], [45, 48, 52], [41, 45, 48], [43, 47, 50]];
         const b = new Bus();
-        sequence(b, melody, beat, S.musicBox);
-        sequence(b, low, beat, S.musicBox, { g: 0.8 });
         const pads = new Bus();
-        for (let k = 0; k < 8; k++) pads.place(S.padChord(chords[k % 4].map(S.midi), beat * 4 + 1.6), k * 4 * beat, { wet: 0.4 });
+        for (let r = 0; r < REPS; r++) {
+          const offset = r * PHRASE;
+          sequence(b, melody, beat, S.musicBox, { offset });
+          sequence(b, low, beat, S.musicBox, { g: 0.8, offset });
+          for (let k = 0; k < 8; k++) pads.place(S.padChord(chords[k % 4].map(S.midi), beat * 4 + 1.6), offset + k * 4 * beat, { wet: 0.4 });
+        }
         return mix([
           [b.dry, 0, 0.35, 'Caja de música'],
           [pads.dry, -16, 0.4, 'Pad'],
@@ -527,7 +799,7 @@ export const SCENES = {
       title: 'Kalimba de cuna',
       lufs: -24,
       render() {
-        const beat = SECONDS / 30; // 60 BPM, 3/4, 10 compases
+        const beat = PHRASE / 30; // 60 BPM, 3/4, 10 compases
         const chords = {
           Am: [57, 64, 72, 69], F: [53, 60, 69, 65], C: [48, 55, 64, 60], G: [55, 62, 71, 67], E: [52, 59, 68, 64],
         };
@@ -541,9 +813,12 @@ export const SCENES = {
           if (bar % 2 === 1) notes.push([bar * 3 + 1, chords[name][2] + 12, 0.45]);
         });
         const b = new Bus();
-        sequence(b, notes, beat, S.kalimba);
         const pads = new Bus();
-        prog.forEach((name, bar) => pads.place(S.padChord(chords[name].slice(0, 3).map((m) => S.midi(m - 12)), beat * 3 + 1.4, { harm: 6 }), bar * 3 * beat, { wet: 0.4 }));
+        for (let r = 0; r < REPS; r++) {
+          const offset = r * PHRASE;
+          sequence(b, notes, beat, S.kalimba, { offset });
+          prog.forEach((name, bar) => pads.place(S.padChord(chords[name].slice(0, 3).map((m) => S.midi(m - 12)), beat * 3 + 1.4, { harm: 6 }), offset + bar * 3 * beat, { wet: 0.4 }));
+        }
         return mix([
           [b.dry, 0, 0.3, 'Kalimba'],
           [pads.dry, -17, 0.4, 'Pad'],
@@ -554,7 +829,7 @@ export const SCENES = {
       title: 'Nana de celesta',
       lufs: -24,
       render() {
-        const beat = SECONDS / 24; // 48 BPM, 6 compases de 4/4
+        const beat = PHRASE / 24; // 48 BPM, 6 compases de 4/4
         const melody = [
           [0, 81, 0.9], [2, 84, 0.7], [3, 81, 0.6],
           [4, 77, 0.85], [6, 74, 0.7],
@@ -565,9 +840,12 @@ export const SCENES = {
         ];
         const chords = [[53, 57, 60, 65], [50, 53, 57, 62], [46, 50, 53, 58], [53, 57, 60, 65], [43, 50, 55, 58], [48, 52, 55, 60]];
         const b = new Bus();
-        sequence(b, melody, beat, S.celesta);
         const strings = new Bus();
-        chords.forEach((c, k) => strings.place(S.padChord(c.map(S.midi), beat * 4 + 1.5, { harm: 10, rolloff: 1.1, attack: 1.4, release: 1.8, vib: 0.003 }), k * 4 * beat, { wet: 0.45 }));
+        for (let r = 0; r < REPS; r++) {
+          const offset = r * PHRASE;
+          sequence(b, melody, beat, S.celesta, { offset });
+          chords.forEach((c, k) => strings.place(S.padChord(c.map(S.midi), beat * 4 + 1.5, { harm: 10, rolloff: 1.1, attack: 1.4, release: 1.8, vib: 0.003 }), offset + k * 4 * beat, { wet: 0.45 }));
+        }
         return mix([
           [b.dry, 0, 0.4, 'Celesta'],
           [strings.dry, -9, 0.45, 'Pad de cuerdas'],
@@ -584,13 +862,19 @@ export const SCENES = {
         const fund = [148, 222, 296].map((f) => jitter(f, 0.01));
         const bowls = fund.map((f) => [S.bowl(f, 1), S.bowl(f, 1)]);
         const b = new Bus();
-        [[0.3, 0, 1], [7.8, 1, 0.8], [13.2, 2, 0.6], [19.6, 0, 0.85], [25.1, 1, 0.7]].forEach(([t, k, v], i) => {
-          b.place(bowls[k][i % 2], t + rand(-0.2, 0.2), { g: v, wet: 0.35 });
-        });
+        for (let r = 0; r < REPS; r++) {
+          [[0.3, 0, 1], [7.8, 1, 0.8], [13.2, 2, 0.6], [19.6, 0, 0.85], [25.1, 1, 0.7]].forEach(([t, k, v], i) => {
+            b.place(bowls[k][(i + r) % 2], r * PHRASE + t + rand(-0.2, 0.2), { g: v, wet: 0.35 });
+          });
+        }
         const hum = mul(additive([{ f: fund[0] / 2, a: 1 }, { f: fund[0] / 2 + 0.1, a: 1 }, { f: fund[0], a: 0.3 }]), range(lfo(0.04), 0.4, 1));
+        // Bansuri lejano en Re pentatónica menor, sobre los cuencos.
+        const prog = [[50, 57, 62], [50, 57, 65], [50, 57, 62], [48, 55, 60]];
+        const flute = tune(prog, S.softLead, { root: 2, steps: PENTA_MINOR, lo: 62, hi: 76, notes: 1.5, rest: 0.5, wet: 0.55, humanize: 0.02, rv: { t60: 3.5, size: 1.8, damp: 5000, predelay: 0.03 } });
         return mix([
           [b.dry, 0, 0.35, 'Cuencos'],
           [hum, -20, 0.3, 'Zumbido'],
+          [flute, 0, 'Flauta'],
         ], { t60: 4, size: 1.8, damp: 5000 });
       },
     },
@@ -602,8 +886,8 @@ export const SCENES = {
         const strings = [sa * 0.75, sa, sa, sa / 2];
         const plucks = strings.map((f) => [S.tanpura(f), S.tanpura(f)]);
         const b = new Bus();
-        const cycle = SECONDS / 8;
-        for (let c = 0; c < 8; c++) {
+        const cycle = PHRASE / 8;
+        for (let c = 0; c < 8 * REPS; c++) {
           strings.forEach((_, k) => {
             b.place(plucks[k][(c + k) % 2], c * cycle + k * (cycle / 4) + rand(-0.02, 0.02), { g: [0.8, 0.9, 0.85, 1][k] * rand(0.92, 1), wet: 0.3 });
           });
@@ -619,20 +903,24 @@ export const SCENES = {
       title: 'Campanas de viento y respiración',
       lufs: -24,
       render() {
-        const breath = Float32Array.from({ length: N }, (_, i) => Math.pow(0.5 - 0.5 * Math.cos((2 * Math.PI * 4 * i) / N), 1.3));
+        const breath = Float32Array.from({ length: N }, (_, i) => Math.pow(0.5 - 0.5 * Math.cos((2 * Math.PI * 4 * REPS * i) / N), 1.3));
         const fc = breath.map((v) => 350 + 700 * v);
         const air = mul(bp(pink(), fc, 0.9), breath.map((v) => 0.12 + v));
         const notes = [587.33, 659.25, 739.99, 880, 987.77];
         const chimes = new Bus();
-        for (const g0 of [rand(1, 3), rand(11, 13), rand(21, 23)]) {
+        for (const g0 of perPhrase(() => [rand(1, 3), rand(11, 13), rand(21, 23)])) {
           const len = rand(2.5, 4);
           for (let i = 0; i < irand(4, 9); i++) chimes.place(S.chime(pick(notes), rand(0.3, 0.9)), g0 + rand(0, len), { wet: 0.35 });
         }
         const drone = mul(additive([{ f: 146.83, a: 1 }, { f: 220, a: 0.6 }, { f: 146.93, a: 0.6 }]), range(lfo(0.04), 0.4, 1));
+        // Arpa en Re pentatónica, como las campanas.
+        const prog = [[50, 57, 62, 66], [47, 54, 59, 62], [43, 50, 55, 59], [45, 52, 57, 64]];
+        const harp = tune(prog, S.harp, { root: 2, steps: PENTA, lo: 62, hi: 76, notes: 2.5, wet: 0.5 });
         return mix([
           [chimes.dry, 0, 0.35, 'Campanas'],
           [air, -10, 0.2, 'Respiración'],
           [drone, -18, 0.3, 'Drone'],
+          [harp, 0, 'Arpa'],
         ], { t60: 3.5, size: 1.6, damp: 6000 });
       },
     },
@@ -648,9 +936,15 @@ export const SCENES = {
         S.singer(b, S.greatTit, { gap: [5, 9], d: 0.75, g: 0.7, start: rand(3, 6) });
         poisson(1, (t) => b.place(S.tinyChirp(), t, { d: rand(0.8, 1), g: vary(-4, 3) }));
         const air = band(pink(), 150, 1200);
+        // Do mayor: C – Am – F – G, guitarra de nailon en registro medio.
+        const prog = [[48, 52, 55, 60], [45, 52, 57, 60], [41, 48, 53, 57], [43, 50, 55, 59]];
+        const guitar = tune(prog, S.nylon, { root: 0, lo: 60, hi: 74, notes: 3, wet: 0.35 });
+        const pad = pads(prog, WARM);
         return mix([
           [b.render({ t60: 1.3, size: 1.2, damp: 6500 }), 0, 'Pájaros'],
           [air, -28, 'Aire'],
+          [guitar, 0, 'Guitarra'],
+          [pad, -9, 'Pad'],
         ]);
       },
     },
@@ -662,13 +956,20 @@ export const SCENES = {
         S.singer(b, S.greatTit, { gap: [4, 7], d: 0.45, g: 0.8, start: rand(2, 4) });
         S.singer(b, S.blackbird, { gap: [4, 8], d: 0.65, g: 0.8, start: rand(4, 7) });
         S.singer(b, S.robin, { gap: [4, 7], d: 0.75, g: 0.7, start: rand(0, 3) });
-        const ck = rand(10, 13);
-        for (let i = 0; i < 3; i++) b.place(S.cuckoo(), ck + i * rand(0.9, 1.1), { d: 0.85, g: 0.9 });
+        for (const ck of perPhrase(() => [rand(10, 13)])) {
+          for (let i = 0; i < 3; i++) b.place(S.cuckoo(), ck + i * rand(0.9, 1.1), { d: 0.85, g: 0.9 });
+        }
         poisson(0.8, (t) => b.place(S.tinyChirp(), t, { d: rand(0.8, 1), g: vary(-4, 3) }));
         const lv = S.leaves(gusts(0.08, 0, 0.7, 1.6), { rate: 3000, flutter: 0.3 });
+        // Sol mayor: G – Em – C – D, celesta grave.
+        const prog = [[43, 50, 55, 59], [40, 47, 52, 55], [48, 52, 55, 60], [50, 54, 57, 62]];
+        const celesta = tune(prog, S.celesta, { root: 7, lo: 62, hi: 76, notes: 2.5, wet: 0.5 });
+        const strings = pads(prog, STRINGS);
         return mix([
           [b.render({ t60: 1.8, size: 1.6, damp: 6000 }), 0, 'Pájaros'],
           [lv, -20, 0.1, 'Hojas'],
+          [celesta, 0, 'Celesta'],
+          [strings, -9, 'Pad de cuerdas'],
         ]);
       },
     },
@@ -676,10 +977,13 @@ export const SCENES = {
       title: 'Palomas al sol',
       render() {
         const b = new Bus();
-        b.place(S.woodPigeon(), rand(1, 2.5), { d: 0.3 });
-        b.place(S.woodPigeon(), rand(16, 18), { d: 0.35, g: 0.9 });
-        b.place(S.collaredDove(), rand(9, 11), { d: 0.55, g: 0.8 });
-        b.place(S.collaredDove(), rand(24, 26), { d: 0.6, g: 0.75 });
+        for (let r = 0; r < REPS; r++) {
+          const o = r * PHRASE;
+          b.place(S.woodPigeon(), o + rand(1, 2.5), { d: 0.3 });
+          b.place(S.woodPigeon(), o + rand(16, 18), { d: 0.35, g: 0.9 });
+          b.place(S.collaredDove(), o + rand(9, 11), { d: 0.55, g: 0.8 });
+          b.place(S.collaredDove(), o + rand(24, 26), { d: 0.6, g: 0.75 });
+        }
         S.singer(b, S.turtleDove, { gap: [4, 7], d: 0.5, g: 0.7, start: rand(5, 7) });
         poisson(0.5, (t) => b.place(S.tinyChirp(), t, { d: rand(0.85, 1), g: vary(-6, 3) }));
         const breeze = S.wind(gusts(0.06, 0, 0.6, 1.5), { lo: 500, hi: 1400, low: 0.2, hiss: 0.3 });
@@ -701,9 +1005,15 @@ export const SCENES = {
           const p = S.distance(S.treeCricket(), rand(0.6, 0.85));
           b.layer(p.ev, { g: p.g * 0.6, wet: p.wet });
         }
+        // Fa mayor: F – Am – B♭ – C, piano de fieltro.
+        const prog = [[41, 48, 53, 57], [45, 52, 57, 60], [46, 50, 53, 58], [48, 52, 55, 60]];
+        const piano = tune(prog, S.feltPiano, { root: 5, lo: 65, hi: 79, notes: 2.5, wet: 0.45 });
+        const pad = pads(prog, WARM);
         return mix([
           [b.render({ t60: 1.4, size: 1.4, damp: 6000 }), 0, 'Grillos'],
           [band(pink(), 200, 2000), -30, 'Aire'],
+          [piano, 0, 'Piano'],
+          [pad, -9, 'Pad'],
         ]);
       },
     },
@@ -738,9 +1048,15 @@ export const SCENES = {
           for (const t of regular(rand(1.2, 1.6), { offset: rand(0, 1), jitter: 0.05 })) if (chance(0.8)) b.place(k, t, { d, g: 0.5 });
         }
         cricketChorus(b, 3, { dLo: 0.7, dHi: 1, g: 0.6 });
+        // Mi mayor: E – C♯m – A – B, arpa.
+        const prog = [[40, 47, 52, 56], [49, 52, 56, 61], [45, 52, 57, 61], [47, 51, 54, 59]];
+        const harp = tune(prog, S.harp, { root: 4, lo: 64, hi: 78, notes: 3, wet: 0.45 });
+        const strings = pads(prog, STRINGS);
         return mix([
           [b.render({ t60: 1.6, size: 1.5, damp: 5500 }), 0, 'Grillos'],
           [band(pink(), 200, 1500), -30, 'Aire'],
+          [harp, 0, 'Arpa'],
+          [strings, -9, 'Pad de cuerdas'],
         ]);
       },
     },
@@ -754,7 +1070,7 @@ export const SCENES = {
         const birds = new Bus();
         S.singer(birds, S.robin, { gap: [5, 9], d: 0.6, g: 0.8 });
         S.singer(birds, S.blackbird, { gap: [6, 10], d: 0.75, g: 0.8, start: rand(3, 6) });
-        birds.place(S.woodpecker(), rand(13, 16), { d: 0.7, g: 0.9 });
+        for (const t of perPhrase(() => [rand(13, 16)])) birds.place(S.woodpecker(), t, { d: 0.7, g: 0.9 });
         return mix([
           [S.leaves(gust, { rate: 6000, lo: 1200, hi: 6500, flutter: 0.3 }), 0, 0.15, 'Hojas'],
           [S.wind(gust, { lo: 300, hi: 1100, low: 0.4, hiss: 0.2 }), -5, 0.15, 'Viento'],
@@ -783,11 +1099,17 @@ export const SCENES = {
         S.singer(birds, S.robin, { gap: [6, 10], d: 0.7, g: 0.8 });
         S.singer(birds, S.blackbird, { gap: [7, 11], d: 0.8, g: 0.7, start: rand(4, 8) });
         const stream = lp(S.babble({ sources: 8, fLo: 400, fHi: 1800, rateLo: 4, rateHi: 10 }), 1500);
+        // Sol mayor: G – D – Em – C, arpa.
+        const prog = [[43, 50, 55, 59], [50, 54, 57, 62], [40, 47, 52, 55], [48, 52, 55, 60]];
+        const harp = tune(prog, S.harp, { root: 7, lo: 62, hi: 76, notes: 3, wet: 0.45 });
+        const pad = pads(prog, WARM);
         return mix([
           [drips.dry, 0, 0.25, 'Goteo'],
           [birds.render({ t60: 1.8, size: 1.6 }), -4, 'Pájaros'],
           [stream, -16, 0.3, 'Arroyo'],
           [S.leaves(gust, { rate: 2500, flutter: 0.2 }), -16, 0.1, 'Hojas'],
+          [harp, 0, 'Arpa'],
+          [pad, -9, 'Pad'],
         ], { t60: 1.3, size: 1.4, damp: 5500 });
       },
     },
@@ -796,15 +1118,24 @@ export const SCENES = {
       render() {
         const gust = gusts(0.09, 0, 1, 1.6);
         const b = new Bus();
-        b.place(S.creak(), rand(4, 7), { d: 0.35, g: 0.9 });
-        b.place(S.creak(), rand(18, 22), { d: 0.5, g: 0.8 });
-        for (const t0 of [rand(2, 4), rand(16, 19)]) {
-          for (let i = 0; i < irand(3, 5); i++) b.place(S.cuckoo(), t0 + i * rand(0.9, 1.1), { d: 0.85, g: 0.9 });
+        for (let r = 0; r < REPS; r++) {
+          const o = r * PHRASE;
+          b.place(S.creak(), o + rand(4, 7), { d: 0.35, g: 0.9 });
+          b.place(S.creak(), o + rand(18, 22), { d: 0.5, g: 0.8 });
+          for (const t0 of [o + rand(2, 4), o + rand(16, 19)]) {
+            for (let i = 0; i < irand(3, 5); i++) b.place(S.cuckoo(), t0 + i * rand(0.9, 1.1), { d: 0.85, g: 0.9 });
+          }
+          b.place(S.collaredDove(), o + rand(9, 12), { d: 0.75, g: 0.8 });
         }
-        b.place(S.collaredDove(), rand(9, 12), { d: 0.75, g: 0.8 });
+        // Mi♭ mayor: E♭ – Gm – A♭ – B♭, piano de fieltro.
+        const prog = [[46, 51, 55, 58], [43, 50, 55, 58], [44, 48, 51, 56], [46, 50, 53, 58]];
+        const piano = tune(prog, S.feltPiano, { root: 3, lo: 63, hi: 77, notes: 2.5, wet: 0.45 });
+        const strings = pads(prog, STRINGS);
         return mix([
           [S.wind(gust, { lo: 700, hi: 2400, q: 0.6, low: 0.3, hiss: 0.6 }), 0, 0.12, 'Viento en los pinos'],
           [b.render({ t60: 1.6, size: 1.5, damp: 5000 }), 1, 'Pájaros y crujidos'],
+          [piano, 0, 'Piano'],
+          [strings, -8, 'Pad de cuerdas'],
         ], { t60: 1.0, size: 1.2, damp: 5500 });
       },
     },
@@ -817,13 +1148,19 @@ export const SCENES = {
         const b = new Bus();
         cricketChorus(b, 16, { dLo: 0.6, dHi: 1, g: 0.8 });
         const owlNear = S.scopsOwl();
-        for (const t of regular(2.6, { offset: rand(0, 1), jitter: 0.02 })) if (!(t > 12 && t < 16)) b.place(owlNear, t, { d: 0.35 });
+        for (const t of regular(2.6, { offset: rand(0, 1), jitter: 0.02 })) if (!(t > 12 && t < 16) && !(t > 41 && t < 47)) b.place(owlNear, t, { d: 0.35 });
         const owlFar = S.scopsOwl(rand(1050, 1150));
-        for (const t of regular(2.9, { offset: rand(1, 2), jitter: 0.03 })) if (t < 8 || t > 13) b.place(owlFar, t, { d: 0.8, g: 0.8 });
+        for (const t of regular(2.9, { offset: rand(1, 2), jitter: 0.03 })) if (t < 8 || (t > 13 && t < 36) || t > 44) b.place(owlFar, t, { d: 0.8, g: 0.8 });
         const breeze = S.wind(gusts(0.06, 0, 0.5, 1.6), { lo: 300, hi: 900, low: 0.3, hiss: 0.1 });
+        // La menor: Am – F – C – G, arpa.
+        const prog = [[45, 52, 57, 60], [41, 48, 53, 57], [48, 52, 55, 60], [43, 50, 55, 59]];
+        const harp = tune(prog, S.harp, { root: 9, steps: MINOR, lo: 62, hi: 76, notes: 2.5, wet: 0.5 });
+        const pad = pads(prog, WARM);
         return mix([
           [b.render({ t60: 1.6, size: 1.6, damp: 5500 }), 0, 'Grillos y autillos'],
           [breeze, -22, 'Brisa'],
+          [harp, 0, 'Arpa'],
+          [pad, -9, 'Pad'],
         ]);
       },
     },
@@ -831,16 +1168,25 @@ export const SCENES = {
       title: 'Cárabo en el bosque',
       render() {
         const b = new Bus();
-        b.place(S.tawnyOwl(), rand(1.5, 3), { d: 0.35 });
-        b.place(S.tawnyOwl(), rand(17, 19), { d: 0.6, g: 0.9 });
-        b.place(S.kewick(), rand(11, 13), { d: 0.75, g: 0.6 });
-        b.place(S.kewick(), rand(26, 27.5), { d: 0.8, g: 0.5 });
+        for (let r = 0; r < REPS; r++) {
+          const o = r * PHRASE;
+          b.place(S.tawnyOwl(), o + rand(1.5, 3), { d: 0.35 + 0.15 * r });
+          b.place(S.tawnyOwl(), o + rand(17, 19), { d: 0.6, g: 0.9 });
+          b.place(S.kewick(), o + rand(11, 13), { d: 0.75, g: 0.6 });
+          b.place(S.kewick(), o + rand(26, 27.5), { d: 0.8, g: 0.5 });
+        }
         cricketChorus(b, 4, { dLo: 0.75, dHi: 1, g: 0.5 });
         const gust = gusts(0.07, 0, 0.8, 1.6);
+        // Re menor: Dm – B♭ – Gm – A, celesta grave.
+        const prog = [[50, 53, 57, 62], [46, 50, 53, 58], [43, 50, 55, 58], [45, 49, 52, 57]];
+        const celesta = tune(prog, S.celesta, { root: 2, steps: HARMONIC, lo: 62, hi: 74, notes: 2, rest: 0.4, wet: 0.55 });
+        const strings = pads(prog, STRINGS);
         return mix([
           [b.render({ t60: 2.2, size: 1.8, damp: 4500 }), 0, 'Cárabos y grillos'],
           [S.leaves(gust, { rate: 3000, flutter: 0.2 }), -19, 0.2, 'Hojas'],
           [S.wind(gust, { lo: 250, hi: 800, low: 0.4, hiss: 0.1 }), -20, 0.2, 'Viento'],
+          [celesta, 0, 'Celesta'],
+          [strings, -8, 'Pad de cuerdas'],
         ], { t60: 1.6, size: 1.6, damp: 5000 });
       },
     },
@@ -889,7 +1235,7 @@ export const SCENES = {
         });
         const pops = scatter(buf(), popBank, 8, { spreadDb: 5 });
         const b = new Bus();
-        for (const t of [rand(3, 5), rand(14, 17), rand(24, 26)]) {
+        for (const t of perPhrase(() => [rand(3, 5), rand(14, 17), rand(24, 26)])) {
           const d = rand(1.2, 2);
           const n = sec(d);
           b.place(mul(band(pink(n), 150, 1500), envBell(n, 1.2)), t, { g: 0.5 });
@@ -912,10 +1258,16 @@ export const SCENES = {
         const blubs = scatter(buf(), bank(60, () => bubble(logRand(120, 700), { rise: rand(0.1, 0.3), damp: 0.7 })), 28, { env: pulse, spreadDb: 5 });
         const hum = lp(brown(), 200);
         const move = mul(band(pink(), 60, 400), range(lfo(0.07), 0.3, 1));
+        // Si♭ mayor: B♭ – Gm – E♭ – F, vibráfono grave (suena apagado bajo el agua).
+        const prog = [[46, 50, 53, 58], [43, 50, 55, 58], [39, 46, 51, 55], [41, 45, 48, 53]];
+        const vib = tune(prog, S.vibes, { root: 10, lo: 58, hi: 72, notes: 2.5, wet: 0.5 });
+        const pad = pads(prog, WARM);
         return mix([
           [blubs, 0, 0.35, 'Burbujas'],
           [hum, -12, 0.3, 'Zumbido'],
           [move, -10, 0.3, 'Movimiento del agua'],
+          [vib, 0, 'Vibráfono'],
+          [pad, -8, 'Pad'],
         ], { t60: 1.2, size: 0.9, damp: 1200, lowcut: 60 }, lowpass(1800));
       },
     },
@@ -931,10 +1283,16 @@ export const SCENES = {
         });
         const pops = scatter(buf(), surf, 12, { spreadDb: 5 });
         const trickle = add(S.babble({ sources: 6, fLo: 800, fHi: 2500, rateLo: 6, rateHi: 14 }), S.flow({ lo: 600, hi: 4000, turb: 0.6, rate: 15 }), 0.6);
+        // Do mayor: C – Em – Am – F, celesta.
+        const prog = [[48, 52, 55, 60], [40, 47, 52, 55], [45, 52, 57, 60], [41, 48, 53, 57]];
+        const celesta = tune(prog, S.celesta, { root: 0, lo: 67, hi: 81, notes: 2.5, wet: 0.5 });
+        const pad = pads(prog, WARM);
         return mix([
           [stream, 0, 0.15, 'Burbujas del aireador'],
           [pops, -4, 0.15, 'Pompas'],
           [trickle, -9, 0.15, 'Filtro'],
+          [celesta, 0, 'Celesta'],
+          [pad, -9, 'Pad'],
         ], { t60: 0.6, size: 0.7, damp: 6000 });
       },
     },
@@ -945,8 +1303,9 @@ export const SCENES = {
 
 /**
  * Escenas 07 y 08 de cada ambiente: el paisaje con una melodía sutil y, cuando
- * encaja, un pad sostenido. Melodías y acordes encajan exactamente en los 30 s
- * del bucle; la música lleva su propia sala y queda por debajo del paisaje.
+ * encaja, un pad sostenido. Melodías y acordes encajan exactamente en una
+ * frase de 30 s, que se repite dos veces en el bucle; la música lleva su
+ * propia sala y `mix` la deja por debajo del paisaje.
  */
 const MUSICAL = {
   lluvia: [
@@ -978,7 +1337,7 @@ const MUSICAL = {
     {
       title: 'Lluvia mansa y arpa',
       render() {
-        const beat = SECONDS / 40;
+        const beat = PHRASE / 40;
         const inten = gusts(0.05, 0.55, 1, 1);
         const bed = S.rainBed(1800, { lo: 400, hi: 5000, env: inten });
         const leaves = scatter(buf(), bank(60, S.leafDrop), 22, { env: inten, spreadDb: 5 });
@@ -989,7 +1348,7 @@ const MUSICAL = {
         const arp = arpeggio(chords, 10, [[0, 0, 0.6], [0.5, 1, 0.45], [1, 2, 0.45], [1.5, 3, 0.42], [2, 4, 0.42], [2.5, 5, 0.4]]);
         const tune = [[4, 76, 0.75], [6, 74, 0.6], [14, 74, 0.75], [16, 71, 0.6], [24, 73, 0.75], [26, 74, 0.6], [34, 76, 0.75], [36, 73, 0.6]];
         const harp = play([...arp, ...tune], beat, S.harp, { wet: 0.45 });
-        const drone = evolvingPad([146.83, 220, 329.63], { harm: 6, rolloff: 2, swellHz: 0.05, swellLo: 0.5, brightLo: 0.4, gains: [1, 0.8, 0.45] });
+        const drone = asMusic(evolvingPad([146.83, 220, 329.63], { harm: 6, rolloff: 2, swellHz: 0.05, swellLo: 0.5, brightLo: 0.4, gains: [1, 0.8, 0.45] }));
         return mix([
           [leaves, 0, 0.2, 'Gotas en las hojas'],
           [bed, -7, 0.3, 'Lluvia fina'],
@@ -1009,7 +1368,7 @@ const MUSICAL = {
         const rain = S.rainBed(4000, { lo: 350, hi: 5500, env: inten });
         const wash = mul(band(pink(), 200, 3500), inten);
         const tb = new Bus();
-        tb.place(S.thunder({ dur: 12, dist: 0.95 }), rand(9, 11), { wet: 0.8 });
+        for (const t of perPhrase(() => [rand(9, 11)])) tb.place(S.thunder({ dur: 12, dist: 0.95 }), t, { wet: 0.8 });
         const th = tb.render({ t60: 3.5, size: 2, damp: 2200, predelay: 0.04, lowcut: 30 });
         const strings = pads([[50, 57, 62, 65], [50, 58, 62, 65], [48, 57, 60, 65], [48, 55, 60, 64]], STRINGS);
         const tune = [
@@ -1037,7 +1396,7 @@ const MUSICAL = {
         const roofTaps = lp(scatter(buf(), bank(60, S.roofTap), 60, { env: inten, spreadDb: 5 }), 3500);
         const outside = mul(band(pink(), 150, 2000), inten);
         const tb = new Bus();
-        tb.place(S.thunder({ dur: 10, dist: 0.95 }), rand(18, 20), { wet: 0.8 });
+        for (const t of perPhrase(() => [rand(18, 20)])) tb.place(S.thunder({ dur: 10, dist: 0.95 }), t, { wet: 0.8 });
         const th = tb.render({ t60: 3.2, size: 2, damp: 2200, predelay: 0.04, lowcut: 30 });
         const pad = pads([[45, 57, 60, 64, 71], [41, 53, 57, 60, 64], [48, 55, 60, 64, 67], [43, 55, 59, 62, 64]], WARM);
         const tune = [
@@ -1063,7 +1422,7 @@ const MUSICAL = {
     {
       title: 'Chimenea y guitarra',
       render() {
-        const e = SECONDS / 64; // corcheas a 64 BPM, 8 compases
+        const e = PHRASE / 64; // corcheas a 64 BPM, 8 compases
         const f = S.hearth({ size: 1, crackle: 1.8, sizzle: 0.8, pops: 0.05, flare: 0.1, whistle: 0, flicker: 2 });
         const chords = [[40, 47, 55, 59, 62], [36, 43, 52, 55, 59], [43, 50, 55, 59, 62], [42, 50, 54, 57, 62]];
         const bar = [[0, 0, 0.7], [1, 2, 0.4], [2, 3, 0.45], [3, 4, 0.4], [4, 1, 0.5], [5, 3, 0.4], [6, 2, 0.4], [7, 4, 0.38]];
@@ -1111,11 +1470,11 @@ const MUSICAL = {
       render() {
         const b = new Bus();
         const sizes = [0.75, 0.6, 0.7];
-        waveTimes([2, 12, 22]).forEach((t, i) => {
-          b.place(S.wave({ build: rand(2.8, 3.4), crash: rand(0.3, 0.4), wash: rand(6, 7), size: sizes[i], bright: rand(2600, 3200), foam: 0.7 }), t, { wet: 0.25 });
+        perPhrase(() => waveTimes([2, 12, 22])).forEach((t, i) => {
+          b.place(S.wave({ build: rand(2.8, 3.4), crash: rand(0.3, 0.4), wash: rand(6, 7), size: sizes[i % 3], bright: rand(2600, 3200), foam: 0.7 }), t, { wet: 0.25 });
         });
         const surf = mul(add(lp(brown(), 350), band(pink(), 200, 1200), 0.5), gusts(0.05, 0.5, 1, 1));
-        const drone = evolvingPad([98, 146.83, 220, 293.66], { harm: 6, rolloff: 2, swellHz: 0.05, swellLo: 0.45, brightLo: 0.35, gains: [1, 0.8, 0.6, 0.4] });
+        const drone = asMusic(evolvingPad([98, 146.83, 220, 293.66], { harm: 6, rolloff: 2, swellHz: 0.05, swellLo: 0.45, brightLo: 0.35, gains: [1, 0.8, 0.6, 0.4] }));
         const tune = [
           [0, 74, 0.65, 2], [2, 76, 0.55, 1], [3, 79, 0.65, 3.5],
           [8, 76, 0.55, 1.5], [9.5, 74, 0.5, 0.5], [10, 71, 0.6, 4],
@@ -1137,7 +1496,7 @@ const MUSICAL = {
         const b = new Bus();
         const laps = bank(8, () => S.lap({ size: rand(0.4, 0.9) }));
         poisson(0.45, (t) => b.place(pick(laps), t, { g: vary(0, 3), d: rand(0.1, 0.4) }));
-        for (const t of [rand(4, 6), rand(18, 20)]) b.place(S.wave({ build: 2, crash: 0.3, wash: 4, size: 0.45, bright: 2200, foam: 0.4 }), t, { d: 0.6 });
+        for (const t of perPhrase(() => [rand(4, 6), rand(18, 20)])) b.place(S.wave({ build: 2, crash: 0.3, wash: 4, size: 0.45, bright: 2200, foam: 0.4 }), t, { d: 0.6 });
         const hush = mul(lp(brown(), 300), gusts(0.05, 0.6, 1, 1));
         const strings = pads([[45, 57, 61, 64, 68], [42, 57, 61, 64, 66], [50, 57, 62, 66, 69], [52, 57, 59, 64, 69]], STRINGS);
         const arp = arpeggio([[57, 61, 64, 69], [54, 57, 61, 66], [50, 57, 62, 66], [52, 57, 59, 64]], 8, [[0, 0, 0.55], [0.5, 1, 0.42], [1, 2, 0.42], [1.5, 3, 0.42]]);
@@ -1162,7 +1521,7 @@ const MUSICAL = {
     {
       title: 'Arroyo y kalimba',
       render() {
-        const beat = SECONDS / 48; // 96 BPM, 12 pulsos por acorde
+        const beat = PHRASE / 48; // 96 BPM, 12 pulsos por acorde
         const tune = [
           [0, 72, 0.8], [1, 76, 0.6], [2, 79, 0.7], [4, 76, 0.55], [5, 74, 0.5], [6, 72, 0.6], [8, 67, 0.5], [10, 72, 0.5],
           [12, 76, 0.75], [13, 72, 0.55], [14, 69, 0.6], [16, 72, 0.55], [17, 76, 0.5], [18, 81, 0.6], [20, 79, 0.5], [22, 76, 0.5],
@@ -1211,7 +1570,7 @@ const MUSICAL = {
       render() {
         const gust = gusts(0.1, 0, 1, 1.6);
         const w = lp(S.wind(gust, { lo: 600, hi: 2400, q: 0.6, low: 0.3, hiss: 0.6 }), 7000, 0.6);
-        const drone = evolvingPad([82.41, 123.47, 164.81, 246.94], { harm: 6, rolloff: 2, swellHz: 0.04, swellLo: 0.4, gains: [1, 0.8, 0.6, 0.35] });
+        const drone = asMusic(evolvingPad([82.41, 123.47, 164.81, 246.94], { harm: 6, rolloff: 2, swellHz: 0.04, swellLo: 0.4, gains: [1, 0.8, 0.6, 0.35] }));
         const tune = [
           [0, 71, 0.6, 1.5], [1.5, 74, 0.55, 0.5], [2, 76, 0.65, 3], [6, 74, 0.5, 1], [7, 71, 0.5, 0.8],
           [8, 69, 0.55, 1], [9, 67, 0.5, 1], [10, 64, 0.6, 4],
@@ -1275,7 +1634,7 @@ const MUSICAL = {
       title: 'Luz lejana',
       lufs: -24,
       render() {
-        const beat = SECONDS / 24; // 48 BPM
+        const beat = PHRASE / 24; // 48 BPM
         const drone = evolvingPad([73.42, 110, 146.83, 220, 277.18], { harm: 8, rolloff: 1.8, swellHz: 0.04, swellLo: 0.45, gains: [1, 0.8, 0.65, 0.5, 0.3] });
         const tune = [
           [0, 74, 0.55], [1, 78, 0.5], [2, 81, 0.55], [4, 76, 0.45], [6, 73, 0.45],
@@ -1298,7 +1657,7 @@ const MUSICAL = {
       title: 'Arpa de cuna',
       lufs: -24,
       render() {
-        const beat = SECONDS / 36; // 72 BPM, 3/4, 12 compases
+        const beat = PHRASE / 36; // 72 BPM, 3/4, 12 compases
         const prog = ['D', 'Bm', 'G', 'A', 'D', 'F#m', 'G', 'A', 'Bm', 'G', 'Em', 'A'];
         const low = { D: [50, 57, 66], Bm: [47, 54, 62], G: [43, 50, 59], A: [45, 52, 61], 'F#m': [42, 49, 57], Em: [40, 47, 55] };
         const high = { D: [54, 57, 62], Bm: [54, 59, 62], G: [55, 59, 62], A: [52, 57, 61], 'F#m': [54, 57, 61], Em: [55, 59, 64] };
@@ -1353,9 +1712,11 @@ const MUSICAL = {
       lufs: -24,
       render() {
         const bowls = new Bus();
-        bowls.place(S.bowl(jitter(146.83, 0.002), 1), 0.3, { wet: 0.35 });
-        bowls.place(S.bowl(jitter(220, 0.002), 0.8), 19, { wet: 0.35 });
-        const drone = evolvingPad([73.42, 110, 146.83], { harm: 6, rolloff: 2, swellHz: 0.04, swellLo: 0.5, gains: [1, 0.7, 0.4] });
+        for (let r = 0; r < REPS; r++) {
+          bowls.place(S.bowl(jitter(146.83, 0.002), 1), r * PHRASE + 0.3, { wet: 0.35 });
+          bowls.place(S.bowl(jitter(220, 0.002), 0.8), r * PHRASE + 19, { wet: 0.35 });
+        }
+        const drone = asMusic(evolvingPad([73.42, 110, 146.83], { harm: 6, rolloff: 2, swellHz: 0.04, swellLo: 0.5, gains: [1, 0.7, 0.4] }));
         const tune = [
           [0, 69, 0.6, 4], [4, 71, 0.5, 1], [5, 74, 0.6, 3],
           [10, 76, 0.55, 2], [12, 74, 0.5, 1], [13, 71, 0.5, 1], [14, 69, 0.55, 4],
@@ -1373,12 +1734,12 @@ const MUSICAL = {
       title: 'Jardín zen',
       lufs: -24,
       render() {
-        const beat = SECONDS / 40;
+        const beat = PHRASE / 40;
         const fountain = add(
           S.babble({ sources: 6, fLo: 700, fHi: 2200, rateLo: 3, rateHi: 8, loose: 0.2 }),
           S.flow({ lo: 500, hi: 3500, turb: 0.4, rate: 8 }), 0.4,
         );
-        const drone = evolvingPad([98, 146.83, 196], { harm: 6, rolloff: 2, swellHz: 0.04, swellLo: 0.5, gains: [1, 0.7, 0.45] });
+        const drone = asMusic(evolvingPad([98, 146.83, 196], { harm: 6, rolloff: 2, swellHz: 0.04, swellLo: 0.5, gains: [1, 0.7, 0.45] }));
         const tune = [
           [0, 79, 0.7], [1, 74, 0.5], [2, 71, 0.55], [4, 76, 0.6], [6, 74, 0.5],
           [10, 71, 0.6], [11, 74, 0.5], [12, 79, 0.55], [14, 81, 0.55], [16, 76, 0.5],
@@ -1473,7 +1834,7 @@ const MUSICAL = {
     {
       title: 'Tarde de verano y guitarra',
       render() {
-        const e = SECONDS / 48; // 6/8, 8 compases
+        const e = PHRASE / 48; // 6/8, 8 compases
         const b = new Bus();
         for (let i = 0; i < 2; i++) {
           const p = S.distance(S.treeCricket(), rand(0.7, 0.9));
@@ -1536,7 +1897,7 @@ const MUSICAL = {
     {
       title: 'Musgo y gotas',
       render() {
-        const beat = SECONDS / 40;
+        const beat = PHRASE / 40;
         const gust = gusts(0.08, 0, 1, 2);
         // Gotas solo tonales (burbujas de Minnaert, sin ráfaga de ruido, con el
         // ataque suavizado) y sin hojarasca: el ruido sonaba a estática.
@@ -1658,7 +2019,7 @@ const MUSICAL = {
       render() {
         const stream = scatter(buf(), bank(60, () => bubble(logRand(500, 1800), { rise: rand(0.08, 0.25) })), 20, { spreadDb: 4 });
         const trickle = add(S.babble({ sources: 5, fLo: 700, fHi: 2200, rateLo: 4, rateHi: 10 }), S.flow({ lo: 500, hi: 3500, turb: 0.5, rate: 12 }), 0.5);
-        const pad = evolvingPad([116.54, 174.61, 220, 261.63, 293.66], { harm: 6, rolloff: 2, swellHz: 0.05, swellLo: 0.45, gains: [1, 0.8, 0.6, 0.5, 0.4] });
+        const pad = asMusic(evolvingPad([116.54, 174.61, 220, 261.63, 293.66], { harm: 6, rolloff: 2, swellHz: 0.05, swellLo: 0.45, gains: [1, 0.8, 0.6, 0.5, 0.4] }));
         const tune = [
           [0, 74, 0.6], [2, 77, 0.55], [3, 79, 0.5], [4, 74, 0.5],
           [8, 72, 0.55], [10, 70, 0.5], [11, 72, 0.45], [12, 77, 0.55],
@@ -1677,12 +2038,736 @@ const MUSICAL = {
   ],
 };
 
+/* ------------------------------------------------------ escenas nuevas */
+
+/**
+ * Escenas 09 y 10 de cada ambiente: paisajes nuevos con una melodía baja
+ * compuesta para el bucle entero (`tune`) y, casi siempre, un pad. En el
+ * cuento es al revés: la música manda y el paisaje es un fondo muy suave.
+ */
+const EXTRA = {
+  lluvia: [
+    {
+      title: 'Lluvia en el invernadero',
+      render() {
+        const inten = gusts(0.05, 0.55, 1, 1);
+        const glass = scatter(buf(), bank(80, S.glassTap), 60, { env: inten, spreadDb: 5 });
+        const roof = lp(S.rainBed(3000, { lo: 600, hi: 6000, env: inten }), 4500);
+        const drips = new Bus();
+        const plops = bank(8, () => S.plop(600, 1100));
+        for (const t of regular(2.3, { offset: rand(0, 1), jitter: 0.1 })) drips.place(pick(plops), t, { g: vary(0, 2), d: 0.3 });
+        const far = mul(band(pink(), 200, 2500), inten);
+        // Sol mayor: Gmaj7 – Em7 – Cmaj7 – D, vibráfono.
+        const prog = [[43, 50, 54, 59], [40, 47, 50, 55], [48, 52, 55, 59], [50, 54, 57, 62]];
+        const vib = tune(prog, S.vibes, { root: 7, lo: 64, hi: 79, notes: 2.5, wet: 0.5 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [glass, 0, 0.15, 'Gotas en el cristal'],
+          [roof, -6, 0.2, 'Lluvia sobre el techo'],
+          [drips.dry, -6, 0.3, 'Goteo'],
+          [far, -14, 0.4, 'Lluvia lejana'],
+          [vib, 0, 'Vibráfono'],
+          [pad, -9, 'Pad'],
+        ], { t60: 0.9, size: 0.9, damp: 6000 });
+      },
+    },
+    {
+      title: 'Lluvia en el porche',
+      render() {
+        const inten = gusts(0.05, 0.6, 1, 1);
+        const garden = S.rainBed(2600, { lo: 400, hi: 6000, env: inten });
+        const roof = lp(scatter(buf(), bank(60, S.roofTap), 40, { env: inten, spreadDb: 5 }), 4000);
+        const gutter = new Bus();
+        const plops = bank(6, () => S.plop(500, 900));
+        for (const t of regular(1.3, { offset: rand(0, 1), jitter: 0.15 })) gutter.place(pick(plops), t, { g: vary(0, 2), d: 0.15 });
+        const puddles = scatter(buf(), bank(40, () => S.waterDrop(900, 3000)), 12, { env: inten, spreadDb: 5 });
+        // La menor: Am – Em – F – G, guitarra de nailon.
+        const prog = [[45, 52, 57, 60], [40, 47, 52, 55], [41, 48, 53, 57], [43, 50, 55, 59]];
+        const guitar = tune(prog, S.nylon, { root: 9, steps: MINOR, lo: 60, hi: 74, notes: 3, wet: 0.35 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [garden, 0, 0.25, 'Lluvia en el jardín'],
+          [roof, -3, 0.15, 'Lluvia en el tejadillo'],
+          [gutter.dry, -5, 0.25, 'Canalón'],
+          [puddles, -8, 0.3, 'Charcos'],
+          [guitar, 0, 'Guitarra'],
+          [pad, -10, 'Pad'],
+        ], { t60: 1.0, size: 1.0, damp: 5500 });
+      },
+    },
+  ],
+
+  tormenta: [
+    {
+      title: 'Tormenta en el bosque',
+      render() {
+        const gust = gusts(0.08, 0.1, 1, 1.4);
+        const rain = S.rainBed(4500, { lo: 400, hi: 6500, env: gust.map((v) => 0.5 + 0.5 * v) });
+        const canopy = scatter(buf(), bank(80, S.leafDrop), 45, { env: gust, spreadDb: 5 });
+        const lv = S.leaves(gust, { rate: 5000, flutter: 0.35 });
+        const w = S.wind(gust, { lo: 250, hi: 900, low: 0.6, hiss: 0.15 });
+        const tb = new Bus();
+        for (let r = 0; r < REPS; r++) {
+          tb.place(S.thunder({ dur: 12, dist: 0.7 }), r * PHRASE + rand(3, 6), { wet: 0.6 });
+          tb.place(S.thunder({ dur: 10, dist: 0.9 }), r * PHRASE + rand(16, 20), { g: db(-6), wet: 0.8 });
+        }
+        const th = tb.render({ t60: 3.5, size: 2, damp: 2500, predelay: 0.04, lowcut: 30 });
+        // Mi menor: Em – C – Am – B, arpa y cuerdas.
+        const prog = [[40, 47, 52, 55], [48, 52, 55, 60], [45, 52, 57, 60], [47, 51, 54, 59]];
+        const harp = tune(prog, S.harp, { root: 4, steps: HARMONIC, lo: 64, hi: 78, notes: 2.5, wet: 0.45 });
+        const strings = pads(prog, STRINGS);
+        return mix([
+          [rain, 0, 0.2, 'Lluvia'],
+          [canopy, -3, 0.2, 'Gotas en las hojas'],
+          [lv, -10, 0.15, 'Hojas'],
+          [w, -8, 0.2, 'Viento'],
+          [th, 3, 'Truenos'],
+          [harp, 0, 'Arpa'],
+          [strings, -6, 'Pad de cuerdas'],
+        ], { t60: 1.3, size: 1.4, damp: 5000 });
+      },
+    },
+    {
+      title: 'Tormenta que se aleja',
+      render() {
+        const inten = gusts(0.04, 0.35, 0.9, 1);
+        const rain = S.rainBed(2500, { lo: 400, hi: 5500, env: inten });
+        const drips = new Bus();
+        const leafDrops = bank(30, S.leafDrop);
+        poisson(3, (t) => drips.place(pick(leafDrops), t, { g: vary(-2, 4), d: rand(0, 0.5) }));
+        const plops = bank(8, () => S.plop(450, 900));
+        poisson(0.4, (t) => drips.place(pick(plops), t, { g: vary(0, 3), d: rand(0.2, 0.5) }));
+        const tb = new Bus();
+        for (let r = 0; r < REPS; r++) {
+          tb.place(S.thunder({ dur: 14, dist: 0.95 }), r * PHRASE + rand(6, 10), { wet: 0.85 });
+          tb.place(S.thunder({ dur: 12, dist: 1 }), r * PHRASE + rand(20, 24), { g: db(-4), wet: 0.9 });
+        }
+        const th = tb.render({ t60: 4, size: 2.2, damp: 1800, predelay: 0.05, lowcut: 30 });
+        // Fa mayor: F – C – Dm – B♭, piano de fieltro.
+        const prog = [[41, 48, 53, 57], [48, 52, 55, 60], [50, 53, 57, 62], [46, 50, 53, 58]];
+        const piano = tune(prog, S.feltPiano, { root: 5, lo: 65, hi: 79, notes: 2.5, wet: 0.45 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [rain, 0, 0.25, 'Lluvia mansa'],
+          [drips.dry, -2, 0.25, 'Goteo'],
+          [th, 0, 'Truenos lejanos'],
+          [piano, 0, 'Piano'],
+          [pad, -9, 'Pad'],
+        ], { t60: 1.2, size: 1.2, damp: 5000 });
+      },
+    },
+  ],
+
+  fuego: [
+    {
+      title: 'Estufa de leña y lluvia',
+      render() {
+        const f = S.hearth({ size: 0.7, crackle: 1.6, sizzle: 1, pops: 0.04, flare: 0.08, whistle: 0.03, flicker: 1.5, levels: { crackle: -4 } });
+        const inten = gusts(0.04, 0.5, 1, 1);
+        const rain = lp(S.rainBed(3000, { lo: 400, hi: 5000, env: inten }), 2500);
+        const glass = lp(scatter(buf(), bank(40, S.glassTap), 15, { env: inten, spreadDb: 5 }), 3500);
+        // Re mayor: D – Bm – G – A, celesta.
+        const prog = [[50, 54, 57, 62], [47, 54, 59, 62], [43, 50, 55, 59], [45, 52, 57, 61]];
+        const celesta = tune(prog, S.celesta, { root: 2, lo: 66, hi: 81, notes: 2.5, wet: 0.45 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [f, 0, 0.12, 22, 'Fuego'],
+          [rain, -8, 0.2, 'Lluvia fuera'],
+          [glass, -12, 0.15, 'Gotas en el cristal'],
+          [celesta, 0, 'Celesta'],
+          [pad, -9, 'Pad'],
+        ], { t60: 0.6, size: 0.6, damp: 4500 });
+      },
+    },
+    {
+      title: 'Fogata en la playa',
+      render() {
+        const f = S.hearth({ size: 1.1, crackle: 2.6, sizzle: 1, pops: 0.08, flare: 0.16, whistle: 0.02, flicker: 2.4 });
+        const b = new Bus();
+        perPhrase(() => waveTimes([4, 14, 24], 0.8)).forEach((t) => {
+          b.place(S.wave({ build: rand(2.6, 3.2), crash: 0.35, wash: rand(5.5, 7), size: rand(0.6, 0.8), bright: rand(2200, 2800), foam: 0.6 }), t, { d: 0.55, wet: 0.3 });
+        });
+        const surf = mul(lp(brown(), 300), gusts(0.05, 0.5, 1, 1));
+        const breeze = S.wind(gusts(0.06, 0, 0.6, 1.5), { lo: 300, hi: 900, low: 0.3, hiss: 0.1 });
+        // Mi dórico: Em – A – G – D, guitarra de nailon.
+        const prog = [[40, 47, 52, 55], [45, 52, 57, 61], [43, 50, 55, 59], [50, 54, 57, 62]];
+        const guitar = tune(prog, S.nylon, { root: 4, steps: DORIAN, lo: 62, hi: 76, notes: 3, wet: 0.3, rv: { t60: 1.8, size: 1.2, damp: 5000, predelay: 0.015 } });
+        const pad = pads(prog, WARM);
+        return mix([
+          [f, 0, 0.1, 22, 'Fuego'],
+          [b.dry, -3, 0.25, 'Olas'],
+          [surf, -12, 0.3, 'Rumor del mar'],
+          [breeze, -20, 'Brisa'],
+          [guitar, 0, 'Guitarra'],
+          [pad, -10, 'Pad'],
+        ], { t60: 1.0, size: 1.5, damp: 4500 });
+      },
+    },
+  ],
+
+  mar: [
+    {
+      title: 'Mar de fondo',
+      render() {
+        const b = new Bus();
+        perPhrase(() => waveTimes([2, 10.5, 19, 26], 0.8)).forEach((t) => {
+          b.place(S.wave({ build: rand(3.2, 4), crash: rand(0.4, 0.55), wash: rand(6.5, 8), size: rand(0.9, 1.1), bright: rand(1800, 2400), foam: 0.7 }), t, { d: 0.45, wet: 0.35 });
+        });
+        const rumble = mul(lp(brown(), 180), gusts(0.04, 0.5, 1, 1));
+        const surf = mul(band(pink(), 150, 1000), gusts(0.05, 0.4, 1, 1));
+        const wind = S.wind(gusts(0.07, 0.1, 0.8, 1.4), { lo: 300, hi: 900, low: 0.5, hiss: 0.1 });
+        // Re dórico: Dm – C – G – Am, flauta lejana y cuerdas.
+        const prog = [[50, 53, 57, 62], [48, 52, 55, 60], [43, 50, 55, 59], [45, 52, 57, 60]];
+        const flute = tune(prog, S.softLead, { root: 2, steps: DORIAN, lo: 62, hi: 76, notes: 1.5, rest: 0.4, wet: 0.6, humanize: 0.02, rv: { t60: 3.5, size: 2, damp: 4500, predelay: 0.04 } });
+        const strings = pads(prog, STRINGS);
+        return mix([
+          [b.dry, 0, 0.3, 'Olas lejanas'],
+          [rumble, -6, 0.3, 'Mar de fondo'],
+          [surf, -10, 0.3, 'Rumor del mar'],
+          [wind, -16, 0.2, 'Viento'],
+          [flute, 0, 'Flauta'],
+          [strings, -6, 'Pad de cuerdas'],
+        ], { t60: 1.8, size: 2, damp: 4000 });
+      },
+    },
+    {
+      title: 'Velero en el puerto',
+      render() {
+        const b = new Bus();
+        const laps = bank(10, () => S.lap({ size: rand(0.3, 0.8), lo: 200, hi: 2000 }));
+        poisson(0.9, (t) => b.place(pick(laps), t, { g: vary(0, 3), d: rand(0.05, 0.4) }));
+        const creaks = new Bus();
+        poisson(0.12, (t) => creaks.place(S.creak({ dur: rand(0.8, 1.6) }), t, { d: rand(0.2, 0.5), g: vary(0, 3) }));
+        const clinks = new Bus();
+        const rigging = bank(4, () => {
+          const f = rand(1800, 2600);
+          return modal([[f, 1, 0.5], [f * 2.71, 0.35, 0.25], [f * 5.2, 0.1, 0.1]], { dur: 1.5, strike: 0.2, strikeLp: 6000 });
+        });
+        poisson(0.15, (t) => clinks.place(pick(rigging), t, { d: rand(0.4, 0.8), g: vary(0, 3) }));
+        const hush = mul(lp(brown(), 300), gusts(0.05, 0.6, 1, 1));
+        const breeze = S.wind(gusts(0.06, 0, 0.6, 1.5), { lo: 400, hi: 1200, low: 0.2, hiss: 0.2 });
+        // Do mayor: C – F – Am – G, vibráfono.
+        const prog = [[48, 52, 55, 60], [41, 48, 53, 57], [45, 52, 57, 60], [43, 50, 55, 59]];
+        const vib = tune(prog, S.vibes, { root: 0, lo: 64, hi: 79, notes: 2.5, wet: 0.5 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [b.dry, 0, 0.2, 15, 'Agua contra el casco'],
+          [creaks.dry, -6, 0.2, 15, 'Crujidos del barco'],
+          [clinks.dry, -14, 0.4, 15, 'Drizas'],
+          [hush, -12, 0.2, 'Rumor grave'],
+          [breeze, -18, 'Brisa'],
+          [vib, 0, 'Vibráfono'],
+          [pad, -9, 'Pad'],
+        ], { t60: 1.1, size: 1.3, damp: 5000 });
+      },
+    },
+  ],
+
+  rio: [
+    {
+      title: 'Orilla del río con pájaros',
+      render() {
+        const birds = new Bus();
+        S.singer(birds, S.robin, { gap: [6, 10], d: 0.6, g: 0.8 });
+        S.singer(birds, S.chaffinch, { gap: [7, 12], d: 0.75, g: 0.7, start: rand(3, 6) });
+        poisson(0.4, (t) => birds.place(S.tinyChirp(), t, { d: rand(0.85, 1), g: vary(-4, 3) }));
+        const lv = S.leaves(gusts(0.08, 0, 0.7, 1.6), { rate: 2500, flutter: 0.25 });
+        // La mayor: A – E – F♯m – D, guitarra de nailon.
+        const prog = [[45, 52, 57, 61], [40, 47, 52, 56], [42, 49, 54, 57], [50, 54, 57, 62]];
+        const guitar = tune(prog, S.nylon, { root: 9, lo: 61, hi: 76, notes: 3, wet: 0.35 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [S.babble({ sources: 12, fLo: 350, fHi: 2000, rateLo: 3, rateHi: 10 }), 0, 0.15, 'Burbujeo'],
+          [S.flow({ lo: 300, hi: 3500, turb: 0.45, rate: 9 }), -8, 0.15, 'Corriente'],
+          [birds.render({ t60: 1.6, size: 1.5, damp: 6000 }), -4, 'Pájaros'],
+          [lv, -18, 0.1, 'Hojas'],
+          [guitar, 0, 'Guitarra'],
+          [pad, -10, 'Pad'],
+        ], { t60: 0.9, size: 0.9, damp: 6000 });
+      },
+    },
+    {
+      title: 'Lluvia sobre el río',
+      render() {
+        const inten = gusts(0.05, 0.55, 1, 1);
+        const drops = scatter(buf(), bank(120, () => S.waterDrop(1100, 4500)), 60, { env: inten, spreadDb: 6 });
+        const bed = S.rainBed(2000, { lo: 400, hi: 5500, env: inten });
+        // Si♭ mayor: B♭ – Gm – E♭ – F, piano de fieltro.
+        const prog = [[46, 50, 53, 58], [43, 50, 55, 58], [46, 51, 55, 58], [45, 48, 53, 57]];
+        const piano = tune(prog, S.feltPiano, { root: 10, lo: 62, hi: 77, notes: 2.5, wet: 0.45 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [drops, 0, 0.3, 'Gotas en el río'],
+          [bed, -6, 0.3, 'Lluvia'],
+          [S.flow({ lo: 150, hi: 1800, turb: 0.35, rate: 5 }), -4, 0.2, 'Corriente'],
+          [S.babble({ sources: 6, fLo: 200, fHi: 700, rateLo: 0.8, rateHi: 3, damp: 0.8, loose: 0.15 }), -8, 0.25, 'Burbujeo grave'],
+          [piano, 0, 'Piano'],
+          [pad, -9, 'Pad'],
+        ], { t60: 1.4, size: 1.4, damp: 5000 });
+      },
+    },
+  ],
+
+  viento: [
+    {
+      title: 'Campo de trigo al viento',
+      render() {
+        const gust = gusts(0.09, 0.05, 1, 1.5);
+        const wheat = lp(S.leaves(gust, { rate: 9000, lo: 1500, hi: 7000, flutter: 0.15 }), 6000, 0.6);
+        const w = S.wind(gust, { lo: 300, hi: 1200, low: 0.4, hiss: 0.3 });
+        const larks = new Bus();
+        poisson(0.3, (t) => larks.place(S.tinyChirp(), t, { d: rand(0.85, 1), g: vary(-4, 3) }));
+        // Re mixolidio: D – C – G – D, celesta.
+        const prog = [[50, 54, 57, 62], [48, 52, 55, 60], [43, 50, 55, 59], [50, 57, 62, 66]];
+        const celesta = tune(prog, S.celesta, { root: 2, steps: MIXO, lo: 66, hi: 81, notes: 2.5, wet: 0.5 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [wheat, 0, 0.1, 'Trigo'],
+          [w, -3, 0.15, 'Viento'],
+          [larks.render({ t60: 1.4, size: 1.6 }), -16, 'Pájaros lejanos'],
+          [celesta, 0, 'Celesta'],
+          [pad, -9, 'Pad'],
+        ], { t60: 1.0, size: 1.4, damp: 6000 });
+      },
+    },
+    {
+      title: 'Viento de invierno en la cabaña',
+      render() {
+        const gust = gusts(0.08, 0.1, 1, 1.4);
+        // Aullido afinado en Re y La: encaja con la música.
+        const w = lp(S.wind(gust, { lo: 180, hi: 700, q: 0.8, low: 1, hiss: 0.2, howl: 0.5, howlF: [293.66, 440, 587.33], howlQ: 30 }), 1200, 0.6);
+        const rattle = lp(scatter(buf(), bank(30, S.glassTap), 6, { env: gust, spreadDb: 5 }), 3500);
+        const creaks = new Bus();
+        poisson(0.08, (t) => creaks.place(S.creak(), t, { d: rand(0.2, 0.5), g: vary(0, 3) }));
+        const stove = S.hearth({ size: 0.4, crackle: 0.6, sizzle: 0.6, pops: 0.02, flare: 0, whistle: 0, flicker: 0.8 });
+        // Re menor: Dm – Gm – B♭ – A, piano de fieltro y cuerdas.
+        const prog = [[50, 53, 57, 62], [43, 50, 55, 58], [46, 50, 53, 58], [45, 49, 52, 57]];
+        const piano = tune(prog, S.feltPiano, { root: 2, steps: HARMONIC, lo: 62, hi: 76, notes: 2, wet: 0.45 });
+        const strings = pads(prog, STRINGS);
+        return mix([
+          [w, 0, 0.3, 'Viento fuera'],
+          [rattle, -10, 0.15, 'Ventana'],
+          [creaks.dry, -8, 0.2, 'Crujidos'],
+          [stove, -14, 0.1, 22, 'Estufa'],
+          [piano, 0, 'Piano'],
+          [strings, -7, 'Pad de cuerdas'],
+        ], { t60: 0.7, size: 0.7, damp: 4000 });
+      },
+    },
+  ],
+
+  espacio: [
+    {
+      title: 'Aurora',
+      lufs: -24,
+      render() {
+        const pad = evolvingPad([87.31, 130.81, 174.61, 220, 261.63, 392], { harm: 7, rolloff: 1.7, swellHz: 0.05, gains: [1, 0.8, 0.6, 0.5, 0.4, 0.25] });
+        const curtains = mul(bp(pink(), range(lfo(0.04), 1500, 4500), 6), range(lfo(0.06), 0.1, 1, 2));
+        const air = mul(band(pink(), 2000, 6000), range(lfo(0.03), 0.2, 0.6));
+        // Sobre el pad de Fa: vibráfono pentatónico.
+        const prog = [[53, 57, 60, 65], [53, 57, 60, 67], [50, 57, 62, 65], [53, 60, 64, 67]];
+        const vib = tune(prog, S.vibes, { root: 5, steps: PENTA, lo: 65, hi: 81, notes: 2, rest: 0.5, wet: 0.75, rv: { t60: 6, size: 2.2, damp: 4500, predelay: 0.04 } });
+        return mix([
+          [pad, 0, 0.6, 'Pad'],
+          [curtains, -14, 0.7, 'Cortinas de luz'],
+          [air, -24, 0.5, 'Aire'],
+          [vib, 0, 'Vibráfono'],
+        ], { t60: 7, size: 2.4, damp: 4500, predelay: 0.04 }, lowpass(6500));
+      },
+    },
+    {
+      title: 'Estación orbital',
+      lufs: -24,
+      render() {
+        const drone = evolvingPad([55, 82.41, 110, 164.81], { harm: 9, rolloff: 1.8, swellHz: 0.04, swellLo: 0.5, gains: [1, 0.7, 0.6, 0.3] });
+        const hum = mul(additive([{ f: 55, a: 1 }, { f: 55.15, a: 0.8 }, { f: 110, a: 0.3 }, { f: 165, a: 0.1 }]), range(lfo(0.03), 0.6, 1));
+        const vent = mul(band(pink(), 300, 1800), range(lfo(0.02), 0.5, 1));
+        const signals = new Bus();
+        const tones5 = [1318.51, 1479.98, 1760, 1975.53, 2217.46];
+        for (const t of perPhrase(() => [rand(3, 6), rand(13, 16), rand(23, 26)])) {
+          const f = pick(tones5);
+          for (let i = 0; i < irand(1, 3); i++) signals.place(modal([[f, 1, 0.8], [f * 2, 0.05, 0.3]], { dur: 3, attack: 0.01 }), t + i * 0.35, { g: 0.7, wet: 0.9 });
+        }
+        // La menor: Am – F – C – G, arpa con sala muy larga.
+        const prog = [[45, 52, 57, 60], [41, 48, 53, 57], [48, 52, 55, 60], [43, 50, 55, 59]];
+        const harp = tune(prog, S.harp, { root: 9, steps: MINOR, lo: 64, hi: 79, notes: 2, rest: 0.5, wet: 0.7, rv: { t60: 6, size: 2.4, damp: 4000, predelay: 0.05 } });
+        return mix([
+          [drone, 0, 0.5, 'Drone'],
+          [hum, -10, 0.2, 'Zumbido'],
+          [vent, -16, 0.3, 'Ventilación'],
+          [signals.dry, -12, 0.9, 'Señales'],
+          [harp, 0, 'Arpa'],
+        ], { t60: 6, size: 2.2, damp: 4500, predelay: 0.04 }, lowpass(6500));
+      },
+    },
+  ],
+
+  cuento: [
+    {
+      title: 'Cuento junto al fuego',
+      lufs: -24,
+      render() {
+        // Fa mayor: F – Dm – B♭ – C. Caja de música y arpa delante; el fuego, de fondo.
+        const prog = [[41, 48, 53, 57], [38, 45, 50, 53], [46, 50, 53, 58], [48, 52, 55, 60]];
+        const box = tune(prog, S.musicBox, { root: 5, lo: 72, hi: 86, notes: 3.5, rest: 0.2, wet: 0.4 });
+        const accomp = arpeggio(prog.map((c) => c.map((m) => m + 12)), 8, [[0, 0, 0.5], [2, 1, 0.35], [4, 2, 0.38], [6, 3, 0.35]]);
+        const harp = play(accomp, B32, S.harp, { wet: 0.4 });
+        const pad = pads(prog, WARM);
+        const fire = S.hearth({ size: 0.6, crackle: 1.2, sizzle: 0.8, pops: 0.02, flare: 0.05, whistle: 0, flicker: 1.2 });
+        return mix([
+          [box, 0, 'Caja de música'],
+          [harp, -5, 'Arpa'],
+          [pad, -12, 'Pad'],
+          [fire, -14, 0.1, 22, 'Fuego'],
+        ], { t60: 0.6, size: 0.6, damp: 4500 }, null, { music: null });
+      },
+    },
+    {
+      title: 'Vals de las estrellas',
+      lufs: -24,
+      render() {
+        const beat = PHRASE / 36; // 72 BPM, 3/4, dos compases por acorde
+        // Sol mayor: G – Em – C – D – Am – D7, celesta con vals de arpa.
+        const prog = [[43, 50, 55, 59], [40, 47, 52, 55], [48, 52, 55, 60], [50, 54, 57, 62], [45, 52, 57, 60], [50, 54, 57, 60]];
+        const celesta = tune(prog, S.celesta, { beat, root: 7, lo: 71, hi: 86, notes: 3, rest: 0.2, wet: 0.45 });
+        const waltz = prog.flatMap((c, k) => [
+          [k * 6, c[0], 0.45], [k * 6 + 1, c[2], 0.3], [k * 6 + 1, c[3], 0.28], [k * 6 + 2, c[2], 0.28],
+          [k * 6 + 3, c[1], 0.4], [k * 6 + 4, c[2], 0.28], [k * 6 + 4, c[3], 0.26], [k * 6 + 5, c[2], 0.26],
+        ]);
+        const harp = play(waltz, beat, S.harp, { wet: 0.4 });
+        const strings = pads(prog, { ...STRINGS, fade: 1.5 });
+        const night = new Bus();
+        cricketChorus(night, 4, { dLo: 0.8, dHi: 1, g: 0.6 });
+        return mix([
+          [celesta, 0, 'Celesta'],
+          [harp, -4, 'Arpa'],
+          [strings, -11, 'Pad de cuerdas'],
+          [night.render({ t60: 1.4, size: 1.4 }), -20, 'Grillos'],
+        ], null, null, { music: null });
+      },
+    },
+  ],
+
+  meditacion: [
+    {
+      title: 'Cuencos de cristal',
+      lufs: -24,
+      render() {
+        // Cuenco de cristal frotado: casi senoidal, ataque lento y cola larga.
+        const crystal = (f) => modal([[f, 1, 12, 0.4], [f * 2, 0.06, 6, 0.8], [f * 3, 0.02, 3]], { dur: 20, attack: 0.4 });
+        const notes = [261.63, 329.63, 392].map((f) => jitter(f, 0.002));
+        const b = new Bus();
+        perPhrase(() => [rand(0.3, 1), rand(10, 11), rand(20, 21)]).forEach((t, i) => {
+          b.place(crystal(notes[i % 3]), t, { g: rand(0.7, 1), wet: 0.4 });
+        });
+        const air = mul(band(pink(), 200, 1200), range(lfo(0.05), 0.3, 1));
+        const water = lp(S.babble({ sources: 5, fLo: 400, fHi: 1400, rateLo: 1.5, rateHi: 4, damp: 0.9 }), 1600, 0.6);
+        // Flauta en Do pentatónica.
+        const prog = [[48, 55, 60, 64], [45, 52, 57, 60], [41, 48, 53, 57], [43, 50, 55, 59]];
+        const flute = tune(prog, S.softLead, { root: 0, steps: PENTA, lo: 64, hi: 77, notes: 1.5, rest: 0.5, wet: 0.55, humanize: 0.02, rv: { t60: 3.5, size: 1.8, damp: 5000, predelay: 0.03 } });
+        return mix([
+          [b.dry, 0, 0.4, 'Cuencos de cristal'],
+          [air, -22, 0.3, 'Aire'],
+          [water, -20, 0.3, 'Agua lejana'],
+          [flute, 0, 'Flauta'],
+        ], { t60: 4.5, size: 2, damp: 5000 });
+      },
+    },
+    {
+      title: 'Fuente del monasterio',
+      lufs: -24,
+      render() {
+        const fountain = add(
+          S.babble({ sources: 8, fLo: 500, fHi: 2000, rateLo: 2, rateHi: 6, loose: 0.2 }),
+          S.flow({ lo: 400, hi: 3000, turb: 0.35, rate: 6 }), 0.5,
+        );
+        const bell = new Bus();
+        for (const t of perPhrase(() => [rand(4, 6)])) bell.place(S.bowl(110, 1, { tau: 9 }), t, { d: 0.7 });
+        const birds = new Bus();
+        S.singer(birds, S.robin, { gap: [9, 14], d: 0.85, g: 0.7 });
+        const breeze = S.wind(gusts(0.05, 0, 0.6, 1.5), { lo: 400, hi: 1200, low: 0.2, hiss: 0.2 });
+        // Arpa en Mi pentatónica menor: Em – Am – G – D.
+        const prog = [[40, 47, 52, 55], [45, 52, 57, 60], [43, 50, 55, 59], [50, 54, 57, 62]];
+        const harp = tune(prog, S.harp, { root: 4, steps: PENTA_MINOR, lo: 62, hi: 76, notes: 2, rest: 0.4, wet: 0.5 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [fountain, 0, 0.2, 'Fuente'],
+          [bell.render({ t60: 3, size: 2, damp: 3500 }), -6, 'Campana lejana'],
+          [birds.render({ t60: 1.8, size: 1.6 }), -14, 'Pájaros'],
+          [breeze, -20, 0.1, 'Brisa'],
+          [harp, 0, 'Arpa'],
+          [pad, -10, 'Pad'],
+        ], { t60: 2.2, size: 1.6, damp: 5000 });
+      },
+    },
+  ],
+
+  pajaros: [
+    {
+      title: 'Pájaros junto al arroyo',
+      render() {
+        const b = new Bus();
+        S.singer(b, S.robin, { gap: [4, 7], d: 0.35, g: 0.9 });
+        S.singer(b, S.blackbird, { gap: [5, 9], d: 0.6, g: 0.8, start: rand(2, 5) });
+        S.singer(b, S.greatTit, { gap: [6, 10], d: 0.8, g: 0.7, start: rand(4, 8) });
+        poisson(0.6, (t) => b.place(S.tinyChirp(), t, { d: rand(0.8, 1), g: vary(-4, 3) }));
+        const stream = lp(add(S.babble({ sources: 8, fLo: 400, fHi: 1800, rateLo: 3, rateHi: 9 }), S.flow({ lo: 300, hi: 2500, turb: 0.4, rate: 8 }), 0.5), 3000);
+        // Re mayor: D – A – Bm – G, kalimba en registro medio.
+        const prog = [[50, 54, 57, 62], [45, 52, 57, 61], [47, 54, 59, 62], [43, 50, 55, 59]];
+        const kalimba = tune(prog, S.kalimba, { root: 2, lo: 62, hi: 76, notes: 3, wet: 0.4 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [b.render({ t60: 1.5, size: 1.4, damp: 6000 }), 0, 'Pájaros'],
+          [stream, -10, 0.2, 'Arroyo'],
+          [kalimba, 0, 'Kalimba'],
+          [pad, -9, 'Pad'],
+        ]);
+      },
+    },
+    {
+      title: 'Huerto a mediodía',
+      render() {
+        const b = new Bus();
+        S.singer(b, S.turtleDove, { gap: [5, 8], d: 0.5, g: 0.8 });
+        S.singer(b, S.chaffinch, { gap: [6, 10], d: 0.55, g: 0.8, start: rand(1, 4) });
+        S.singer(b, S.greatTit, { gap: [6, 10], d: 0.7, g: 0.7, start: rand(3, 7) });
+        for (const t of perPhrase(() => [rand(8, 12)])) b.place(S.woodPigeon(), t, { d: 0.6, g: 0.8 });
+        const cicadas = new Bus();
+        for (let i = 0; i < 2; i++) {
+          const p = S.distance(S.cicada(), rand(0.8, 0.95));
+          cicadas.layer(p.ev, { g: p.g, wet: p.wet });
+        }
+        const lv = S.leaves(gusts(0.07, 0, 0.7, 1.6), { rate: 2500, flutter: 0.3 });
+        // Fa mayor: F – Am – B♭ – C, vibráfono.
+        const prog = [[41, 48, 53, 57], [45, 52, 57, 60], [46, 50, 53, 58], [48, 52, 55, 60]];
+        const vib = tune(prog, S.vibes, { root: 5, lo: 62, hi: 77, notes: 2.5, wet: 0.45 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [b.render({ t60: 1.5, size: 1.4, damp: 5500 }), 0, 'Pájaros'],
+          [cicadas.render({ t60: 1.2, size: 1.5, damp: 5000 }), -14, 'Cigarras lejanas'],
+          [lv, -18, 0.1, 'Hojas'],
+          [vib, 0, 'Vibráfono'],
+          [pad, -9, 'Pad'],
+        ], null, lowpass(7000));
+      },
+    },
+  ],
+
+  bichos: [
+    {
+      title: 'Noche de luciérnagas',
+      render() {
+        const b = new Bus();
+        for (let i = 0; i < 3; i++) {
+          const p = S.distance(S.treeCricket(), rand(0.3, 0.8));
+          b.layer(p.ev, { g: p.g * 0.8, wet: p.wet });
+        }
+        cricketChorus(b, 6, { dLo: 0.6, dHi: 1, g: 0.6 });
+        const toad = S.midwifeToad();
+        for (const t of regular(2.4, { offset: rand(0, 1), jitter: 0.03 })) b.place(toad, t, { d: 0.75, g: 0.6 });
+        // La♭ mayor: A♭ – Fm – D♭ – E♭, vibráfono.
+        const prog = [[44, 48, 51, 56], [41, 48, 53, 56], [49, 53, 56, 61], [46, 51, 55, 58]];
+        const vib = tune(prog, S.vibes, { root: 8, lo: 63, hi: 77, notes: 2.5, wet: 0.5 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [b.render({ t60: 1.5, size: 1.5, damp: 5500 }), 0, 'Grillos y sapo'],
+          [band(pink(), 200, 1500), -30, 'Aire'],
+          [vib, 0, 'Vibráfono'],
+          [pad, -9, 'Pad'],
+        ]);
+      },
+    },
+    {
+      title: 'Grillos junto al arroyo',
+      render() {
+        const b = new Bus();
+        cricketChorus(b, 10, { dLo: 0.3, dHi: 1 });
+        const p = S.distance(S.treeCricket(), rand(0.6, 0.8));
+        b.layer(p.ev, { g: p.g * 0.6, wet: p.wet });
+        const stream = lp(S.babble({ sources: 8, fLo: 350, fHi: 1500, rateLo: 2, rateHi: 7, damp: 0.9 }), 1800, 0.6);
+        // Sol mayor: G – Bm – C – D, kalimba.
+        const prog = [[43, 50, 55, 59], [47, 54, 59, 62], [48, 52, 55, 60], [50, 54, 57, 62]];
+        const kalimba = tune(prog, S.kalimba, { root: 7, lo: 62, hi: 76, notes: 3, wet: 0.4 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [b.render({ t60: 1.4, size: 1.4, damp: 6000 }), 0, 'Grillos'],
+          [stream, -8, 0.25, 'Arroyo'],
+          [kalimba, 0, 'Kalimba'],
+          [pad, -10, 'Pad'],
+        ]);
+      },
+    },
+  ],
+
+  bosque: [
+    {
+      title: 'Robledal en otoño',
+      render() {
+        const gust = gusts(0.1, 0.05, 1, 1.5);
+        const skitter = new Bus();
+        poisson(0.2, (t) => {
+          const ev = buf(sec(0.8));
+          for (let i = 0; i < irand(6, 16); i++) put(ev, burst(rand(0.004, 0.015), { lo: 1500, hi: 6000, tau: 0.003 }), sec(rand(0, 0.7)), rand(0.3, 1));
+          skitter.place(ev, t, { g: vary(0, 3), d: rand(0.2, 0.6) });
+        });
+        const birds = new Bus();
+        S.singer(birds, S.robin, { gap: [7, 12], d: 0.6, g: 0.8 });
+        for (const t of perPhrase(() => [rand(6, 10)])) birds.place(S.woodpecker(), t, { d: 0.75, g: 0.8 });
+        const acorns = new Bus();
+        const knocks = bank(6, () => modal([[rand(500, 800), 1, 0.03], [rand(1200, 1800), 0.4, 0.015]], { dur: 0.15, strike: 0.4, strikeLp: 3000 }));
+        poisson(0.1, (t) => acorns.place(pick(knocks), t, { d: rand(0.3, 0.6), g: vary(0, 3) }));
+        // Re dórico: Dm – G – Dm – C, flauta de madera.
+        const prog = [[50, 53, 57, 62], [43, 50, 55, 59], [50, 53, 57, 62], [48, 52, 55, 60]];
+        const flute = tune(prog, S.softLead, { root: 2, steps: DORIAN, lo: 62, hi: 76, notes: 2, wet: 0.5, humanize: 0.02, rv: { t60: 3, size: 1.7, damp: 5000, predelay: 0.03 } });
+        const pad = pads(prog, WARM);
+        return mix([
+          [S.leaves(gust, { rate: 4500, lo: 1000, hi: 5500, flutter: 0.35 }), 0, 0.15, 'Hojas'],
+          [S.wind(gust, { lo: 250, hi: 1000, low: 0.5, hiss: 0.15 }), -5, 0.15, 'Viento'],
+          [skitter.dry, -9, 0.15, 'Hojas secas'],
+          [birds.render({ t60: 1.8, size: 1.6, damp: 5500 }), -3, 'Pájaros'],
+          [acorns.dry, -12, 0.2, 'Bellotas'],
+          [flute, 0, 'Flauta'],
+          [pad, -9, 'Pad'],
+        ], { t60: 1.2, size: 1.4, damp: 5500 });
+      },
+    },
+    {
+      title: 'Bosque bajo la lluvia',
+      render() {
+        const inten = gusts(0.05, 0.55, 1, 1);
+        const canopy = lp(S.rainBed(3500, { lo: 400, hi: 5000, env: inten }), 4000);
+        const leafDrops = scatter(buf(), bank(80, S.leafDrop), 30, { env: inten, spreadDb: 5 });
+        const drips = new Bus();
+        const plops = bank(10, () => S.plop(450, 1000));
+        poisson(0.6, (t) => drips.place(pick(plops), t, { g: vary(0, 3), d: rand(0.1, 0.5) }));
+        const stream = lp(S.babble({ sources: 6, fLo: 300, fHi: 1400, rateLo: 2, rateHi: 6 }), 1500, 0.6);
+        // La menor: Am – F – Dm – E, celesta.
+        const prog = [[45, 52, 57, 60], [41, 48, 53, 57], [50, 53, 57, 62], [40, 47, 52, 56]];
+        const celesta = tune(prog, S.celesta, { root: 9, steps: HARMONIC, lo: 64, hi: 79, notes: 2.5, wet: 0.5 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [canopy, 0, 0.25, 'Lluvia en las copas'],
+          [leafDrops, -2, 0.2, 'Gotas en las hojas'],
+          [drips.dry, -4, 0.25, 'Goterones'],
+          [stream, -16, 0.3, 'Arroyo'],
+          [celesta, 0, 'Celesta'],
+          [pad, -9, 'Pad'],
+        ], { t60: 1.3, size: 1.4, damp: 5500 });
+      },
+    },
+  ],
+
+  noche: [
+    {
+      title: 'Noche de luna llena',
+      render() {
+        const b = new Bus();
+        cricketChorus(b, 12, { dLo: 0.5, dHi: 1, g: 0.8 });
+        for (const t of perPhrase(() => [rand(5, 9)])) b.place(S.tawnyOwl(), t, { d: 0.7, g: 0.8 });
+        const owl = S.scopsOwl(rand(1050, 1200));
+        for (const t of regular(2.8, { offset: rand(0, 1), jitter: 0.03 })) {
+          const tp = t % PHRASE;
+          if (tp < 17 || tp > 25) b.place(owl, t, { d: 0.85, g: 0.7 });
+        }
+        const breeze = S.wind(gusts(0.06, 0, 0.5, 1.6), { lo: 300, hi: 900, low: 0.3, hiss: 0.1 });
+        // La♭ mayor: A♭maj7 – Fm7 – D♭maj7 – E♭, vibráfono grave.
+        const prog = [[44, 48, 51, 55], [41, 48, 51, 56], [49, 53, 56, 60], [46, 51, 55, 58]];
+        const vib = tune(prog, S.vibes, { root: 8, lo: 60, hi: 75, notes: 2, rest: 0.4, wet: 0.5 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [b.render({ t60: 1.8, size: 1.7, damp: 5000 }), 0, 'Grillos y búhos'],
+          [breeze, -22, 'Brisa'],
+          [vib, 0, 'Vibráfono'],
+          [pad, -9, 'Pad'],
+        ]);
+      },
+    },
+    {
+      title: 'Noche en el pinar',
+      render() {
+        const gust = gusts(0.07, 0, 0.8, 1.6);
+        const b = new Bus();
+        for (let i = 0; i < 2; i++) {
+          const p = S.distance(S.treeCricket(), rand(0.4, 0.7));
+          b.layer(p.ev, { g: p.g * 0.8, wet: p.wet });
+        }
+        cricketChorus(b, 5, { dLo: 0.7, dHi: 1, g: 0.5 });
+        const owl = S.scopsOwl();
+        for (const t of regular(2.7, { offset: rand(0, 1), jitter: 0.02 })) {
+          const tp = t % PHRASE;
+          if (tp < 9 || tp > 15) b.place(owl, t, { d: 0.4 });
+        }
+        for (const t of perPhrase(() => [rand(12, 16)])) b.place(S.kewick(), t, { d: 0.85, g: 0.5 });
+        // Si menor: Bm – G – D – A, guitarra de nailon.
+        const prog = [[47, 54, 59, 62], [43, 50, 55, 59], [50, 54, 57, 62], [45, 52, 57, 61]];
+        const guitar = tune(prog, S.nylon, { root: 11, steps: MINOR, lo: 59, hi: 74, notes: 3, wet: 0.4 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [b.render({ t60: 1.6, size: 1.6, damp: 5500 }), 0, 'Grillos y autillo'],
+          [S.wind(gust, { lo: 600, hi: 2200, q: 0.6, low: 0.25, hiss: 0.5 }), -6, 0.12, 'Viento en los pinos'],
+          [guitar, 0, 'Guitarra'],
+          [pad, -10, 'Pad'],
+        ], { t60: 1.0, size: 1.2, damp: 5500 });
+      },
+    },
+  ],
+
+  burbujas: [
+    {
+      title: 'Pecera de noche',
+      lufs: -24,
+      render() {
+        const slow = range(lfo(0.08), 0.3, 1);
+        const bubbles = scatter(buf(), bank(40, () => bubble(logRand(300, 900), { rise: rand(0.1, 0.3), damp: 0.8 })), 4, { env: slow, spreadDb: 5 });
+        const trickle = S.flow({ lo: 400, hi: 2500, turb: 0.4, rate: 6 });
+        const motor = mul(lp(additive([{ f: 97.99, a: 1 }, { f: 195.98, a: 0.3 }, { f: 293.97, a: 0.08 }]), 400), range(lfo(0.05), 0.7, 1));
+        // Mi♭ mayor: E♭ – Cm – A♭ – B♭, kalimba.
+        const prog = [[46, 51, 55, 58], [48, 51, 55, 60], [44, 48, 51, 56], [46, 50, 53, 58]];
+        const kalimba = tune(prog, S.kalimba, { root: 3, lo: 63, hi: 77, notes: 2.5, wet: 0.45 });
+        const pad = pads(prog, WARM);
+        return mix([
+          [bubbles, 0, 0.3, 15, 'Burbujas'],
+          [trickle, -10, 0.2, 'Filtro'],
+          [motor, -20, 'Motor del filtro'],
+          [kalimba, 0, 'Kalimba'],
+          [pad, -9, 'Pad'],
+        ], { t60: 1.2, size: 0.9, damp: 4500 });
+      },
+    },
+    {
+      title: 'Gotas en la cueva',
+      lufs: -24,
+      render() {
+        const drips = new Bus();
+        const drops = bank(12, (i) => (i % 3 ? S.waterDrop(700, 2500) : S.plop(400, 900)));
+        for (const [period, d] of [[1.7, 0.2], [2.3, 0.45], [3.1, 0.7]]) {
+          const own = pick(drops);
+          for (const t of regular(period, { offset: rand(0, period), jitter: 0.04 })) drips.place(own, t, { d, g: vary(0, 2) });
+        }
+        poisson(0.4, (t) => drips.place(pick(drops), t, { d: rand(0.3, 0.8), g: vary(-2, 3) }));
+        const pool = scatter(buf(), bank(30, () => bubble(logRand(250, 700), { rise: rand(0.1, 0.25), damp: 0.8 })), 1.5, { spreadDb: 5 });
+        const cave = mul(lp(brown(), 150), range(lfo(0.04), 0.4, 1));
+        // Mi pentatónica menor: Em – C – D – Em, celesta en la sala de la cueva.
+        const prog = [[40, 47, 52, 55], [48, 52, 55, 60], [50, 54, 57, 62], [40, 47, 52, 59]];
+        const celesta = tune(prog, S.celesta, { root: 4, steps: PENTA_MINOR, lo: 64, hi: 79, notes: 2, rest: 0.4, wet: 0.7, rv: { t60: 3.5, size: 2.2, damp: 4500, predelay: 0.03 } });
+        return mix([
+          [drips.dry, 0, 0.6, 15, 'Goteo'],
+          [pool, -8, 0.5, 'Burbujas'],
+          [cave, -18, 0.3, 'Aire de la cueva'],
+          [celesta, 0, 'Celesta'],
+        ], { t60: 3.5, size: 2.2, damp: 4500, predelay: 0.03 });
+      },
+    },
+  ],
+};
+
 for (const [id, scenes] of Object.entries(MUSICAL)) SCENES[id].push(...scenes);
+for (const [id, scenes] of Object.entries(EXTRA)) SCENES[id].push(...scenes);
 
 /** Número de la primera escena de alta calidad (04). */
 export const FIRST_SCENE = 4;
 
-/** Renderiza la escena `index` (0 … 4 → 04 … 08) de un ambiente. */
+/** Renderiza la escena `index` (0 … 6 → 04 … 10) de un ambiente. */
 export function renderScene(id, index) {
   const scene = SCENES[id]?.[index];
   if (!scene) throw new Error(`Escena desconocida: ${id}/${index}`);
@@ -1729,13 +2814,15 @@ export const AMBIENT_NAMES = {
 
 /**
  * De qué escena del generador sale cada pista publicada en la app
- * (`assets/audio/<id>/01.wav` … `04.wav`). `'base'` es una escena de la
- * síntesis base (`synth.js`), que no se puede regenerar igual: se usa el WAV.
+ * (`assets/audio/<id>/01.wav` … `06.wav`). Todas llevan melodía baja (en el
+ * cuento, la música manda). `'base'` sería una escena de la síntesis base
+ * (`synth.js`), que no se puede regenerar igual: se usaría el WAV; ya no se
+ * publica ninguna porque duran 16 s y no llevan melodía.
  */
 export const PUBLISHED = {
-  lluvia: [4, 5, 7, 8], tormenta: [4, 5, 7, 8], fuego: [4, 5, 7, 8], viento: [4, 5, 7, 8], pajaros: [4, 5, 7, 8], espacio: [4, 5, 7, 8],
-  bosque: [5, 6, 7, 8], burbujas: [5, 6, 7, 8], cuento: [4, 6, 7, 8], meditacion: [4, 6, 7, 8],
-  mar: ['base', 5, 7, 8], noche: ['base', 4, 7, 8], bichos: ['base', 4, 7, 8], rio: ['base', 4, 7, 8],
+  lluvia: [4, 5, 7, 8, 9, 10], tormenta: [4, 5, 7, 8, 9, 10], fuego: [4, 5, 7, 8, 9, 10], viento: [4, 5, 7, 8, 9, 10],
+  pajaros: [4, 5, 7, 8, 9, 10], espacio: [4, 5, 7, 8, 9, 10], mar: [4, 5, 7, 8, 9, 10], noche: [4, 5, 7, 8, 9, 10], rio: [4, 5, 7, 8, 9, 10],
+  bosque: [5, 6, 7, 8, 9, 10], burbujas: [5, 6, 7, 8, 9, 10], cuento: [4, 6, 7, 8, 9, 10], meditacion: [4, 6, 7, 8, 9, 10], bichos: [4, 6, 7, 8, 9, 10],
 };
 
 /** Catálogo de pistas publicadas, en el orden de la app: `[{ id, name, tracks: [{ track, scene, title }] }]`. */
