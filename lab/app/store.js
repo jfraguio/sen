@@ -13,7 +13,7 @@ export function createStore(project) {
   const state = {
     project,
     selection: { kind: 'project', trackId: null, elementIds: [] },
-    view: { pps: 6, grid: 0.5, snap: true, notation: 'latin' },
+    view: { pps: 6, grid: 0.5, snap: true, notation: 'latin', keyboardOctave: null },
     playhead: 0,
     playing: false,
     regionLoop: false,

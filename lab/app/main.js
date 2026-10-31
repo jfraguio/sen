@@ -4,7 +4,8 @@
 
 import { h, fmtTime, toast, announce, findTrack, findElement, typingTarget, isCompact, clampNum } from './util.js';
 import {
-  INSTRUMENTS, LIMITS, LabFileError, createElement, createProject, createSceneProject, createTrack, layerKey, newId, normalizeProject, projectCounts,
+  INSTRUMENTS, LIMITS, LabFileError, createElement, createProject, createSceneProject, createTrack, layerKey, newId, normalizeProject,
+  projectCounts, splitToneChanges,
 } from '../engine/schema.js';
 import { sustainVoiceCount } from '../engine/voices/sustain.js';
 import { noteLabel } from '../engine/music.js';
@@ -16,6 +17,7 @@ import { createInspector } from './inspector.js';
 import { createLibrary, startTemplates } from './library.js';
 import { createExportDialog } from './export.js';
 import { createCompact } from './compact.js';
+import { createPerformance } from './performance.js';
 import { downloadProject, isDownloaded, loadAutosave, readProjectFile, scheduleAutosave, writeMeta } from './storage.js';
 import { midiToTracks } from './midi.js';
 import { createSceneSource } from './scenes.js';
@@ -64,7 +66,6 @@ function boot() {
   let meters = null;
   let inspector = null;
   let clipboard = [];
-  let soloOverride = null;
 
   const audio = new LabAudio({
     onMeters: (m) => {
@@ -355,31 +356,6 @@ function boot() {
     auditionInstrument(inst) {
       audio.audition(state.project, createTrack(inst, state.project), { seconds: 3 });
     },
-
-    soloElement(id, on) {
-      if (on) {
-        if (soloOverride === id) return;
-        soloOverride = id;
-        const p = structuredClone(state.project);
-        for (const t of p.tracks) {
-          const has = t.elements.some((e) => e.id === id);
-          t.mix.solo = false;
-          t.mix.mute = !has;
-          if (has) t.elements = t.elements.filter((e) => e.id === id);
-        }
-        audio.setProject(p);
-        if (!state.playing) {
-          const f = findElement(state.project, id);
-          if (f) {
-            actions.seek(f.el.start);
-            togglePlay();
-          }
-        }
-      } else if (soloOverride === id) {
-        soloOverride = null;
-        audio.setProject(state.project);
-      }
-    },
     duplicateTrack(id) {
       let nid = null;
       guarded((d) => {
@@ -451,6 +427,15 @@ function boot() {
           const len1 = Math.round((t0 - el.start) * 1000) / 1000;
           const second = { ...structuredClone(el), id: newId('e'), start: Math.round(t0 * 1000) / 1000, length: Math.round((el.length - len1) * 1000) / 1000, fadeIn: 0 };
           if (el.type === 'clip') second.offset = Math.round(((el.offset || 0) + len1) * 1000) / 1000;
+          if (el.type === 'tone') {
+            const parts = splitToneChanges(el, len1);
+            el.notes = el.notes.slice();
+            if (parts.before.length) el.changes = parts.before;
+            else delete el.changes;
+            second.notes = parts.notes;
+            if (parts.after.length) second.changes = parts.after;
+            else delete second.changes;
+          }
           second.fadeOut = Math.min(el.fadeOut, second.length);
           el.length = len1;
           el.fadeOut = 0;
@@ -501,10 +486,27 @@ function boot() {
     markDownloaded() {
       updateSaveState();
     },
+    startPlayback(from) {
+      actions.seek(clampNum(from, 0, state.project.duration));
+      if (!state.playing) togglePlay();
+    },
+    performanceChanged() {
+      inspector?.render(true);
+    },
+    togglePerformance(mode, target) {
+      return performance.toggle(mode, target);
+    },
+    performanceInfo() {
+      return performance.info();
+    },
+    setPerformanceOctave(octave) {
+      performance.setOctave(octave);
+    },
   };
 
   /* ------------------------------------------------------------ vistas */
 
+  const performance = createPerformance({ store, audio, actions });
   const timeline = createTimeline($('timeline'), store, actions);
   inspector = createInspector($('inspector'), store, actions);
   const library = createLibrary($('library'), store, actions);
@@ -720,6 +722,7 @@ function boot() {
   /* ------------------------------------------------------------ teclado */
 
   window.addEventListener('keydown', (e) => {
+    if (performance.handleKeyDown(e)) return;
     if (document.querySelector('dialog[open]')) return;
     const mod = e.metaKey || e.ctrlKey;
     const typing = typingTarget(e.target);
@@ -798,6 +801,12 @@ function boot() {
       actions.closeSheet();
     }
   });
+  window.addEventListener('keyup', (e) => {
+    performance.handleKeyUp(e);
+  });
+  window.addEventListener('blur', () => {
+    performance.releaseAll(true);
+  });
 
   /* ------------------------------------------------------------ guardado */
 
@@ -813,8 +822,10 @@ function boot() {
   let lastGridTempo = !!state.project.tempo;
   let lastDuration = state.project.duration;
   store.subscribe((kind, s, info) => {
+    if (kind === 'load') performance.stop(false);
+    else if (kind === 'project') performance.validate();
     if (kind === 'project' || kind === 'load') {
-      if (!soloOverride) audio.setProject(s.project);
+      audio.setProject(s.project);
       scheduleAutosave(s.project, updateSaveState);
       if (info?.source !== 'name' && document.activeElement !== nameInput) nameInput.value = s.project.name;
       if (!!s.project.tempo !== lastGridTempo) {

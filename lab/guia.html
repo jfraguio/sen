@@ -233,6 +233,7 @@
           <li><a href="#editar">Editar en la línea de tiempo</a></li>
           <li><a href="#inspector">El inspector</a></li>
           <li><a href="#tono">Tonalidad, notas y azar</a></li>
+          <li><a href="#cambios-de-nota">Cambios de nota con el teclado</a></li>
           <li><a href="#mezcla">Mezcla, maestro y automatización</a></li>
           <li><a href="#escuchar">Escuchar</a></li>
           <li><a href="#final">Cómo termina el tema</a></li>
@@ -456,7 +457,7 @@
         <ul>
           <li><b>Sin selección</b> (o <kbd>Esc</kbd>): el tema. Duración, final, tonalidad, afinación, tempo, semilla, notación de las notas y el bus maestro.</li>
           <li><b>Una pista</b>: instrumento, timbre, mezcla y automatización.</li>
-          <li><b>Un elemento</b>: tiempos, nivel, fundidos, curva y su contenido (notas, nube, frase o densidad).</li>
+          <li><b>Un elemento</b>: su contenido (notas, nube, frase o densidad) y la curva. Inicio, duración, nivel y fundidos se ajustan directamente en la capa.</li>
         </ul>
         <p>Trucos de los controles:</p>
         <ul>
@@ -464,8 +465,8 @@
           <li><b>Doble clic</b> en el control o en su etiqueta devuelve el valor por defecto.</li>
           <li><kbd>Mayús</kbd> + rueda sobre un deslizador hace ajuste fino.</li>
           <li><b>⟳ Aleatorizar</b> (en nubes y simulaciones) prueba otra tirada del azar de ese elemento.</li>
-          <li><b>◉ Escuchar solo esto</b>: mientras lo mantienes pulsado suena solo ese elemento.</li>
-          <li>En las notas hay un mini teclado de dos octavas que suena al pulsar.</li>
+          <li>En las notas hay un mini teclado de dos octavas que suena al pulsar y muestra la letra del teclado del ordenador que toca cada nota.</li>
+          <li>En los elementos sostenidos, <b>Cambios de nota</b> permite probar o grabar cambios de acorde con el teclado (<a href="#cambios-de-nota">ver abajo</a>).</li>
         </ul>
 
         <!-- ------------------------------------------------------------ -->
@@ -479,6 +480,20 @@
         </ul>
         <h3>Semillas</h3>
         <p>Todo lo aleatorio (cuándo canta cada pájaro, qué nota toca la nube…) sale de semillas. Cada elemento tiene la suya, combinada con la del tema. Así, <b>editar un elemento no cambia el azar de los demás</b>. «Aleatorizar» en un elemento solo cambia ese elemento; <b>Aleatorizar todo</b> en el tema cambia todo a la vez.</p>
+
+        <h3 id="cambios-de-nota">Cambios de nota y teclado del ordenador</h3>
+        <p>En los instrumentos <b>sostenidos</b> (Pad, Drone, Cuerdas, Flauta, Coro, Vidrio, Seno y los sintes 80) puedes cambiar el acorde a lo largo del elemento sin dividirlo en trozos. Selecciona el elemento y usa <b>Cambios de nota</b> en el inspector:</p>
+        <ul>
+          <li><b>▶ Teclado libre</b>: toca las letras sin modificar el tema. Es el modo para experimentar melodías y acordes.</li>
+          <li><b>● Grabar</b>: empieza a reproducir desde el inicio del elemento y graba lo que tocas; la bolita se pone roja mientras grabas. Esa pista se silencia y oyes solo el teclado, para que no se duplique el sonido. Al salir, los cambios quedan dentro del elemento y la pista vuelve a sonar con ellos.</li>
+          <li><b>Fundido entre notas</b>: cuánto se cruzan el acorde anterior y el nuevo al cambiar. 0 es un corte seco; 0,15 s es el valor normal.</li>
+          <li><b>＋ Cambio en el cabezal</b>: añade un cambio con las notas que ya tienen el elemento en la posición del cabezal. <b>Quitar todos</b> borra la lista.</li>
+          <li>Las filas son editables: escribe el segundo (desde el inicio del elemento) y las notas separadas por espacios. Deja las notas vacías para un silencio. <b>×</b> borra el cambio. Los cambios también aparecen como marcas verticales en el elemento de la línea de tiempo.</li>
+        </ul>
+        <p>Las letras forman dos octavas a partir de la octava que muestre el mini teclado: <kbd>Z</kbd> <kbd>S</kbd> <kbd>X</kbd> <kbd>D</kbd> <kbd>C</kbd> <kbd>V</kbd> <kbd>G</kbd> <kbd>B</kbd> <kbd>H</kbd> <kbd>N</kbd> <kbd>J</kbd> <kbd>M</kbd> para la grave y <kbd>Q</kbd> <kbd>2</kbd> <kbd>W</kbd> <kbd>3</kbd> <kbd>E</kbd> <kbd>R</kbd> <kbd>5</kbd> <kbd>T</kbd> <kbd>6</kbd> <kbd>Y</kbd> <kbd>7</kbd> <kbd>U</kbd> para la aguda. Si cambias de octava con <kbd>‹</kbd> <kbd>›</kbd> mientras pruebas o grabas, el cambio se aplica en caliente a las siguientes notas. Mantén varias teclas para formar un acorde; al soltarlas todas se graba un silencio. <kbd>Espacio</kbd> reproduce o pausa y <kbd>Esc</kbd> sale del modo.</p>
+        <p>El popup de <b>Teclado libre</b> incluye un combo de <b>progresiones</b> agrupadas por carácter: <b>Alegres</b>, <b>Nostálgicas</b>, <b>Soñadoras</b>, <b>Tensas</b>, <b>Minimalistas</b> y <b>Épicas</b>. Cada una se adapta a la tonalidad del tema. Al elegirla, suenan sus acordes a 2 segundos por acorde. Debajo aparecen tarjetas con el cifrado, las notas y <b>las teclas que hay que pulsar</b> para tocarlas. <b>▶</b> se convierte en <b>■</b> mientras suena y lo detiene; <b>⟲</b> deja la progresión en bucle (y la arranca si estaba parada).</p>
+        <p>En las <b>nubes generativas</b>, al marcar <b>Usar notas propias</b> aparece el mismo teclado. <b>Teclado libre</b> suena sin tocar la nube y <b>Grabar</b> añade al conjunto de notas propias las notas que vayas tocando (hasta 24). Mientras se muestra el teclado, el botón <b>Aleatorizar</b> se oculta.</p>
+        <p>Los cambios se cruzan unos 150 ms para que no haya clic ni hueco, y el elemento conserva su envolvente, curva y fundidos. Si divides el elemento con <kbd>S</kbd> o exportas una región, cada parte se queda con los cambios que le corresponden.</p>
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="mezcla">Mezcla, maestro y automatización</h2>
@@ -577,9 +592,10 @@ node scripts/render-lab.mjs tema.wav     # usa el proyecto guardado dentro del W
           <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>S</kbd></td><td>Descargar el proyecto</td></tr>
           <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>E</kbd></td><td>Exportar</td></tr>
           <tr><td><kbd>?</kbd></td><td>Abrir estas instrucciones</td></tr>
-          <tr><td><kbd>Esc</kbd></td><td>Cerrar diálogo o quitar la selección</td></tr>
+          <tr><td><kbd>Z S X D C V G B H N J M</kbd> y <kbd>Q 2 W 3 E R 5 T 6 Y 7 U</kbd></td><td>En el modo teclado, tocar la octava grave y la aguda</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>Cerrar diálogo, quitar la selección o salir del modo teclado</td></tr>
         </table>
-        <p class="muted">Los atajos de una letra no actúan mientras escribes en un campo de texto.</p>
+        <p class="muted">Los atajos de una letra no actúan mientras escribes en un campo de texto. En el modo teclado (Teclado libre o Grabar), las letras tocan notas en lugar de ejecutar su atajo; <kbd>Espacio</kbd> sigue reproduciendo o pausando.</p>
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="compacto">Pantallas pequeñas</h2>
@@ -612,6 +628,8 @@ Editor ◀───────────────────────�
           <tr><td>Pistas</td><td>32</td></tr>
           <tr><td>Elementos por tema</td><td>500</td></tr>
           <tr><td>Notas por tono</td><td>8</td></tr>
+          <tr><td>Notas propias de una nube</td><td>24</td></tr>
+          <tr><td>Cambios de nota por elemento sostenido</td><td>64</td></tr>
           <tr><td>Voces sostenidas a la vez</td><td>96 (notas × voces de unísono)</td></tr>
           <tr><td>Golpes a la vez</td><td>16 por pista, 64 en total (se apaga el más antiguo)</td></tr>
           <tr><td>Eventos de simulaciones</td><td>200 000 por tema (solo avisa: tarda más)</td></tr>

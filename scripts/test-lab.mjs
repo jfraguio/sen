@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { compile, createRenderer, renderToWav, ENGINE_MODULES, auditionProject } from '../lab/engine/index.js';
 import {
   INSTRUMENTS, INSTRUMENT_GROUPS, LabFileError, canonicalProject, createElement, createProject, createSceneProject, createTrack, layerKey, normalizeProject,
+  splitToneChanges, toneNotesAt, trimToneStart,
 } from '../lab/engine/schema.js';
 import { publishedLayers } from './lib/published.js';
 import { decodeWavChannels, readSenpProject } from '../lab/engine/wav.js';
@@ -124,6 +125,88 @@ function smallProject(over = {}) {
   p.tracks[0].elements[0].notes = ['D3'];
   const after = JSON.stringify(planStrikeHits(strike, cloud, ctx));
   ok(before === after, 'editar un elemento no cambia el azar de los demás');
+}
+
+/* ------------------------------------------------------------ cambios de nota */
+
+{
+  const p = createProject({ seed: 'cambios', duration: 10 });
+  const track = createTrack('pad', p);
+  const el = createElement(track, p, 0, 'tone');
+  el.length = 10;
+  el.fadeIn = 0.1;
+  el.fadeOut = 0.1;
+  el.notes = ['C3'];
+  el.changes = [{ t: 2, notes: ['E3'] }, { t: 4, notes: ['C3', 'E3'] }, { t: 6, notes: [] }];
+  track.elements.push(el);
+  p.tracks.push(track);
+
+  const rms = (L, a, b, sr) => {
+    let s = 0;
+    for (let i = Math.round(a * sr); i < Math.round(b * sr); i++) s += L[i] * L[i];
+    return Math.sqrt(s / Math.max(1, Math.round((b - a) * sr)));
+  };
+  const sr = 22050;
+  const { L, R } = createRenderer(compile(p, { sampleRate: sr }), { limiter: false }).render(sr * 8);
+  const finite = L.every(Number.isFinite) && R.every(Number.isFinite);
+  const r1 = rms(L, 0, 2, sr);
+  const r2 = rms(L, 2, 4, sr);
+  const r3 = rms(L, 4, 6, sr);
+  const r4 = rms(L, 6, 8, sr);
+  ok(finite && r1 > 0.01 && r2 > 0.01 && r3 > 0.01 && r4 < r1 * 0.5,
+    `un tone con cambios de nota suena en cada tramo y calla al final (${r1.toFixed(3)} / ${r2.toFixed(3)} / ${r3.toFixed(3)} / ${r4.toFixed(3)})`);
+
+  const norm = normalizeProject({ schema: 'sen-lab/3', duration: 10, tracks: [{ instrument: 'pad', elements: [{ type: 'tone', start: 0, length: 10, notes: ['C3'], changes: [{ t: 20, notes: ['E3'] }, { t: 1, notes: ['D3', 'X'] }, { t: 1.0002, notes: ['F3'] }, { t: -1, notes: ['G3'] }] }] }] });
+  const changes = norm.project.tracks[0].elements[0].changes;
+  ok(changes.length === 2 && changes[0].t === 0 && changes[0].notes[0] === 'G3' && changes[1].t === 1 && changes[1].notes[0] === 'F3',
+    'los cambios de nota se ordenan, se recortan y se descartan fuera del elemento');
+  const silence = normalizeProject({ schema: 'sen-lab/3', duration: 10, tracks: [{ instrument: 'pad', elements: [{ type: 'tone', start: 0, length: 10, notes: [], changes: [{ t: 2, notes: ['C3'] }] }] }] });
+  ok(silence.project.tracks[0].elements[0].notes.length === 0, 'un tone puede empezar en silencio hasta su primer cambio');
+  const cross = normalizeProject({ schema: 'sen-lab/3', duration: 10, tracks: [{ instrument: 'pad', elements: [{ type: 'tone', start: 0, length: 10, notes: ['C3'], crossfade: 9 }] }] });
+  const crossEl = cross.project.tracks[0].elements[0];
+  ok(crossEl.crossfade === 2 && normalizeProject({ schema: 'sen-lab/3', duration: 10, tracks: [{ instrument: 'pad', elements: [{ type: 'tone', start: 0, length: 10, notes: ['C3'], crossfade: -1 }] }] }).project.tracks[0].elements[0].crossfade === 0,
+    'el fundido entre notas se recorta a 0–2 s');
+
+  const fadeProject = createProject({ seed: 'fade', duration: 10 });
+  const fadeTrack = createTrack('pad', fadeProject);
+  const fadeEl = createElement(fadeTrack, fadeProject, 0, 'tone');
+  fadeEl.length = 10;
+  fadeEl.fadeIn = 0;
+  fadeEl.fadeOut = 0;
+  fadeEl.notes = ['C3'];
+  fadeEl.changes = [{ t: 4, notes: ['E3'] }];
+  fadeEl.crossfade = 0;
+  fadeTrack.elements.push(fadeEl);
+  fadeProject.tracks.push(fadeTrack);
+  const fadePlan = compile(fadeProject, { sampleRate: 22050 });
+  const firstVoice = fadePlan.tracks[0].voices.find((v) => v.start === 0);
+  ok(firstVoice && firstVoice.end === 4 * 22050, 'con fundido 0 los tramos no se solapan');
+
+  const split = splitToneChanges(el, 3);
+  ok(split.notes[0] === 'E3' && split.before.length === 1 && split.after.length === 2 && split.after[0].t === 1 && split.after[1].t === 3,
+    'al dividir un tone, cada parte conserva su tramo de cambios');
+  const trimmed = trimToneStart(el, 3);
+  ok(trimmed.notes[0] === 'E3' && trimmed.length === 7 && trimmed.changes.length === 2 && trimmed.changes[0].t === 1,
+    'al recortar el principio de un tone, sus cambios se desplazan');
+  ok(toneNotesAt(el, 5).length === 2 && toneNotesAt(el, 7).length === 0, 'toneNotesAt devuelve el acorde y el silencio correctos');
+
+  const loopProject = createProject({ seed: 'cambios-loop', duration: 8, end: { mode: 'loop', fadeOut: 0 } });
+  const loopTrack = createTrack('pad', loopProject);
+  const loopEl = createElement(loopTrack, loopProject, 0, 'tone');
+  loopEl.length = 8;
+  loopEl.fadeIn = 0;
+  loopEl.fadeOut = 0;
+  loopEl.notes = ['C3'];
+  loopEl.changes = [{ t: 4, notes: ['E3'] }];
+  loopTrack.elements.push(loopEl);
+  loopProject.tracks.push(loopTrack);
+  const loopPlan = compile(loopProject, { sampleRate: 22050, mode: 'export', end: 'loop' });
+  const atZero = loopPlan.tracks[0].voices.filter((v) => v.start <= 0 && v.end > 0).length;
+  ok(atZero === 1, `un tone con cambios en bucle no superpone todos los tramos al empezar (${atZero} voz)`);
+  const loopWav = await renderToWav(loopProject, { sampleRate: 22050, bits: 16, channels: 1, end: 'loop', loudness: null });
+  const loopData = decodeWavChannels(new Uint8Array(join(loopWav.parts)));
+  const loopSeam = seamScore(loopData.data[0]);
+  ok(loopSeam <= 1, `un tone con cambios enlaza el bucle sin costura (${loopSeam.toFixed(2)})`);
 }
 
 /* ------------------------------------------------------------ todos los instrumentos */

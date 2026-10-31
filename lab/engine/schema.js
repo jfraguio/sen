@@ -18,6 +18,8 @@ export const LIMITS = {
   tracks: 32,
   elements: 500,
   notesPerTone: 8,
+  changesPerTone: 64,
+  cloudPitches: 24,
   sustainVoices: 96,
   strikePerTrack: 16,
   strikeTotal: 64,
@@ -556,6 +558,9 @@ export const ELEMENT_DEFS = {
     { key: 'fadeIn', ...num('Fundido de entrada', 0, LIMITS.maxDuration, 3, { step: 0.01, unit: 's' }) },
     { key: 'fadeOut', ...num('Fundido de salida', 0, LIMITS.maxDuration, 3, { step: 0.01, unit: 's' }) },
   ],
+  tone: [
+    { key: 'crossfade', ...num('Fundido entre notas', 0, 2, 0.15, { step: 0.01, unit: 's' }) },
+  ],
   hit: [
     { key: 'start', ...num('Instante', 0, LIMITS.maxDuration, 0, { step: 0.001, unit: 's' }) },
     { key: 'velocity', ...num('Velocidad', 0, 1, 0.7, { step: 0.01 }) },
@@ -799,9 +804,9 @@ export function createElement(track, project, start = 0, type = null) {
     const shape = INSTRUMENTS[track.instrument]?.tone;
     if (shape) {
       const l = Math.min(shape.length, Math.max(0.1, duration - base.start));
-      return { ...base, length: l, level: 0, fadeIn: Math.min(shape.fadeIn, l / 2), fadeOut: Math.min(shape.fadeOut, l / 2), notes: chord.map(([oc, d]) => keyNote(key, oc, d)), curve: 'plana', seed: 1 };
+      return { ...base, length: l, level: 0, fadeIn: Math.min(shape.fadeIn, l / 2), fadeOut: Math.min(shape.fadeOut, l / 2), notes: chord.map(([oc, d]) => keyNote(key, oc, d)), curve: 'plana', seed: 1, crossfade: 0.15 };
     }
-    return { ...base, length: len, level: 0, fadeIn: Math.min(4, len / 3), fadeOut: Math.min(6, len / 3), notes: chord.map(([oc, d]) => keyNote(key, oc, d)), curve: 'plana', seed: 1 };
+    return { ...base, length: len, level: 0, fadeIn: Math.min(4, len / 3), fadeOut: Math.min(6, len / 3), notes: chord.map(([oc, d]) => keyNote(key, oc, d)), curve: 'plana', seed: 1, crossfade: 0.15 };
   }
   if (t === 'clip') {
     const l = Math.max(0.1, Math.round((duration - base.start) * 1000) / 1000);
@@ -822,6 +827,85 @@ export function createElement(track, project, start = 0, type = null) {
     };
   }
   return { ...base, length: len, level: 0, fadeIn: Math.min(3, len / 4), fadeOut: Math.min(3, len / 4), density: 0.6, seed: 1, curve: 'plana' };
+}
+
+/* ------------------------------------------------------------ cambios de nota */
+
+/**
+ * Puntos efectivos de un `tone`: las notas base (`notes`) en 0 y los cambios
+ * (`changes`) ordenados. Un cambio en 0 sustituye las notas base.
+ */
+export function toneChangePoints(el) {
+  const len = Math.max(0.1, Number(el.length) || 0.1);
+  const base = Array.isArray(el.notes) ? el.notes : [];
+  const points = [{ t: 0, notes: base }];
+  const list = (Array.isArray(el.changes) ? el.changes : [])
+    .filter((c) => c && Number.isFinite(c.t) && Array.isArray(c.notes))
+    .map((c) => ({ t: clampNum(c.t, 0, len), notes: c.notes }))
+    .sort((a, b) => a.t - b.t);
+  for (const c of list) {
+    if (c.t <= 0) points[0] = { t: 0, notes: c.notes };
+    else if (c.t < len) {
+      const last = points[points.length - 1];
+      if (Math.abs(last.t - c.t) < 0.0005) points[points.length - 1] = { t: c.t, notes: c.notes };
+      else points.push({ t: c.t, notes: c.notes });
+    }
+  }
+  return points;
+}
+
+/** Notas que suenan en `t` (segundos desde el inicio del elemento). */
+export function toneNotesAt(el, t) {
+  const points = toneChangePoints(el);
+  let notes = points[0].notes;
+  for (const p of points) {
+    if (p.t <= t + 1e-6) notes = p.notes;
+    else break;
+  }
+  return notes.map((n) => (n && typeof n === 'object' ? { ...n } : n));
+}
+
+/** Tramos efectivos de un `tone`: `{ t, end, notes }` (puede haber silencios). */
+export function toneSegments(el) {
+  const points = toneChangePoints(el);
+  const len = Math.max(0.1, Number(el.length) || 0.1);
+  const out = [];
+  for (let k = 0; k < points.length; k++) {
+    const start = points[k].t;
+    const end = k + 1 < points.length ? points[k + 1].t : len;
+    if (end > start + 1e-6) out.push({ t: start, end, notes: points[k].notes });
+  }
+  return out;
+}
+
+/** Reparte los cambios de un `tone` al dividirlo en `cut` (segundos desde su inicio). */
+export function splitToneChanges(el, cut) {
+  const before = (el.changes || [])
+    .filter((c) => Number.isFinite(c.t) && c.t < cut - 0.0005)
+    .map((c) => ({ ...c, notes: [...c.notes] }));
+  const after = (el.changes || [])
+    .filter((c) => Number.isFinite(c.t) && c.t > cut + 0.0005)
+    .map((c) => ({ t: Math.round((c.t - cut) * 1000) / 1000, notes: [...c.notes] }));
+  return { before, after, notes: toneNotesAt(el, cut) };
+}
+
+/** Recorta el principio de un `tone` conservando las notas que sonaban en `cut`. */
+export function trimToneStart(el, cut) {
+  const length = Math.round(Math.max(0.1, el.length - cut) * 1000) / 1000;
+  const out = {
+    ...el,
+    start: 0,
+    length,
+    notes: toneNotesAt(el, cut),
+    fadeIn: 0,
+    fadeOut: Math.min(el.fadeOut || 0, length),
+  };
+  const changes = (el.changes || [])
+    .filter((c) => Number.isFinite(c.t) && c.t > cut + 0.0005)
+    .map((c) => ({ ...c, t: Math.round((c.t - cut) * 1000) / 1000, notes: [...c.notes] }));
+  if (changes.length) out.changes = changes;
+  else delete out.changes;
+  return out;
 }
 
 /** Convierte un elemento puntual a otro tipo conservando inicio y duración. */
@@ -1048,9 +1132,31 @@ function normalizeElement(e, track, project, uniq, bad) {
   }
   if ('seed' in el || el.type === 'cloud' || el.type === 'span' || el.type === 'tone') fix('seed', 1, 999999, 1);
   if (el.type === 'tone') {
-    const notes = (Array.isArray(el.notes) ? el.notes : []).filter(validNote).slice(0, LIMITS.notesPerTone);
-    if (notes.length !== (el.notes || []).length) bad('Se han descartado notas no válidas.');
-    el.notes = notes.length ? notes : [keyNote(project.key, 3, 0)];
+    const hasNotes = Array.isArray(el.notes);
+    const notes = (hasNotes ? el.notes : []).filter(validNote).slice(0, LIMITS.notesPerTone);
+    if (notes.length !== (hasNotes ? el.notes : []).length) bad('Se han descartado notas no válidas.');
+    el.notes = hasNotes ? notes : [keyNote(project.key, 3, 0)];
+    const rawChanges = Array.isArray(el.changes) ? el.changes : [];
+    const clean = [];
+    for (const c of rawChanges) {
+      if (!c || !Number.isFinite(c.t) || !Array.isArray(c.notes)) continue;
+      const t = Math.round(clampNum(c.t, 0, el.length) * 1000) / 1000;
+      if (t >= el.length - 0.0005) continue;
+      const list = c.notes.filter(validNote).slice(0, LIMITS.notesPerTone);
+      if (list.length !== c.notes.length) bad('Se han descartado notas no válidas en un cambio.');
+      clean.push({ t, notes: list });
+    }
+    clean.sort((a, b) => a.t - b.t);
+    const changes = [];
+    for (const c of clean) {
+      const last = changes[changes.length - 1];
+      if (last && Math.abs(last.t - c.t) < 0.0005) changes[changes.length - 1] = c;
+      else changes.push(c);
+    }
+    if (changes.length > LIMITS.changesPerTone) bad(`Se han conservado los primeros ${LIMITS.changesPerTone} cambios de nota.`);
+    if (changes.length) el.changes = changes.slice(0, LIMITS.changesPerTone);
+    else delete el.changes;
+    fix('crossfade', 0, 2, 0.15);
   }
   if (el.type === 'hit') {
     if (!validNote(el.note)) el.note = keyNote(project.key, 4, 0);
@@ -1068,7 +1174,7 @@ function normalizeElement(e, track, project, uniq, bad) {
     for (const k of ['timing', 'motion', 'gravity', 'chord']) fix(k, 0, 1, 0.5);
     const r = Array.isArray(el.range) && el.range.length === 2 && el.range.every(validNote) ? el.range : [keyNote(project.key, 4, 0), keyNote(project.key, 6, 0)];
     el.range = r;
-    el.pitches = Array.isArray(el.pitches) ? el.pitches.filter(validNote).slice(0, 24) : null;
+    el.pitches = Array.isArray(el.pitches) ? el.pitches.filter(validNote).slice(0, LIMITS.cloudPitches) : null;
     if (el.pitches && !el.pitches.length) el.pitches = null;
     const v = Array.isArray(el.velocity) && el.velocity.length === 2 && el.velocity.every(Number.isFinite) ? el.velocity : [0.35, 0.8];
     el.velocity = [clampNum(Math.min(v[0], v[1]), 0, 1), clampNum(Math.max(v[0], v[1]), 0, 1)];

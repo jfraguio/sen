@@ -831,7 +831,16 @@ No objetivos:
 - **`tone`** (sostenidas): de 1 a 8 notas simultáneas (nota, acorde o
   cluster). La envolvente del sonido **es** la del elemento: `fadeIn` actúa como
   ataque y `fadeOut` como relajación, ambos dentro de la duración. Lo que se ve
-  es lo que suena.
+  es lo que suena. Además, un `tone` puede llevar **cambios de nota** en
+  `changes`: lista ordenada de `{ t, notes }`, con `t` en segundos desde el
+  inicio del elemento y `notes` con 0–8 notas (`[]` es silencio). Las notas
+  base siguen en `notes` y suenan desde el principio hasta el primer cambio; un
+  cambio en `t = 0` las sustituye. Los tramos se cruzan con un fundido
+  configurable (`crossfade`, 0–2 s; 0 es corte seco; por defecto 0,15 s), y la
+  curva, el nivel y los fundidos del elemento se reparten entre los tramos.
+  Los cambios viven **dentro del elemento**: no hace falta dividirlo en
+  fragmentos. Al dividir con `S` o al recortar una región, cada parte conserva
+  sus cambios y adopta como notas base las que sonaban en el corte.
 - **`hit`** (puntuales): un golpe en un instante, con nota, velocidad y nivel.
   Su cola (decaimiento) se dibuja rayada después del golpe.
 - **`phrase`** (puntuales): un patrón de golpes `{ t, note, v }` de longitud
@@ -846,6 +855,11 @@ No objetivos:
   - `chord`: probabilidad de que caigan 2–3 notas juntas (0–1).
   - `velocity`: rango `[min, max]`.
   - `seed`: semilla propia; “Aleatorizar” la incrementa.
+  - `pitches`: si se activa **Usar notas propias**, el conjunto de notas (hasta
+    24) sustituye a la escala. Con el teclado del inspector se puede probar
+    (**Teclado libre**) o añadir notas tocándolas (**Grabar**); al mostrar el
+    teclado se oculta “Aleatorizar”. La nube sigue generando notas en el
+    tiempo; “Grabar” solo amplía su conjunto de notas, no graba ritmo.
 - **`span`** (ruidos y simulaciones): un tramo de actividad. En simulaciones,
   además del nivel, define la **densidad** (0–1) de la actividad.
 - **`clip`** (capas de pistas de sen): un tramo de la capa, que se repite en
@@ -1068,7 +1082,14 @@ por parámetro.
   escucha. Zoom con −/+ o con Cmd/Ctrl + rueda.
 - **Inspector:** controles de la pista o del elemento seleccionado, del bus
   maestro o del tema (sin selección). En las notas incluye un mini teclado de
-  dos octavas que suena al pulsar.
+  dos octavas que suena al pulsar y muestra la letra del teclado del ordenador
+  que toca cada nota. En un elemento sostenido, **Cambios de nota** permite
+  tocar el teclado sin grabar (**Teclado libre**) o grabar los cambios de nota
+  dentro del elemento mientras avanza el cabezal (**Grabar**, con la bolita en
+  rojo), además de añadir un cambio en el cabezal o borrarlos. El **fundido
+  entre notas** ajusta el cruce (0–2 s). Cada cambio se edita en la propia lista
+  (segundo desde el inicio y notas separadas por espacios; vacío es silencio)
+  y la octava del teclado se cambia en caliente durante la prueba o grabación.
 - **Pie:** medidor maestro (pico y sonoridad a corto plazo), carga del motor,
   tonalidad y tempo.
 
@@ -1093,8 +1114,9 @@ sin animaciones de fondo que compitan con el trabajo.
   pistas es el de creación (no se reordenan ni se pliegan).
 - **Inspector:** deslizadores con valor numérico editable; doble clic devuelve
   el valor por defecto; la rueda con `Mayús` hace ajuste fino. Los generadores
-  tienen **Aleatorizar** (nueva semilla) y todos los elementos **Escuchar solo
-  esto** (solo temporal mientras se mantiene pulsado).
+  tienen **Aleatorizar** (nueva semilla). El inspector de un elemento muestra su
+  contenido y su curva; el tiempo, el nivel y los fundidos se ajustan en la
+  propia capa de la línea de tiempo.
 - **Arrastrar un archivo** `.sen.json` o un WAV exportado por el laboratorio
   (7.8.1) a la ventana lo abre. Un archivo **MIDI** (`.mid`) se importa en el
   tema actual (7.8.5).
@@ -1122,6 +1144,23 @@ sin animaciones de fondo que compitan con el trabajo.
 | `Escape` | Cerrar diálogo o deseleccionar |
 
 Los atajos de una letra no actúan mientras el foco está en un campo de texto.
+
+En el **modo teclado** (Teclado libre o Grabar), las letras tocan notas y sustituyen a
+los atajos de una letra: `Z S X D C V G B H N J M` son la octava grave y
+`Q 2 W 3 E R 5 T 6 Y 7 U` la aguda, partiendo de la octava que muestre el
+inspector. Las flechas de octava del mini teclado se aplican en caliente
+mientras se prueba o graba. `Espacio` sigue reproduciendo o pausando y `Escape`
+sale del modo. Las teclas se pueden mantener para formar acordes; al soltarlas
+todas, el siguiente cambio grabado es silencio.
+
+El popup de **Teclado libre** incluye un combo de progresiones diatónicas
+agrupadas por carácter (**Alegres**, **Nostálgicas**, **Soñadoras**, **Tensas**,
+**Minimalistas** y **Épicas**), adaptadas a la tonalidad del tema. Al elegir una
+se escucha acorde a acorde (2 s por acorde). Debajo aparecen tarjetas con el
+cifrado, las notas en letras y las teclas del ordenador que tocan cada nota.
+**▶** se convierte en **■** mientras suena y detiene la progresión; **⟲** la
+deja en bucle y la arranca si estaba parada. En **Grabar** el combo se oculta,
+porque el foco es capturar notas o cambios con el teclado.
 
 #### 7.5.4 Plantillas
 
@@ -1198,8 +1237,9 @@ UI ◀────────────────────────�
 - No se usa `SharedArrayBuffer`: exige cabeceras COOP/COEP que GitHub Pages no
   permite.
 - El `AudioContext` se crea o reanuda dentro del gesto del usuario (iOS).
-- La audición de la biblioteca y del mini teclado se renderiza aparte en el
-  mismo Worker y suena con un `AudioBufferSourceNode`.
+- La audición de la biblioteca se renderiza aparte en el mismo Worker y suena
+  con un `AudioBufferSourceNode`. El modo teclado usa además un sintetizador
+  ligero en el `AudioContext` para responder al instante sin esperar al motor.
 
 #### 7.6.2 Edición mientras suena
 
@@ -1671,6 +1711,8 @@ opcional (7.4.6).
 | Pistas | 32 |
 | Elementos por tema | 500 |
 | Notas por elemento `tone` | 8 |
+| Cambios de nota por elemento `tone` | 64 |
+| Notas propias de una `cloud` | 24 |
 | Voces sostenidas simultáneas (notas × voces) | 96 |
 | Golpes simultáneos | 16 por pista, 64 en total |
 | Eventos planificados de simulaciones | 200 000 por tema |
@@ -1728,6 +1770,8 @@ lab/
     timeline.js             Línea de tiempo, selección, arrastres, regla
     inspector.js            Paneles del tema, pista, elemento y maestro
     controls.js             Deslizadores, notas y teclado, curvas, piano roll, automatización
+    keys.js                 Distribución del teclado del ordenador para tocar notas
+    performance.js          Modo teclado: prueba y grabación de cambios de nota
     library.js              Biblioteca plegable por gesto/timbre y plantillas
     scenes.js               Catálogo y audio de las capas de canciones de sen
     export.js               Diálogo de exportación y progreso

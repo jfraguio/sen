@@ -11,6 +11,7 @@
 import { h, fmtNum, clampNum } from './util.js';
 import { CURVE_PRESETS, curvePoints } from '../engine/schema.js';
 import { LATIN_NAMES, NOTE_NAMES, midiToNote, noteLabel, noteToMidi, scaleMidis } from '../engine/music.js';
+import { hintForMidi } from './keys.js';
 
 let uid = 0;
 const nextId = (p) => `${p}-${++uid}`;
@@ -183,7 +184,7 @@ export function noteSelect(binding, syncers, notation, label) {
 /**
  * Mini teclado de dos octavas. `onKey(note)`; `isOn(midi)` marca teclas.
  */
-export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'latin' }) {
+export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'latin', hintFor = null, onOctaveChange = null }) {
   let oct = octave;
   const wrap = h('div', { class: 'kb' });
   const keys = h('div', { class: 'keyboard', role: 'group', 'aria-label': 'Teclado' });
@@ -199,13 +200,14 @@ export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'la
         const note = midiToNote(midi);
         const white = whites.includes(s);
         const name = notation === 'latin' ? `${LATIN_NAMES[s]}${oct + o}` : `${NOTE_NAMES[s]}${oct + o}`;
+        const hint = hintFor ? hintFor(midi, oct) : '';
         const key = h('button', {
           type: 'button',
           class: `key ${white ? 'key--white' : 'key--black'}${isOn(midi) ? ' is-on' : ''}`,
-          'aria-label': name,
-          title: name,
+          'aria-label': hint ? `${name} (tecla ${hint})` : name,
+          title: hint ? `${name} · tecla ${hint}` : name,
           onclick: () => onKey(note),
-        }, white && s === 0 ? h('span', {}, name) : null);
+        }, white && s === 0 ? h('span', { class: 'key-name' }, name) : null, hint ? h('span', { class: 'key-hint' }, hint) : null);
         if (white) {
           key.style.left = `${wi * W}%`;
           key.style.width = `${W}%`;
@@ -218,14 +220,16 @@ export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'la
       }
     }
     label.textContent = notation === 'latin' ? `Octavas ${oct} y ${oct + 1}` : `Octaves ${oct}–${oct + 1}`;
+    wrap.octave = oct;
   };
   const nav = h('div', { class: 'oct' },
-    h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más grave', onclick: () => { oct = Math.max(0, oct - 1); render(); } }, '‹'),
+    h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más grave', onclick: () => { oct = Math.max(0, oct - 1); render(); onOctaveChange?.(oct); } }, '‹'),
     label,
-    h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más aguda', onclick: () => { oct = Math.min(7, oct + 1); render(); } }, '›'));
+    h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más aguda', onclick: () => { oct = Math.min(7, oct + 1); render(); onOctaveChange?.(oct); } }, '›'));
   wrap.append(nav, keys);
   render();
   wrap.refresh = render;
+  wrap.getOctave = () => oct;
   return wrap;
 }
 
@@ -235,13 +239,15 @@ export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'la
  * Lista de notas (máximo `max`) con chips, teclado y frecuencia libre.
  * Pulsar una tecla añade la nota o sustituye la seleccionada.
  */
-export function notesEditor({ binding, syncers, notation, max = 8, audition, octave = 3 }) {
+export function notesEditor({ binding, syncers, notation, max = 8, audition, octave = 3, hintFor = null, onOctave = null }) {
   let active = -1;
   const chips = h('div', { class: 'notes' });
   const hz = h('input', { type: 'number', min: 8, max: 16000, step: 0.1, placeholder: 'Hz', 'aria-label': 'Frecuencia libre en Hz', style: { width: '90px' } });
   const kb = keyboard({
     octave,
     notation,
+    hintFor,
+    onOctaveChange: onOctave,
     isOn: (m) => binding.get().some((n) => noteToMidi(n) === m),
     onKey: (note) => {
       const list = [...binding.get()];
@@ -283,8 +289,10 @@ export function notesEditor({ binding, syncers, notation, max = 8, audition, oct
   }, 'Añadir Hz');
   syncers.push(render);
   render();
-  return h('div', { class: 'notes-editor' }, chips, kb, h('div', { class: 'ins-actions' }, hz, addHz),
+  const editor = h('div', { class: 'notes-editor' }, chips, kb, h('div', { class: 'ins-actions' }, hz, addHz),
     h('p', { class: 'help' }, `Hasta ${max} notas. Pulsa una nota para sustituirla con el teclado.`));
+  editor.getOctave = () => kb.getOctave();
+  return editor;
 }
 
 /* ------------------------------------------------------------ curvas */

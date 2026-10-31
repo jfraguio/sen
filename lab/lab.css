@@ -1550,6 +1550,438 @@ input[type="range"] {
   color: #ffc9c9;
 }
 
+/* ------------------------------------------------------------ cambios de nota y teclado */
+
+.btn[aria-pressed="true"] {
+  background: #23304a;
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.perf-rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.perf-rec-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #d9d6ce;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.perf-rec[aria-pressed="true"] .perf-rec-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px rgba(255, 122, 122, 0.22);
+}
+
+.key--white .key-name {
+  bottom: 3px;
+  font-size: 8px;
+  color: #777;
+}
+
+.key .key-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.key--white .key-hint {
+  top: 3px;
+  bottom: auto;
+  color: #444;
+  font-weight: 600;
+}
+
+.key--black .key-hint {
+  top: 2px;
+  color: #9dded8;
+  font-size: 8px;
+}
+
+.el-changes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.el-changes i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(5, 6, 11, 0.3);
+}
+
+.note-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 8px;
+  max-height: 190px;
+  overflow: auto;
+}
+
+.note-change {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.note-change__timebox {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.note-change__time {
+  width: 62px;
+  padding: 2px 4px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--accent);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.note-change__notes {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.note-change__time:focus,
+.note-change__notes:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.note-change__notes::placeholder {
+  color: var(--dim);
+}
+
+.note-change .icon-btn {
+  width: 20px;
+  height: 20px;
+}
+
+.perform {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 55;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(760px, calc(100vw - 24px));
+  padding: 14px 16px 12px;
+  background: linear-gradient(180deg, rgba(28, 34, 52, 0.98), rgba(10, 13, 22, 0.98));
+  border: 1px solid #3a4564;
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 -12px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(18px);
+}
+
+.perform::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(157, 222, 216, 0.6), transparent);
+}
+
+.perform__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.perform__head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.perform__head b {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.perform__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  box-shadow: 0 0 0 4px rgba(157, 222, 216, 0.12);
+}
+
+.perform[data-mode="record"] .perform__dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px rgba(255, 122, 122, 0.14);
+  animation: perform-pulse 1s infinite;
+}
+
+@keyframes perform-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.perform__detail {
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.perform__notes {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.perform__note,
+.perform__silence {
+  padding: 2px 8px;
+  border: 1px solid #3d4a66;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #1d2636, #131925);
+  font-size: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.perform__silence {
+  color: var(--dim);
+  border-style: dashed;
+  background: transparent;
+}
+
+.perform__exit {
+  padding: 5px 10px;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.perform__prog-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perform__progressions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.perform__progression-label {
+  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.perform__progression-select {
+  flex: 1;
+  min-width: 220px;
+  max-width: none;
+  padding: 7px 10px;
+  border: 1px solid #3a4564;
+  border-radius: 8px;
+  background: #0b0f19;
+  color: var(--ink);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.perform__transport,
+.perform__loop {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #5c6d92;
+  background: linear-gradient(180deg, #2a344c, #141a28);
+  color: var(--accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.perform__transport {
+  font-size: 15px;
+}
+
+.perform__transport:hover,
+.perform__loop:hover {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, #33405c, #192132);
+}
+
+.perform__transport.is-playing {
+  background: linear-gradient(180deg, #5a1f26, #2a0f14);
+  border-color: #8a3a46;
+  color: #ffb8b8;
+}
+
+.perform__loop[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: #051013;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(157, 222, 216, 0.18), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.perform__prog-cards {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: thin;
+}
+
+.perform__prog-card {
+  flex: 0 0 auto;
+  min-width: 94px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px;
+  border: 1px solid #2c3650;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #151b29, #0d111b);
+  transition: border-color 0.15s, transform 0.15s, background 0.15s;
+}
+
+.perform__prog-card.is-active {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, #1d3039, #111a23);
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(157, 222, 216, 0.25), 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.perform__prog-cipher {
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.perform__prog-card b {
+  font-size: 14px;
+}
+
+.perform__prog-notes {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.perform__prog-keys {
+  display: flex;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.perform__prog-keys kbd {
+  min-width: 16px;
+  padding: 1px 3px;
+  border: 1px solid #3b4664;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #0b0f19;
+  color: var(--ink);
+  font: 10px/1.3 ui-monospace, "SF Mono", Menlo, monospace;
+  text-align: center;
+}
+
+.perform__prog-empty {
+  color: var(--dim);
+  font-size: 11px;
+  padding: 4px 2px;
+}
+
+.perform__keys {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 6px;
+}
+
+.perform__keys b {
+  color: var(--muted);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+@media (max-width: 899px) {
+  .perform {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    transform: none;
+    padding: 12px;
+  }
+
+  .perform__top {
+    flex-wrap: wrap;
+  }
+
+  .perform__notes {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .perform__exit {
+    margin-left: auto;
+  }
+
+  .perform__progression-select {
+    min-width: 0;
+    flex-basis: 100%;
+    order: 2;
+  }
+
+  .perform__progression-label {
+    order: 1;
+  }
+
+  .perform__transport,
+  .perform__loop {
+    order: 3;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

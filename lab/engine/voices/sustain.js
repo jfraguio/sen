@@ -14,7 +14,7 @@ import {
 } from '../dsp.js';
 import { noteFrequency } from '../music.js';
 import { createRng, noiseAt, subSeed } from '../rng.js';
-import { trackParams } from '../schema.js';
+import { curveFunction, toneSegments, trackParams } from '../schema.js';
 
 const VOWEL_FORMANTS = [[800, 1150, 2900], [450, 800, 2830], [325, 700, 2530]];
 const FORMANT_GAINS = [1, 0.55, 0.3];
@@ -29,19 +29,57 @@ function unison(inst, p) {
 
 export function compileSustainElement(track, el, ctx) {
   const p = trackParams(track);
-  const notes = el.notes.slice(0, 8);
-  const noteGain = 1 / Math.sqrt(notes.length);
-  return notes.map((note, k) => {
-    const f = noteFrequency(note, ctx.a4);
-    const seed = subSeed(ctx.elementSeed, k);
-    return {
-      t: 0,
-      d: el.length,
-      bed: true,
-      voices: unison(track.instrument, p),
-      create: (sr, i0, period) => new SustainVoice(track.instrument, p, el, f, noteGain, seed, sr, i0, period),
-    };
-  });
+  const segments = toneSegments(el);
+  const multi = segments.length > 1;
+  // Cruce entre cambios de nota: la nota anterior se apaga mientras la nueva
+  // entra. El usuario lo ajusta por elemento (`crossfade`); 0 es corte seco.
+  const shortest = segments.reduce((m, s) => Math.min(m, s.end - s.t), Infinity);
+  const requested = Number.isFinite(el.crossfade) ? el.crossfade : 0.15;
+  const cross = clamp(requested, 0, Math.min(2, shortest * 0.5));
+  const loopFull = !!ctx.loopFull;
+  const seam = loopFull ? Math.max(cross, Math.min(0.02, shortest * 0.5)) : cross;
+  const out = [];
+  for (let k = 0; k < segments.length; k++) {
+    const seg = segments[k];
+    const notes = seg.notes.slice(0, 8);
+    if (!notes.length) continue; // un cambio a «silencio» deja el tramo vacío
+    const noteGain = 1 / Math.sqrt(notes.length);
+    const last = k === segments.length - 1;
+    const first = k === 0;
+    const d = seg.end - seg.t + (last ? (loopFull ? seam : 0) : cross);
+    const shape = multi ? segmentElement(el, seg, d, cross, first, last, loopFull, seam) : el;
+    for (let j = 0; j < notes.length; j++) {
+      const f = noteFrequency(notes[j], ctx.a4);
+      const seed = subSeed(ctx.elementSeed, multi ? k * 16 + j : j);
+      out.push({
+        t: seg.t,
+        d,
+        bed: true,
+        voices: unison(track.instrument, p),
+        create: (sr, i0, period) => new SustainVoice(track.instrument, p, shape, f, noteGain, seed, sr, i0, period),
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Envolvente y curva de un tramo de un `tone` con cambios. El tramo hereda el
+ * nivel y la curva global del elemento, pero sus fundidos son cortos (salvo en
+ * los extremos del elemento) para que el cambio de nota cruce con el anterior.
+ */
+function segmentElement(el, seg, d, cross, first, last, loopFull = false, seam = cross) {
+  const total = Math.max(0.1, el.length || 0.1);
+  const global = curveFunction(el.curve);
+  const x0 = seg.t / total;
+  const x1 = Math.min(1, (seg.end + (last ? (loopFull ? seam : 0) : cross)) / total);
+  const curve = [];
+  for (let q = 0; q <= 8; q++) curve.push([q / 8, global(x0 + (x1 - x0) * (q / 8))]);
+  let fadeIn = first ? (loopFull ? Math.max(el.fadeIn || 0, seam) : (el.fadeIn || 0)) : cross;
+  fadeIn = Math.min(fadeIn, d * 0.9);
+  let fadeOut = last ? (loopFull ? Math.max(el.fadeOut || 0, seam) : (el.fadeOut || 0)) : cross;
+  fadeOut = Math.min(fadeOut, Math.max(0, d - fadeIn));
+  return { ...el, start: 0, length: d, fadeIn, fadeOut, curve };
 }
 
 class SustainVoice {
@@ -273,6 +311,15 @@ class SustainVoice {
 /** Unísono total de un elemento (para el límite de voces sostenidas). */
 export function sustainVoiceCount(track, el) {
   const p = trackParams(track);
-  return el.notes.length * unison(track.instrument, p);
+  const u = unison(track.instrument, p);
+  const segments = toneSegments(el);
+  let max = 0;
+  for (let k = 0; k < segments.length; k++) {
+    const current = segments[k].notes.length * u;
+    max = Math.max(max, current);
+    // Los tramos se solapan un instante al cambiar de nota: cuentan las dos.
+    if (k > 0) max = Math.max(max, (segments[k - 1].notes.length + segments[k].notes.length) * u);
+  }
+  return max;
 }
 

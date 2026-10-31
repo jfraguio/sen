@@ -31,7 +31,10 @@ export const fmtDb = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).to
 
 export function elementLabel(track, el, notation) {
   if (el.type === 'clip') return track.source?.name || track.name;
-  if (el.type === 'tone') return el.notes.map((n) => noteLabel(n, notation)).join(' ');
+  if (el.type === 'tone') {
+    const base = el.notes.length ? el.notes.map((n) => noteLabel(n, notation)).join(' ') : 'silencio';
+    return el.changes?.length ? `${base} · ${el.changes.length} ${el.changes.length === 1 ? 'cambio' : 'cambios'}` : base;
+  }
   if (el.type === 'hit') return noteLabel(el.note, notation);
   if (el.type === 'phrase') return `Frase · ${el.events.length} notas`;
   if (el.type === 'cloud') return `Nube · ${el.density}/min`;
@@ -154,6 +157,15 @@ export function createTimeline(root, store, actions) {
       node.append(svg);
     }
     node.append(h('span', { class: 'el-label' }, label));
+    if (el.type === 'tone' && el.changes?.length) {
+      const marks = h('span', { class: 'el-changes', 'aria-hidden': 'true' });
+      for (const c of el.changes) {
+        if (c.t <= 0 || c.t >= el.length) continue;
+        const notes = c.notes.length ? c.notes.map((n) => noteLabel(n, state.view.notation)).join(' ') : 'silencio';
+        marks.append(h('i', { style: { left: `${(c.t / el.length) * 100}%` }, title: `Cambio en ${fmtShort(el.start + c.t)}: ${notes}` }));
+      }
+      node.append(marks);
+    }
     if (el.type === 'cloud' || el.type === 'phrase') {
       const box = h('span', { class: 'el-dots', 'aria-hidden': 'true' });
       for (const [u, v] of dots(track, el)) box.append(h('i', { style: { left: `${u * 100}%`, bottom: `${v * 85}%` } }));

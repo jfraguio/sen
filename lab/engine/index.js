@@ -13,7 +13,7 @@
 
 import {
   ENGINE_VERSION, EXPORT_DEFAULTS, LIMITS, automationValue, canonicalProject, cloneValue, createElement, createProject,
-  masterDefaults, trackParams,
+  masterDefaults, trackParams, trimToneStart,
 } from './schema.js';
 import { seedFrom } from './rng.js';
 import { OnePole, Svf, clamp, dbToGain, fadeCurve, gainToDb, panGains } from './dsp.js';
@@ -84,6 +84,9 @@ function trackKey(track) {
 /** ¿Cubre el elemento todo el bucle sin fundidos? (voz permanente) */
 function isPermanent(el, L) {
   if (!['tone', 'span', 'clip'].includes(el.type)) return false;
+  // Un `tone` con cambios de nota no es una voz permanente: cada tramo tiene
+  // su propia voz y sus propios cruces.
+  if (el.type === 'tone' && el.changes?.length) return false;
   return el.start <= 0.0005 && el.start + el.length >= L - 0.0005 && !(el.fadeIn > 0) && !(el.fadeOut > 0);
 }
 
@@ -101,6 +104,8 @@ function compileSpecs(project, track, opts) {
       audition: !!opts.audition,
       eventBudget: LIMITS.events,
       samples: opts.samples,
+      // El elemento ocupa el bucle entero: hay que cruzar también la costura.
+      loopFull: !!opts.loop && el.start <= 0.0005 && el.start + el.length >= L - 0.0005,
     };
     const specs = compiler(track, el, ctx);
     out.push({ el, specs, permanent: opts.loop && isPermanent(el, L) });
@@ -638,6 +643,7 @@ function regionProject(project) {
     }).map((e) => {
       if (e.start >= a) return { ...e, start: e.start - a };
       const cut = a - e.start;
+      if (e.type === 'tone') return trimToneStart(e, cut);
       const trimmed = { ...e, start: 0, length: e.length - cut, fadeIn: 0, fadeOut: Math.min(e.fadeOut || 0, e.length - cut) };
       if (e.type === 'clip') trimmed.offset = (e.offset || 0) + cut;
       return trimmed;
