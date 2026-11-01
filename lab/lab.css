@@ -1694,6 +1694,27 @@ input[type="range"] {
   height: 20px;
 }
 
+.note-change-add {
+  align-self: flex-start;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px dashed var(--line-2);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.note-change-add:hover {
+  border-color: var(--accent);
+  background: #16202a;
+}
+
 .perform {
   position: fixed;
   left: 50%;

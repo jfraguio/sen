@@ -545,7 +545,7 @@ function boot() {
     playBtn.setAttribute('aria-label', state.playing ? 'Pausa' : 'Reproducir');
     playBtn.firstElementChild.textContent = state.playing ? '❚❚' : '▶';
     const hasRegion = !!state.project.region;
-    $('region-loop').disabled = !hasRegion;
+    $('region-loop').hidden = !hasRegion;
     $('region-loop').setAttribute('aria-pressed', String(hasRegion && state.regionLoop));
     $('region-clear').hidden = !hasRegion;
     $('undo').disabled = !store.canUndo;

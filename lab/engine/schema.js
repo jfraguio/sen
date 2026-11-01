@@ -822,7 +822,8 @@ export function createElement(track, project, start = 0, type = null) {
   if (t === 'cloud') {
     return {
       ...base, length: len, level: 0, fadeIn: 0, fadeOut: Math.min(4, len / 4), density: 8,
-      range: [keyNote(key, 4, 0), keyNote(key, 6, 0)], pitches: null, timing: 0.6, motion: 0.5, gravity: 0.4,
+      range: [keyNote(key, 4, 0), keyNote(key, 6, 0)], pitches: Array.from({ length: 8 }, (_, k) => keyNote(key, 4, k)),
+      timing: 0.6, motion: 0.5, gravity: 0.4,
       chord: 0.1, velocity: [0.35, 0.8], seed: 1, curve: 'plana',
     };
   }

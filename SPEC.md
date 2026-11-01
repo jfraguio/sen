@@ -855,11 +855,14 @@ No objetivos:
   - `chord`: probabilidad de que caigan 2–3 notas juntas (0–1).
   - `velocity`: rango `[min, max]`.
   - `seed`: semilla propia; “Aleatorizar” la incrementa.
-  - `pitches`: si se activa **Usar notas propias**, el conjunto de notas (hasta
-    24) sustituye a la escala. Con el teclado del inspector se puede probar
-    (**Tocar**) o añadir notas tocándolas (**Grabar**); al mostrar el
-    teclado se oculta “Aleatorizar”. La nube sigue generando notas en el
-    tiempo; “Grabar” solo amplía su conjunto de notas, no graba ritmo.
+  - `pitches`: por defecto la nube usa un conjunto de notas propias (hasta 24)
+    que se puede tocar con el teclado del inspector (**Tocar**) o ampliar
+    tocando notas (**Grabar**). La casilla **Notas aleatorias** oculta el
+    teclado y los controles de notas propias: entonces `pitches` pasa a `null`
+    y la nube elige notas de la escala y el registro con los controles de
+    generación (densidad, azar, movimiento, gravedad, acordes, velocidad y
+    semilla). La nube sigue generando notas en el tiempo; “Grabar” solo amplía
+    su conjunto de notas, no graba ritmo.
 - **`span`** (ruidos y simulaciones): un tramo de actividad. En simulaciones,
   además del nivel, define la **densidad** (0–1) de la actividad.
 - **`clip`** (capas de pistas de sen): un tramo de la capa, que se repite en
@@ -1088,8 +1091,8 @@ por parámetro.
   que toca cada nota. En un elemento sostenido, **Cambios de nota** permite
   tocar el teclado sin grabar (**Tocar**) o grabar los cambios de nota
   dentro del elemento mientras avanza el cabezal (**Grabar**, con la bolita en
-  rojo), además de añadir un cambio en el cabezal o borrarlos. El **fundido
-  entre notas** ajusta el cruce (0–2 s). Cada cambio se edita en la propia lista
+  rojo), además de añadir un cambio al final de la lista con **+** y borrar
+  cada fila con **×**. El **fundido entre notas** ajusta el cruce (0–2 s). Cada cambio se edita en la propia lista
   (segundo desde el inicio y notas separadas por espacios; vacío es silencio)
   y la octava del teclado se cambia en caliente durante la prueba o grabación.
 - **Pie:** medidor maestro (pico y sonoridad a corto plazo), carga del motor,

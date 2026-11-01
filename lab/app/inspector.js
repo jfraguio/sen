@@ -6,14 +6,13 @@
 import { h, findTrack, findElement, instrumentLabel, fmtShort, clampNum } from './util.js';
 import {
   AUTOMATION_DEFS, ELEMENT_DEFS, ELEMENT_TYPES, END_MODES, FAMILIES, INSTRUMENTS, LIMITS, MASTER_DEFS, MIX_DEFS, convertElement,
-  getPath, paramDefs, setPath, cloneValue, toneNotesAt,
+  getPath, paramDefs, setPath, cloneValue,
 } from '../engine/schema.js';
-import { LATIN_NAMES, NOTE_NAMES, SCALE_LABELS, midiToNote, noteLabel, noteToMidi, transposeNote } from '../engine/music.js';
+import { LATIN_NAMES, NOTE_NAMES, SCALE_LABELS, midiToNote, noteLabel, noteToMidi, scaleMidis, transposeNote } from '../engine/music.js';
 import { hintForMidi } from './keys.js';
 import {
   automationEditor, boolControl, curveEditor, enumControl, noteSelect, notesEditor, numberControl, pairControl, phraseEditor, textControl,
 } from './controls.js';
-import { elementLabel } from './timeline.js';
 import { recordKind } from './performance.js';
 
 const capitalize = (text) => (text ? text[0].toUpperCase() + text.slice(1) : '');
@@ -316,39 +315,28 @@ export function createInspector(root, store, actions) {
     const octave = () => notesControl?.getOctave?.() ?? 3;
     const list = h('div', { class: 'note-changes' });
 
-    const write = (t, notes) => commit((d) => {
-      const x = findElement(d, id)?.el;
-      if (!x || x.type !== 'tone') return false;
-      const near = 0.02;
-      const kept = (x.changes || []).filter((c) => Math.abs(c.t - t) > near);
-      if (t <= near && notes.length) {
-        x.notes = notes;
-        if (kept.length) x.changes = kept.filter((c) => c.t > near);
-        else delete x.changes;
-      } else {
-        const changes = [...kept, { t, notes }].sort((a, b) => a.t - b.t).slice(-LIMITS.changesPerTone);
-        if (changes.length) x.changes = changes;
-        else delete x.changes;
-      }
-    });
-
-    const addAtPlayhead = () => {
+    const addAtEnd = () => {
       const f = findElement(state.project, id);
       if (!f) return;
-      const rel = state.playhead - f.el.start;
-      if (rel < -0.01 || rel > f.el.length + 0.01) {
-        actions.notify('Coloca el cabezal dentro del elemento para añadir un cambio.', true);
+      const changes = f.el.changes || [];
+      if (changes.length >= LIMITS.changesPerTone) {
+        actions.notify(`Máximo ${LIMITS.changesPerTone} cambios de nota por elemento.`, true);
         return;
       }
-      const t = Math.round(Math.min(f.el.length - 0.001, Math.max(0, rel)) * 1000) / 1000;
-      write(t, toneNotesAt(f.el, t));
+      const last = changes[changes.length - 1];
+      const limit = Math.max(0, f.el.length - 0.001);
+      const t = last ? Math.round(Math.min(limit, last.t + 1) * 1000) / 1000 : 0;
+      if (last && t <= last.t + 0.0005) {
+        actions.notify('No queda espacio al final del elemento.', true);
+        return;
+      }
+      const notes = (last ? last.notes : f.el.notes).map((n) => (n && typeof n === 'object' ? { ...n } : n));
+      commit((d) => {
+        const x = findElement(d, id)?.el;
+        if (!x) return false;
+        x.changes = [...(x.changes || []), { t, notes }].sort((a, b) => a.t - b.t);
+      });
     };
-
-    const removeAll = () => commit((d) => {
-      const x = findElement(d, id)?.el;
-      if (!x || !x.changes?.length) return false;
-      delete x.changes;
-    });
 
     const updateChange = (c, patch) => {
       commit((d) => {
@@ -369,10 +357,6 @@ export function createInspector(root, store, actions) {
       const e = findElement(state.project, id)?.el;
       const start = e?.start ?? el.start;
       const changes = e?.changes || [];
-      if (!changes.length) {
-        list.append(h('p', { class: 'help' }, 'Sin cambios: suenan las notas base durante todo el elemento.'));
-        return;
-      }
       const maxT = Math.max(0, (e?.length ?? el.length) - 0.001);
       changes.forEach((c, k) => {
         const timeInput = h('input', {
@@ -438,17 +422,17 @@ export function createInspector(root, store, actions) {
             }),
           }, '×')));
       });
+      list.append(h('button', {
+        type: 'button', class: 'note-change-add', title: 'Añadir un cambio al final', 'aria-label': 'Añadir un cambio al final',
+        onclick: addAtEnd,
+      }, '+'));
     };
     syncers.push(render);
     render();
 
     return section('Cambios de nota',
       performanceButtons(track, el, octave),
-      list,
-      h('div', { class: 'ins-actions' },
-        h('button', { type: 'button', class: 'btn btn--quiet', title: 'Añade un cambio con las notas que suenan en el cabezal', onclick: addAtPlayhead }, '＋ Cambio en el cabezal'),
-        h('button', { type: 'button', class: 'btn btn--quiet btn--danger', onclick: removeAll }, 'Quitar todos')),
-      h('p', { class: 'help' }, 'Edita el segundo (desde el inicio) y las notas de cada fila; deja las notas vacías para un silencio. Los cambios viven dentro del elemento y se cruzan sin cortes; también puedes dividirlo con S.'));
+      list);
   }
 
   /* ------------------------------------------------------------ pista */
@@ -583,25 +567,41 @@ export function createInspector(root, store, actions) {
           syncers, project: p, notation, audition,
         })));
     } else if (el.type === 'cloud') {
-      const useOwn = !!el.pitches;
-      const ownNotes = useOwn ? notesEditor({
+      const random = !el.pitches;
+      const cloudNotesFor = (e, key) => {
+        const lo = noteToMidi(e.range?.[0]);
+        const hi = noteToMidi(e.range?.[1]);
+        if (lo === null || hi === null) return [...(e.range || [])];
+        const midis = scaleMidis(key.root, key.scale, Math.min(lo, hi), Math.max(lo, hi));
+        const notes = (midis.length ? midis : [Math.min(lo, hi)]).slice(0, LIMITS.cloudPitches).map(midiToNote);
+        return notes.length ? notes : [...(e.range || [])];
+      };
+      const ownNotes = random ? null : notesEditor({
         binding: { get: () => findElement(state.project, id)?.el.pitches || [], set: (v) => commit((d) => { findElement(d, id).el.pitches = v; }) },
         syncers, notation, max: LIMITS.cloudPitches, audition, octave: state.view.keyboardOctave ?? 4, hintFor: hintForMidi,
         onOctave: setOctave,
-      }) : null;
-      blocks.push(section('Nube generativa',
+      });
+      const randomControls = [
         ...ELEMENT_DEFS.cloud.map((def) => (def.type === 'range' ? pairControl(def, eb(def.key), syncers) : numberControl(def, eb(def.key), syncers))),
         h('div', { class: 'ctl ctl--pair' }, h('span', { class: 'ctl-label' }, 'Registro'),
           noteSelect({ get: () => findElement(state.project, id)?.el.range[0], set: (v) => commit((d) => { findElement(d, id).el.range[0] = v; }) }, syncers, notation, 'Nota más grave'),
           noteSelect({ get: () => findElement(state.project, id)?.el.range[1], set: (v) => commit((d) => { findElement(d, id).el.range[1] = v; }) }, syncers, notation, 'Nota más aguda')),
-        boolControl({ label: 'Usar notas propias (en vez de la escala)' }, {
-          get: () => !!findElement(state.project, id)?.el.pitches,
-          set: (v) => commit((d) => { const e = findElement(d, id).el; e.pitches = v ? [...e.range] : null; }),
+        seedRow(id),
+      ];
+      blocks.push(section('Nube generativa',
+        boolControl({ label: 'Notas aleatorias' }, {
+          get: () => !findElement(state.project, id)?.el.pitches,
+          set: (v) => commit((d) => {
+            const e = findElement(d, id)?.el;
+            if (!e) return false;
+            e.pitches = v ? null : cloudNotesFor(e, d.key);
+          }),
         }, syncers),
-        ownNotes,
-        useOwn ? performanceButtons(track, el, () => ownNotes?.getOctave?.() ?? 4) : null,
-        useOwn ? h('p', { class: 'help' }, 'Tocar suena sin tocar la nube. Grabar añade las notas que toques al conjunto de notas propias.') : null,
-        useOwn ? null : seedRow(id)));
+        ...(random ? randomControls : [
+          ownNotes,
+          performanceButtons(track, el, () => ownNotes?.getOctave?.() ?? 4),
+          h('p', { class: 'help' }, 'Tocar suena sin tocar la nube. Grabar añade las notas que toques al conjunto de notas propias.'),
+        ])));
     } else if (el.type === 'span') {
       blocks.push(section(track.family === 'nature' ? 'Actividad' : 'Tramo',
         ...ELEMENT_DEFS.span.map((def) => numberControl(def, eb(def.key), syncers)),
@@ -614,12 +614,12 @@ export function createInspector(root, store, actions) {
     if (el.type !== 'hit') blocks.push(section(null, curveEditor({ binding: { get: () => findElement(state.project, id)?.el.curve ?? 'plana', set: (v, { gesture } = {}) => commit((d) => { findElement(d, id).el.curve = v; }, gesture), done }, syncers })));
 
     return [
-      head(ELEMENT_TYPES[el.type].label, `${track.name} · ${elementLabel(track, el, notation)}`),
+      head(track.family === 'layer' ? track.name : instrumentLabel(track)),
       typeSel ? section(null, typeSel) : null,
       ...blocks,
       section(null, h('div', { class: 'ins-actions' },
         h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.duplicateSelection() }, 'Duplicar'),
-        h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.splitAtPlayhead() }, 'Dividir en el cabezal'))),
+        h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.splitAtPlayhead() }, 'Dividir'))),
     ];
   }
 

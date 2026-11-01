@@ -139,8 +139,10 @@ cualquier escena sin tocar código.
   las notas dentro del mismo elemento mientras avanza el cabezal. Los acordes
   se cruzan sin cortes, con un fundido entre notas ajustable; la octava se
   puede cambiar en caliente y la lista de cambios se edita a mano (segundo y
-  notas). En las nubes con notas propias, «Grabar» añade las notas tocadas al
-  conjunto de la nube. El popup incluye un piano de dos octavas, un conmutador
+  notas). En las nubes generativas el teclado aparece por defecto y «Grabar»
+  añade las notas tocadas al conjunto de la nube; la casilla «Notas aleatorias»
+  lo oculta y muestra los controles de generación. El popup incluye un piano de
+  dos octavas, un conmutador
   de acordes/arpegios y progresiones agrupadas por carácter, con sus notas y
   las teclas para tocarlas, además de reproducción y bucle.
 - **Exportar → WAV** directamente desde el navegador (48 kHz/24 bits,
