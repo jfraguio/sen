@@ -1165,10 +1165,12 @@ tema. Los acordes se agrupan por carácter (**Alegres**, **Nostálgicas**,
 **Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**); los arpegios, por
 movimiento (**Ascendentes**, **Descendentes**, **Ondulantes**, **Largos** y
 **Saltos**). Al
-elegir una se escucha paso a paso (2 s por acorde, 0,65 s por nota). Debajo
-aparecen tarjetas con el cifrado, las notas en letras y las teclas del
+elegir una se escucha en bucle, paso a paso (2 s por acorde, 0,65 s por nota).
+Debajo aparecen tarjetas con el cifrado, las notas en letras y las teclas del
 ordenador que tocan cada nota. **▶** se convierte en **■** mientras suena y
-detiene la reproducción; **⟲** la deja en bucle y la arranca si estaba parada.
+detiene la reproducción. **→ Cambios** lleva la progresión seleccionada a
+Cambios de nota, con un paso cada 3 s (3, 6, 9…), sustituyendo los cambios que
+coincidan en esos instantes.
 En **Grabar** el combo se oculta, porque el foco es capturar notas o cambios
 con el teclado. En **Tocar**, el instrumento del piano flotante sigue siempre a
 la pista seleccionada; al cambiar de pista o de elemento, se detienen las notas

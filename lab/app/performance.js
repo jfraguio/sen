@@ -218,16 +218,16 @@ export function createPerformance({ store, audio, actions }) {
     type: 'button', class: 'btn perform__transport', 'aria-label': 'Escuchar la progresión elegida', title: 'Escuchar la progresión elegida',
     onclick: () => { if (previewPlaying) stopPreview(); else playSelectedProgression(); },
   }, '▶');
-  const progLoop = h('button', {
-    type: 'button', class: 'btn btn--quiet perform__loop', 'aria-label': 'Repetir la progresión', 'aria-pressed': 'false',
-    title: 'Repetir la progresión', onclick: () => togglePreviewLoop(),
-  }, '⟲');
+  const progApply = h('button', {
+    type: 'button', class: 'btn btn--quiet perform__apply', 'aria-label': 'Llevar a Cambios de nota',
+    title: 'Llevar la progresión seleccionada a Cambios de nota', onclick: () => applyProgressionToChanges(),
+  }, '→ Cambios');
   const progCards = h('div', { class: 'perform__prog-cards' });
   const typeChords = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'true', onclick: () => setProgType('chords') }, 'Acordes');
   const typeArps = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'false', onclick: () => setProgType('arpeggios') }, 'Arpegios');
   const typeWrap = h('div', { class: 'perform__types', role: 'group', 'aria-label': 'Tipo de progresión' }, typeChords, typeArps);
   const progWrap = h('div', { class: 'perform__progressions' },
-    h('span', { class: 'perform__progression-label' }, 'Progresión'), typeWrap, progSelect, progPlay, progLoop);
+    h('span', { class: 'perform__progression-label' }, 'Progresión'), typeWrap, progSelect, progPlay, progApply);
   const progArea = h('div', { class: 'perform__prog-area' }, progWrap, progCards);
   const kb = keyboard({
     octave,
@@ -238,7 +238,7 @@ export function createPerformance({ store, audio, actions }) {
     onKey: (note) => tapNote(note),
   });
   const kbWrap = h('div', { class: 'perform__keyboard' }, kb);
-  const exit = h('button', { type: 'button', class: 'btn btn--quiet perform__exit', onclick: () => stop() }, 'Salir · Esc');
+  const exit = h('button', { type: 'button', class: 'btn btn--quiet perform__exit', onclick: () => stop() }, 'Salir');
   const top = h('div', { class: 'perform__top' },
     h('div', { class: 'perform__head' }, dot, title, detail), chips, exit);
   const bar = h('div', { class: 'perform', role: 'region', 'aria-label': 'Modo teclado', hidden: true },
@@ -249,7 +249,6 @@ export function createPerformance({ store, audio, actions }) {
   let progSig = '';
   let progList = [];
   let previewTimer = 0;
-  let previewLoop = false;
   let previewPlaying = false;
 
   function syncPlayButton() {
@@ -356,7 +355,7 @@ export function createPerformance({ store, audio, actions }) {
     buildProgressions();
     if (progList.length) {
       progSelect.value = '0';
-      renderProgCards(progList[0]);
+      playProgression(progList[0]);
     }
   }
 
@@ -387,10 +386,6 @@ export function createPerformance({ store, audio, actions }) {
         stopPreview();
         return;
       }
-      if (i >= prog.chords.length && !previewLoop) {
-        previewTimer = setTimeout(() => stopPreview(), step);
-        return;
-      }
       const at = i % prog.chords.length;
       setPreviewChord(prog.chords[at].midis);
       setActiveCard(at);
@@ -409,10 +404,58 @@ export function createPerformance({ store, audio, actions }) {
     if (prog) playProgression(prog);
   }
 
-  function togglePreviewLoop() {
-    previewLoop = !previewLoop;
-    progLoop.setAttribute('aria-pressed', String(previewLoop));
-    if (previewLoop && !previewPlaying) playSelectedProgression();
+  function selectedTone() {
+    const s = store.state.selection;
+    if (s.kind === 'element' && s.elementIds.length) {
+      const f = findElement(store.state.project, s.elementIds[0]);
+      if (f?.el.type === 'tone') return f;
+    }
+    if (elementId) {
+      const f = findElement(store.state.project, elementId);
+      if (f?.el.type === 'tone') return f;
+    }
+    return null;
+  }
+
+  /** Lleva los pasos de la progresión a Cambios de nota, uno cada 3 s. */
+  function applyProgressionToChanges() {
+    let prog = progList[Number(progSelect.value)];
+    if (!prog && progList.length) {
+      prog = progList[0];
+      progSelect.value = String(prog.index);
+      renderProgCards(prog);
+    }
+    if (!prog) {
+      actions.notify('Elige una progresión primero.', true);
+      return;
+    }
+    const target = selectedTone();
+    if (!target) {
+      actions.notify('Selecciona un elemento sostenido para llevar la progresión a sus cambios.', true);
+      return;
+    }
+    const limit = Math.max(0, target.el.length - 0.001);
+    const generated = [];
+    let t = 3;
+    for (const step of prog.chords) {
+      if (t > limit) break;
+      generated.push({ t: Math.round(t * 1000) / 1000, notes: step.midis.map((m) => midiToNote(m)) });
+      t += 3;
+    }
+    if (!generated.length) {
+      actions.notify('El elemento es demasiado corto: necesita al menos 3 s.', true);
+      return;
+    }
+    store.commit((d) => {
+      const f = findElement(d, target.el.id);
+      if (!f || f.el.type !== 'tone') return false;
+      const map = new Map((f.el.changes || []).map((c) => [Math.round(c.t * 1000), c]));
+      for (const c of generated) map.set(Math.round(c.t * 1000), c);
+      const merged = [...map.values()].sort((a, b) => a.t - b.t);
+      f.el.changes = merged.slice(0, LIMITS.changesPerTone);
+      return true;
+    }, { source: 'performance' });
+    actions.notify(`${prog.type === 'arpeggios' ? 'Arpegio' : 'Progresión'} añadido a Cambios de nota: ${generated.length} pasos cada 3 s.`);
   }
 
   function selectedTrack() {
@@ -439,8 +482,11 @@ export function createPerformance({ store, audio, actions }) {
     detail.textContent = t ? ` · ${t.name} · oct. ${octave}–${octave + 1}` : '';
     const notes = [...chord].sort((a, b) => a - b);
     chips.textContent = '';
-    if (!notes.length) chips.append(h('span', { class: 'perform__silence' }, e && mode === 'record' ? 'silencio' : 'toca una letra'));
-    else for (const m of notes) chips.append(h('span', { class: 'perform__note' }, noteLabel(midiToNote(m), store.state.view.notation)));
+    if (notes.length) {
+      for (const m of notes) chips.append(h('span', { class: 'perform__note' }, noteLabel(midiToNote(m), store.state.view.notation)));
+    } else if (e && mode === 'record') {
+      chips.append(h('span', { class: 'perform__silence' }, 'silencio'));
+    }
     if (e && mode === 'record') {
       if (recordKind(e) === 'palette') {
         const count = e.pitches?.length || 0;
