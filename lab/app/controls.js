@@ -302,8 +302,7 @@ export function notesEditor({ binding, syncers, notation, max = 8, audition, oct
   }, 'Añadir Hz');
   syncers.push(render);
   render();
-  const editor = h('div', { class: 'notes-editor' }, chips, kb, h('div', { class: 'ins-actions' }, hz, addHz),
-    h('p', { class: 'help' }, `Hasta ${max} notas. Pulsa una nota para sustituirla con el teclado.`));
+  const editor = h('div', { class: 'notes-editor' }, chips, kb, h('div', { class: 'ins-actions' }, hz, addHz));
   editor.getOctave = () => kb.getOctave();
   return editor;
 }
@@ -504,8 +503,7 @@ export function phraseEditor({ binding, syncers, project, notation, audition }) 
   return h('div', { class: 'phrase' },
     h('div', { class: 'ctl ctl--row' }, h('span', { class: 'ctl-label' }, 'Registro'), octSel),
     canvas,
-    h('div', { class: 'ctl ctl--row' }, h('span', { class: 'ctl-label' }, 'Velocidad de las notas nuevas'), h('span', { class: 'ctl-value' }, velIn)),
-    h('p', { class: 'help' }, `Notas de la escala del tema. Rejilla de ${fmtNum(step(), 0.01)} s.`));
+    h('div', { class: 'ctl ctl--row' }, h('span', { class: 'ctl-label' }, 'Velocidad de las notas nuevas'), h('span', { class: 'ctl-value' }, velIn)));
 }
 
 /* ------------------------------------------------------------ automatización */

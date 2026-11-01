@@ -835,7 +835,8 @@ No objetivos:
   `changes`: lista ordenada de `{ t, notes }`, con `t` en segundos desde el
   inicio del elemento y `notes` con 0–8 notas (`[]` es silencio). Las notas
   base siguen en `notes` y suenan desde el principio hasta el primer cambio; un
-  cambio en `t = 0` las sustituye. Los tramos se cruzan con un fundido
+  cambio en `t = 0` se funde con las notas base al validar el proyecto. Los
+  tramos se cruzan con un fundido
   configurable (`crossfade`, 0–2 s; 0 es corte seco; por defecto 0,15 s), y la
   curva, el nivel y los fundidos del elemento se reparten entre los tramos.
   Los cambios viven **dentro del elemento**: no hace falta dividirlo en
@@ -1086,15 +1087,15 @@ por parámetro.
   admite clic para mover el cabezal y arrastre para marcar la región de
   escucha. Zoom con −/+ o con Cmd/Ctrl + rueda.
 - **Inspector:** controles de la pista o del elemento seleccionado, del bus
-  maestro o del tema (sin selección). En las notas incluye un mini teclado de
-  dos octavas que suena al pulsar y muestra la letra del teclado del ordenador
-  que toca cada nota. En un elemento sostenido, **Cambios de nota** permite
-  tocar el teclado sin grabar (**Tocar**) o grabar los cambios de nota
-  dentro del elemento mientras avanza el cabezal (**Grabar**, con la bolita en
-  rojo), además de añadir un cambio al final de la lista con **+** y borrar
-  cada fila con **×**. El **fundido entre notas** ajusta el cruce (0–2 s). Cada cambio se edita en la propia lista
-  (segundo desde el inicio y notas separadas por espacios; vacío es silencio)
-  y la octava del teclado se cambia en caliente durante la prueba o grabación.
+  maestro o del tema (sin selección). En los golpes y en las nubes con notas
+  propias hay un mini teclado de dos octavas. En un elemento sostenido,
+  **Cambios de nota** es el editor único de las notas: la fila de **0 s**
+  contiene las notas base (si no hay más cambios, duran todo el elemento), **+**
+  añade un cambio al final, **×** borra los cambios añadidos y el **fundido
+  entre notas** ajusta el cruce (0–2 s). Desde ahí se toca (**Tocar**) o se
+  graba con el teclado (**Grabar**, con la bolita en rojo). Cada fila se edita
+  con su segundo y sus notas; la octava se cambia desde el piano del popup y se
+  aplica en caliente durante la prueba o grabación.
 - **Pie:** medidor maestro (pico y sonoridad a corto plazo), carga del motor,
   tonalidad y tempo.
 

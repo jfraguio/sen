@@ -134,11 +134,12 @@ cualquier escena sin tocar código.
 - Tonalidad, tempo opcional, reverb y eco maestros, automatización por pista,
   deshacer, autoguardado, plantillas (Vacío y las canciones de sen), modo
   compacto en móvil e importación MIDI.
-- **Cambios de nota con el teclado:** en una capa sostenida, «Tocar»
-  te deja tocar con las letras sin modificar el tema y «Grabar» guarda
-  las notas dentro del mismo elemento mientras avanza el cabezal. Los acordes
-  se cruzan sin cortes, con un fundido entre notas ajustable; la octava se
-  puede cambiar en caliente y la lista de cambios se edita a mano (segundo y
+- **Cambios de nota con el teclado:** en una capa sostenida, «Cambios de nota» reúne la fila base
+  de 0 s y los cambios posteriores; si solo hay una fila, esa nota dura todo el
+  elemento. «Tocar» te deja tocar con las letras sin modificar el tema y
+  «Grabar» guarda las notas dentro del mismo elemento mientras avanza el
+  cabezal. Los acordes se cruzan sin cortes, con un fundido entre notas ajustable; la
+  octava se puede cambiar en caliente y la lista se edita a mano (segundo y
   notas). En las nubes generativas el teclado aparece por defecto y «Grabar»
   añade las notas tocadas al conjunto de la nube; la casilla «Notas aleatorias»
   lo oculta y muestra los controles de generación. El popup incluye un piano de

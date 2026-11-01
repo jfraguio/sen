@@ -1155,6 +1155,8 @@ function normalizeElement(e, track, project, uniq, bad) {
       else changes.push(c);
     }
     if (changes.length > LIMITS.changesPerTone) bad(`Se han conservado los primeros ${LIMITS.changesPerTone} cambios de nota.`);
+    // Un cambio en 0 es la nota base: se funde para no duplicar la primera fila.
+    if (changes.length && changes[0].t <= 0.0005) el.notes = changes.shift().notes;
     if (changes.length) el.changes = changes.slice(0, LIMITS.changesPerTone);
     else delete el.changes;
     fix('crossfade', 0, 2, 0.15);

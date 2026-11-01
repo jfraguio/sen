@@ -233,7 +233,8 @@ export function createPerformance({ store, audio, actions }) {
     octave,
     notation: store.state.view.notation,
     hintFor: hintForMidi,
-    showNav: false,
+    showNav: true,
+    onOctaveChange: (oct) => setOctave(oct),
     isOn: (midi) => chord.has(midi) || tapNotes.has(midi) || previewNotes.some((n) => noteToMidi(n) === midi),
     onKey: (note) => tapNote(note),
   });
@@ -643,6 +644,7 @@ export function createPerformance({ store, audio, actions }) {
     clearTaps();
     octave = next;
     kb.setOctave(next);
+    if (store.state.view.keyboardOctave !== next) store.setView({ keyboardOctave: next });
     hud();
   }
 

@@ -157,9 +157,10 @@ function smallProject(over = {}) {
     `un tone con cambios de nota suena en cada tramo y calla al final (${r1.toFixed(3)} / ${r2.toFixed(3)} / ${r3.toFixed(3)} / ${r4.toFixed(3)})`);
 
   const norm = normalizeProject({ schema: 'sen-lab/3', duration: 10, tracks: [{ instrument: 'pad', elements: [{ type: 'tone', start: 0, length: 10, notes: ['C3'], changes: [{ t: 20, notes: ['E3'] }, { t: 1, notes: ['D3', 'X'] }, { t: 1.0002, notes: ['F3'] }, { t: -1, notes: ['G3'] }] }] }] });
-  const changes = norm.project.tracks[0].elements[0].changes;
-  ok(changes.length === 2 && changes[0].t === 0 && changes[0].notes[0] === 'G3' && changes[1].t === 1 && changes[1].notes[0] === 'F3',
-    'los cambios de nota se ordenan, se recortan y se descartan fuera del elemento');
+  const normEl = norm.project.tracks[0].elements[0];
+  const changes = normEl.changes;
+  ok(normEl.notes[0] === 'G3' && changes.length === 1 && changes[0].t === 1 && changes[0].notes[0] === 'F3',
+    'los cambios de nota se ordenan, se recortan, se descartan fuera del elemento y el cambio en 0 pasa a las notas base');
   const silence = normalizeProject({ schema: 'sen-lab/3', duration: 10, tracks: [{ instrument: 'pad', elements: [{ type: 'tone', start: 0, length: 10, notes: [], changes: [{ t: 2, notes: ['C3'] }] }] }] });
   ok(silence.project.tracks[0].elements[0].notes.length === 0, 'un tone puede empezar en silencio hasta su primer cambio');
   const cross = normalizeProject({ schema: 'sen-lab/3', duration: 10, tracks: [{ instrument: 'pad', elements: [{ type: 'tone', start: 0, length: 10, notes: ['C3'], crossfade: 9 }] }] });

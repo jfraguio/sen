@@ -167,7 +167,6 @@ export function createInspector(root, store, actions) {
           }),
         }, syncers),
         p.end.mode === 'cut' ? numberControl({ label: 'Fundido de salida', min: 0, max: 30, step: 0.1, unit: 's', def: 4 }, pb('end.fadeOut'), syncers) : null,
-        p.end.mode === 'loop' ? h('p', { class: 'help' }, 'El final enlaza con el principio. Lo que sobresale se oye al principio (rayado en la línea de tiempo).') : null,
         boolControl({ label: 'Usar tempo' }, {
           get: () => !!state.project.tempo,
           set: (v) => commit((d) => {
@@ -206,8 +205,7 @@ export function createInspector(root, store, actions) {
               transpose.value = '0';
               actions.notify(`Tema transpuesto ${n > 0 ? '+' : ''}${n} semitonos.`);
             },
-          }, 'Aplicar'))),
-        h('p', { class: 'help' }, 'Cambiar la raíz no mueve las notas escritas; las nubes generativas siguen la nueva escala.')),
+          }, 'Aplicar')))),
       section('Azar',
         textControl('Semilla', pb('seed'), syncers),
         h('div', { class: 'ins-actions' }, h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => commit((d) => { d.seed = `sen-${Math.floor(Math.random() * 1e6)}`; }) }, 'Aleatorizar todo'))),
@@ -275,8 +273,7 @@ export function createInspector(root, store, actions) {
             delete t.automation[autoKey];
             if (!Object.keys(t.automation).length) delete t.automation;
           }),
-        }, 'Quitar esta automatización')),
-        h('p', { class: 'help' }, 'Mientras haya puntos, la automatización sustituye al valor fijo. En bucle se repite en cada vuelta.'));
+        }, 'Quitar esta automatización')));
     };
     draw();
     return box;
@@ -310,9 +307,8 @@ export function createInspector(root, store, actions) {
   }
 
   /** Lista de cambios de nota de un `tone`, con alta en el cabezal y borrado. */
-  function changesSection(track, el, notesControl) {
+  function changesSection(track, el) {
     const id = el.id;
-    const octave = () => notesControl?.getOctave?.() ?? 3;
     const list = h('div', { class: 'note-changes' });
 
     const addAtEnd = () => {
@@ -325,7 +321,7 @@ export function createInspector(root, store, actions) {
       }
       const last = changes[changes.length - 1];
       const limit = Math.max(0, f.el.length - 0.001);
-      const t = last ? Math.round(Math.min(limit, last.t + 1) * 1000) / 1000 : 0;
+      const t = last ? Math.round(Math.min(limit, last.t + 1) * 1000) / 1000 : Math.min(1, limit);
       if (last && t <= last.t + 0.0005) {
         actions.notify('No queda espacio al final del elemento.', true);
         return;
@@ -358,9 +354,51 @@ export function createInspector(root, store, actions) {
       const start = e?.start ?? el.start;
       const changes = e?.changes || [];
       const maxT = Math.max(0, (e?.length ?? el.length) - 0.001);
+      const baseNotes = e?.notes || [];
+      const baseInput = h('input', {
+        type: 'text', class: 'note-change__notes', value: notesText(baseNotes, state.view.notation),
+        placeholder: 'Do3 Sol3 · vacío = silencio', spellcheck: 'false',
+        'aria-label': 'Notas desde el inicio del elemento',
+        title: 'Notas desde el inicio hasta el primer cambio',
+      });
+      const commitBase = () => {
+        const parsed = parseNotesInput(baseInput.value);
+        if (!parsed.ok) {
+          actions.notify(`No se entiende «${parsed.token}». Usa Do4 Re4 Fa#4, C4 D4 o 440Hz.`, true);
+          baseInput.value = notesText(baseNotes, state.view.notation);
+          return;
+        }
+        let notes = parsed.notes;
+        if (notes.length > LIMITS.notesPerTone) {
+          notes = notes.slice(0, LIMITS.notesPerTone);
+          actions.notify(`Máximo ${LIMITS.notesPerTone} notas por cambio.`, true);
+        }
+        if (notesText(notes, state.view.notation) === notesText(baseNotes, state.view.notation)) return;
+        commit((d) => {
+          const x = findElement(d, id)?.el;
+          if (!x) return false;
+          x.notes = notes;
+        });
+      };
+      baseInput.addEventListener('change', commitBase);
+      baseInput.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          baseInput.blur();
+        }
+      });
+      list.append(h('div', { class: 'note-change note-change--base' },
+        h('span', { class: 'note-change__timebox' },
+          h('input', {
+            type: 'number', class: 'note-change__time', min: '0', max: '0', step: '1', value: '0', disabled: true,
+            'aria-label': 'Inicio del elemento',
+          }),
+          h('span', { class: 'ctl-unit' }, 's')),
+        baseInput,
+        h('span', { class: 'note-change__spacer', 'aria-hidden': 'true' })));
       changes.forEach((c, k) => {
         const timeInput = h('input', {
-          type: 'number', class: 'note-change__time', min: '0', max: String(maxT), step: '0.01',
+          type: 'number', class: 'note-change__time', min: '0.01', max: String(maxT), step: '0.01',
           value: String(c.t), inputmode: 'decimal',
           'aria-label': `Segundo del cambio ${k + 1} desde el inicio`,
           title: `Desde el inicio del elemento · en el tema: ${fmtShort(start + c.t)}`,
@@ -372,7 +410,7 @@ export function createInspector(root, store, actions) {
             timeInput.value = String(c.t);
             return;
           }
-          const t = Math.round(clampNum(v, 0, Math.max(0, cur.length - 0.001)) * 1000) / 1000;
+          const t = Math.round(clampNum(v, 0.01, Math.max(0.01, cur.length - 0.001)) * 1000) / 1000;
           if (Math.abs(t - c.t) > 0.0005) updateChange(c, { t });
         };
         timeInput.addEventListener('change', commitTime);
@@ -430,9 +468,21 @@ export function createInspector(root, store, actions) {
     syncers.push(render);
     render();
 
+    const crossDef = ELEMENT_DEFS.tone[0];
+    const crossControl = numberControl(crossDef, {
+      get: () => findElement(state.project, id)?.el.crossfade ?? crossDef.def,
+      set: (v, { gesture } = {}) => commit((d) => {
+        const f = findElement(d, id);
+        if (!f) return false;
+        f.el.crossfade = v;
+      }, gesture),
+      done,
+    }, syncers);
+
     return section('Cambios de nota',
-      performanceButtons(track, el, octave),
-      list);
+      performanceButtons(track, el, () => state.view.keyboardOctave ?? 3),
+      list,
+      crossControl);
   }
 
   /* ------------------------------------------------------------ pista */
@@ -468,7 +518,6 @@ export function createInspector(root, store, actions) {
       section(null,
         textControl('Nombre', { get: () => findTrack(state.project, id)?.name ?? '', set: (v, { gesture } = {}) => commit((d) => { findTrack(d, id).name = v || 'Pista'; }, gesture), done }, syncers),
         h('div', { class: 'ctl ctl--row' }, h('span', { class: 'ctl-label' }, 'Color'), color),
-        isLayer ? h('p', { class: 'help' }, `Capa «${src.name || track.name}» de la pista «${srcLabel}» (${srcFile}), tal como suena en la app. Cambia su volumen (también en la cabecera de la pista), su panorama, sus fundidos o automatízala; su timbre no se puede editar.`) : null,
         isLayer ? null : enumControl({ label: 'Instrumento', options: sameFamily }, {
           get: () => findTrack(state.project, id)?.instrument,
           set: (v) => commit((d) => {
@@ -480,7 +529,6 @@ export function createInspector(root, store, actions) {
             t.params = fresh;
           }),
         }, syncers),
-        isLayer ? null : h('p', { class: 'help' }, INSTRUMENTS[track.instrument].description),
         h('div', { class: 'ins-actions' },
           h('button', { type: 'button', class: 'btn', onclick: () => actions.auditionTrack(id) }, '▶ Escuchar'),
           h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.addElement(id, state.playhead) }, '+ Elemento en el cabezal')),
@@ -528,25 +576,7 @@ export function createInspector(root, store, actions) {
     }, syncers) : null;
 
     if (el.type === 'tone') {
-      const notesControl = notesEditor({
-        binding: { get: () => findElement(state.project, id)?.el.notes || [], set: (v) => commit((d) => { findElement(d, id).el.notes = v; }) },
-        syncers, notation, max: LIMITS.notesPerTone, audition, octave: state.view.keyboardOctave ?? 3, hintFor: hintForMidi,
-        onOctave: setOctave,
-      });
-      blocks.push(section('Notas', notesControl));
-      const crossDef = ELEMENT_DEFS.tone[0];
-      blocks.push(section('Fundido entre notas',
-        numberControl(crossDef, {
-          get: () => findElement(state.project, id)?.el.crossfade ?? crossDef.def,
-          set: (v, { gesture } = {}) => commit((d) => {
-            const f = findElement(d, id);
-            if (!f) return false;
-            f.el.crossfade = v;
-          }, gesture),
-          done,
-        }, syncers),
-        h('p', { class: 'help' }, 'Cruza el acorde anterior con el nuevo. 0 es un corte seco; con valores altos la transición dura más.')));
-      blocks.push(changesSection(track, el, notesControl));
+      blocks.push(changesSection(track, el));
     } else if (el.type === 'hit') {
       blocks.push(section('Nota', notesEditor({
         binding: { get: () => [findElement(state.project, id)?.el.note].filter(Boolean), set: (v) => commit((d) => { findElement(d, id).el.note = v[v.length - 1]; }) },
@@ -600,7 +630,6 @@ export function createInspector(root, store, actions) {
         ...(random ? randomControls : [
           ownNotes,
           performanceButtons(track, el, () => ownNotes?.getOctave?.() ?? 4),
-          h('p', { class: 'help' }, 'Tocar suena sin tocar la nube. Grabar añade las notas que toques al conjunto de notas propias.'),
         ])));
     } else if (el.type === 'span') {
       blocks.push(section(track.family === 'nature' ? 'Actividad' : 'Tramo',
@@ -608,8 +637,7 @@ export function createInspector(root, store, actions) {
         seedRow(id)));
     } else if (el.type === 'clip') {
       blocks.push(section('Capa',
-        ...ELEMENT_DEFS.clip.map((def) => numberControl(def, eb(def.key), syncers)),
-        h('p', { class: 'help' }, 'La capa se repite en bucle. Este valor es el punto de la capa que suena al empezar el elemento (al dividir un elemento, la segunda parte sigue donde iba).')));
+        ...ELEMENT_DEFS.clip.map((def) => numberControl(def, eb(def.key), syncers))));
     }
     if (el.type !== 'hit') blocks.push(section(null, curveEditor({ binding: { get: () => findElement(state.project, id)?.el.curve ?? 'plana', set: (v, { gesture } = {}) => commit((d) => { findElement(d, id).el.curve = v; }, gesture), done }, syncers })));
 
@@ -653,9 +681,8 @@ export function createInspector(root, store, actions) {
       groups.get(g).push(control(def, mb(def.key)));
     }
     return [
-      head('Bus maestro', 'reverb y eco globales, ecualización y limitador'),
+      head('Bus maestro'),
       ...[...groups.entries()].map(([g, list]) => section(g || 'Salida', ...list)),
-      section(null, h('p', { class: 'help' }, 'Cada pista envía a la reverb y al eco con sus propios niveles (sección «Mezcla» de la pista).')),
     ];
   }
 
@@ -698,7 +725,7 @@ export function createInspector(root, store, actions) {
     } else if (s.kind === 'element') {
       content = [
         head(`${s.elementIds.length} elementos`, 'selección múltiple'),
-        section(null, h('p', { class: 'help' }, 'Arrástralos juntos en la línea de tiempo o muévelos con ← y → (Mayús: 1 s).'),
+        section(null,
           h('div', { class: 'ins-actions' },
             h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.duplicateSelection() }, 'Duplicar'),
             h('button', { type: 'button', class: 'btn btn--quiet btn--danger', onclick: () => actions.deleteSelection() }, 'Borrar'))),

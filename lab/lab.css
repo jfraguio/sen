@@ -1685,6 +1685,21 @@ input[type="range"] {
   outline: none;
 }
 
+.note-change__time:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.note-change--base {
+  border-color: #3a4564;
+  background: linear-gradient(180deg, #182132, #10151f);
+}
+
+.note-change__spacer {
+  width: 20px;
+  height: 20px;
+}
+
 .note-change__notes::placeholder {
   color: var(--dim);
 }
