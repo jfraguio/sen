@@ -291,7 +291,7 @@ export function createInspector(root, store, actions) {
     const test = h('button', {
       type: 'button', class: 'btn', title: 'Toca las letras sin modificar el tema (Esc para salir)',
       onclick: () => actions.togglePerformance('test', target('test')),
-    }, '▶ Teclado libre');
+    }, '▶ Tocar');
     const kind = recordKind(el);
     const rec = kind ? h('button', {
       type: 'button', class: 'btn perf-rec',
@@ -600,7 +600,7 @@ export function createInspector(root, store, actions) {
         }, syncers),
         ownNotes,
         useOwn ? performanceButtons(track, el, () => ownNotes?.getOctave?.() ?? 4) : null,
-        useOwn ? h('p', { class: 'help' }, 'Teclado libre suena sin tocar la nube. Grabar añade las notas que toques al conjunto de notas propias.') : null,
+        useOwn ? h('p', { class: 'help' }, 'Tocar suena sin tocar la nube. Grabar añade las notas que toques al conjunto de notas propias.') : null,
         useOwn ? null : seedRow(id)));
     } else if (el.type === 'span') {
       blocks.push(section(track.family === 'nature' ? 'Actividad' : 'Tramo',

@@ -857,7 +857,7 @@ No objetivos:
   - `seed`: semilla propia; “Aleatorizar” la incrementa.
   - `pitches`: si se activa **Usar notas propias**, el conjunto de notas (hasta
     24) sustituye a la escala. Con el teclado del inspector se puede probar
-    (**Teclado libre**) o añadir notas tocándolas (**Grabar**); al mostrar el
+    (**Tocar**) o añadir notas tocándolas (**Grabar**); al mostrar el
     teclado se oculta “Aleatorizar”. La nube sigue generando notas en el
     tiempo; “Grabar” solo amplía su conjunto de notas, no graba ritmo.
 - **`span`** (ruidos y simulaciones): un tramo de actividad. En simulaciones,
@@ -1086,7 +1086,7 @@ por parámetro.
   maestro o del tema (sin selección). En las notas incluye un mini teclado de
   dos octavas que suena al pulsar y muestra la letra del teclado del ordenador
   que toca cada nota. En un elemento sostenido, **Cambios de nota** permite
-  tocar el teclado sin grabar (**Teclado libre**) o grabar los cambios de nota
+  tocar el teclado sin grabar (**Tocar**) o grabar los cambios de nota
   dentro del elemento mientras avanza el cabezal (**Grabar**, con la bolita en
   rojo), además de añadir un cambio en el cabezal o borrarlos. El **fundido
   entre notas** ajusta el cruce (0–2 s). Cada cambio se edita en la propia lista
@@ -1147,7 +1147,7 @@ sin animaciones de fondo que compitan con el trabajo.
 
 Los atajos de una letra no actúan mientras el foco está en un campo de texto.
 
-En el **modo teclado** (Teclado libre o Grabar), las letras tocan notas y sustituyen a
+En el **modo teclado** (Tocar o Grabar), las letras tocan notas y sustituyen a
 los atajos de una letra: `Z S X D C V G B H N J M` son la octava grave y
 `Q 2 W 3 E R 5 T 6 Y 7 U` la aguda, partiendo de la octava que muestre el
 inspector. Las flechas de octava del mini teclado se aplican en caliente
@@ -1155,14 +1155,22 @@ mientras se prueba o graba. `Espacio` sigue reproduciendo o pausando y `Escape`
 sale del modo. Las teclas se pueden mantener para formar acordes; al soltarlas
 todas, el siguiente cambio grabado es silencio.
 
-El popup de **Teclado libre** incluye un combo de progresiones diatónicas
-agrupadas por carácter (**Alegres**, **Nostálgicas**, **Soñadoras**, **Tensas**,
-**Minimalistas** y **Épicas**), adaptadas a la tonalidad del tema. Al elegir una
-se escucha acorde a acorde (2 s por acorde). Debajo aparecen tarjetas con el
-cifrado, las notas en letras y las teclas del ordenador que tocan cada nota.
-**▶** se convierte en **■** mientras suena y detiene la progresión; **⟲** la
-deja en bucle y la arranca si estaba parada. En **Grabar** el combo se oculta,
-porque el foco es capturar notas o cambios con el teclado.
+El popup de **Tocar** incluye un piano de dos octavas que ilumina las teclas
+pulsadas y las notas de la progresión que suena, un conmutador
+**Acordes / Arpegios** y un combo de progresiones adaptadas a la tonalidad del
+tema. Los acordes se agrupan por carácter (**Alegres**, **Nostálgicas**,
+**Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**); los arpegios, por
+movimiento (**Ascendentes**, **Descendentes**, **Ondulantes**, **Largos** y
+**Saltos**). Al
+elegir una se escucha paso a paso (2 s por acorde, 0,65 s por nota). Debajo
+aparecen tarjetas con el cifrado, las notas en letras y las teclas del
+ordenador que tocan cada nota. **▶** se convierte en **■** mientras suena y
+detiene la reproducción; **⟲** la deja en bucle y la arranca si estaba parada.
+En **Grabar** el combo se oculta, porque el foco es capturar notas o cambios
+con el teclado. En **Tocar**, el instrumento del piano flotante sigue siempre a
+la pista seleccionada; al cambiar de pista o de elemento, se detienen las notas
+anteriores y las siguientes suenan con el instrumento nuevo. Durante **Grabar**
+se mantiene el instrumento del elemento que se está grabando.
 
 #### 7.5.4 Plantillas
 

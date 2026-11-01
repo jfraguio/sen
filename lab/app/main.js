@@ -854,6 +854,7 @@ function boot() {
     }
     if (kind === 'project' || kind === 'load') ensureLayers(s.project);
     if (kind === 'project' || kind === 'load' || kind === 'selection' || kind === 'view') {
+      if (kind === 'selection') performance.selectionChanged();
       if (info?.source !== 'tl-vol') timeline.render();
       inspector.render(kind === 'load' || kind === 'view');
       compact.render();

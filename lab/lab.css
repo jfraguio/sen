@@ -1819,6 +1819,29 @@ input[type="range"] {
   text-transform: uppercase;
 }
 
+.perform__types {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid #3a4564;
+  border-radius: 8px;
+  background: #0b0f19;
+}
+
+.perform__type {
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.perform__type[aria-pressed="true"] {
+  background: #23304a;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(157, 222, 216, 0.35);
+}
+
 .perform__progression-select {
   flex: 1;
   min-width: 220px;
@@ -1897,6 +1920,10 @@ input[type="range"] {
   box-shadow: 0 0 0 1px rgba(157, 222, 216, 0.25), 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
+.perform__prog-card--note {
+  min-width: 66px;
+}
+
 .perform__prog-cipher {
   color: var(--accent);
   font-size: 10px;
@@ -1937,21 +1964,29 @@ input[type="range"] {
   padding: 4px 2px;
 }
 
-.perform__keys {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  color: var(--dim);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+.perform__keyboard {
+  margin-top: 2px;
+  padding: 6px 8px 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 6px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(5, 7, 12, 0.7), rgba(16, 20, 31, 0.7));
 }
 
-.perform__keys b {
-  color: var(--muted);
-  font-weight: 600;
-  margin-right: 4px;
+.perform__keyboard .keyboard {
+  height: 58px;
+  margin: 0;
+}
+
+.perform__keyboard .key--white {
+  height: 58px;
+}
+
+.perform__keyboard .key--black {
+  height: 34px;
+}
+
+.perform__keyboard .key.is-on {
+  box-shadow: 0 0 0 2px rgba(157, 222, 216, 0.7), 0 0 16px rgba(157, 222, 216, 0.45);
 }
 
 @media (max-width: 899px) {
@@ -1984,6 +2019,10 @@ input[type="range"] {
   }
 
   .perform__progression-label {
+    order: 0;
+  }
+
+  .perform__types {
     order: 1;
   }
 

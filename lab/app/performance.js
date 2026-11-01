@@ -14,7 +14,8 @@
 import { h, typingTarget, findTrack, findElement, clampNum } from './util.js';
 import { SCALES, midiToNote, noteLabel, noteToMidi, rootIndex } from '../engine/music.js';
 import { LIMITS, toneNotesAt } from '../engine/schema.js';
-import { PERFORMANCE_KEYS, offsetForKey } from './keys.js';
+import { PERFORMANCE_KEYS, hintForMidi, offsetForKey } from './keys.js';
+import { keyboard } from './controls.js';
 
 const sameNotes = (a, b) => JSON.stringify(a.map((n) => (typeof n === 'object' ? n.hz : n))) === JSON.stringify(b.map((n) => (typeof n === 'object' ? n.hz : n)));
 const noteId = (n) => (n && typeof n === 'object' ? `hz:${n.hz}` : String(noteToMidi(n) ?? n));
@@ -64,16 +65,67 @@ const PROGRESSIONS_SHORT = [
   { mood: 'Minimalistas', degrees: [0, 3] },
   { mood: 'Minimalistas', degrees: [0, 4] },
 ];
+const ARPEGGIOS = [
+  { mood: 'Ascendentes', degrees: [0, 2, 4, 7] },
+  { mood: 'Ascendentes', degrees: [0, 4, 7, 11] },
+  { mood: 'Ascendentes', degrees: [0, 2, 4, 6] },
+  { mood: 'Ascendentes', degrees: [0, 2, 4, 7, 9] },
+  { mood: 'Ascendentes', degrees: [0, 2, 4, 7, 11] },
+  { mood: 'Ascendentes', degrees: [0, 3, 5, 7] },
+  { mood: 'Ascendentes', degrees: [0, 2, 4, 6, 7] },
+  { mood: 'Ascendentes', degrees: [0, 4, 6, 7] },
+  { mood: 'Ascendentes', degrees: [0, 3, 4, 7] },
+  { mood: 'Ascendentes', degrees: [0, 2, 5, 7] },
+  { mood: 'Ascendentes', degrees: [0, 2, 4, 7, 9, 11] },
+  { mood: 'Ascendentes', degrees: [0, 2, 4, 5, 7] },
+  { mood: 'Ascendentes', degrees: [0, 2, 4, 6, 9] },
+  { mood: 'Descendentes', degrees: [7, 4, 2, 0] },
+  { mood: 'Descendentes', degrees: [11, 7, 4, 2] },
+  { mood: 'Descendentes', degrees: [7, 6, 4, 2, 0] },
+  { mood: 'Descendentes', degrees: [11, 9, 7, 4, 2, 0] },
+  { mood: 'Descendentes', degrees: [9, 7, 4, 2, 0] },
+  { mood: 'Descendentes', degrees: [7, 5, 4, 2, 0] },
+  { mood: 'Descendentes', degrees: [11, 7, 4, 0] },
+  { mood: 'Descendentes', degrees: [9, 7, 4, 2] },
+  { mood: 'Descendentes', degrees: [11, 9, 7, 4, 0] },
+  { mood: 'Ondulantes', degrees: [0, 4, 2, 7, 4, 2] },
+  { mood: 'Ondulantes', degrees: [0, 2, 4, 2] },
+  { mood: 'Ondulantes', degrees: [0, 4, 7, 4, 2, 4] },
+  { mood: 'Ondulantes', degrees: [0, 4, 7, 4, 0, 4] },
+  { mood: 'Ondulantes', degrees: [0, 2, 4, 6, 4, 2] },
+  { mood: 'Ondulantes', degrees: [0, 4, 2, 5, 2, 4] },
+  { mood: 'Ondulantes', degrees: [0, 2, 4, 7, 11, 7, 4, 2] },
+  { mood: 'Ondulantes', degrees: [0, 4, 7, 4, 2, 0, 2, 4] },
+  { mood: 'Ondulantes', degrees: [0, 2, 5, 2, 4, 2] },
+  { mood: 'Ondulantes', degrees: [0, 4, 6, 4, 2, 4] },
+  { mood: 'Largos', degrees: [0, 4, 7] },
+  { mood: 'Largos', degrees: [0, 2, 4, 7, 4, 2] },
+  { mood: 'Largos', degrees: [0, 7, 4, 7] },
+  { mood: 'Largos', degrees: [0, 4, 7, 9] },
+  { mood: 'Largos', degrees: [0, 2, 4, 6, 7, 9] },
+  { mood: 'Largos', degrees: [0, 3, 5, 7, 10] },
+  { mood: 'Largos', degrees: [0, 2, 4, 5, 7, 9] },
+  { mood: 'Saltos', degrees: [0, 4, 2, 7, 4, 9] },
+  { mood: 'Saltos', degrees: [0, 7, 2, 9, 4, 11] },
+  { mood: 'Saltos', degrees: [0, 4, 7, 2, 5, 9] },
+  { mood: 'Saltos', degrees: [0, 2, 5, 7, 4, 9] },
+  { mood: 'Saltos', degrees: [0, 5, 2, 7, 4, 9] },
+  { mood: 'Saltos', degrees: [0, 4, 9, 2, 7, 11] },
+  { mood: 'Saltos', degrees: [0, 7, 4, 11, 2, 9] },
+  { mood: 'Saltos', degrees: [0, 5, 9, 2, 7, 11] },
+];
 const KEY_BY_OFFSET = new Map(PERFORMANCE_KEYS.map(([key, offset]) => [offset, key]));
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 
-function chordAt(key, degree, octave) {
+function noteAt(key, degree, octave) {
   const steps = SCALES[key?.scale] || SCALES.mayor;
   const base = (octave + 1) * 12 + rootIndex(key?.root || 'C');
-  const midis = [degree, degree + 2, degree + 4].map((k) => {
-    const oct = Math.floor(k / steps.length);
-    return base + oct * 12 + steps[((k % steps.length) + steps.length) % steps.length];
-  });
+  const oct = Math.floor(degree / steps.length);
+  return base + oct * 12 + steps[((degree % steps.length) + steps.length) % steps.length];
+}
+
+function chordAt(key, degree, octave) {
+  const midis = [degree, degree + 2, degree + 4].map((d) => noteAt(key, d, octave));
   const third = midis[1] - midis[0];
   const fifth = midis[2] - midis[0];
   const quality = third === 4 && fifth === 7 ? 'mayor'
@@ -101,23 +153,40 @@ function romanFor(degree, quality) {
   return base;
 }
 
-/** Progresiones de la escala actual, con su cifrado, acordes y teclas. */
-function progressionOptions(key, octave) {
+/** Progresiones de la escala actual, con su cifrado, acordes/notas y teclas. */
+function progressionOptions(key, octave, type = 'chords') {
   const steps = SCALES[key?.scale] || SCALES.mayor;
-  const patterns = steps.length >= 7 ? PROGRESSIONS_FULL : PROGRESSIONS_SHORT;
+  const patterns = type === 'arpeggios' ? ARPEGGIOS : steps.length >= 7 ? PROGRESSIONS_FULL : PROGRESSIONS_SHORT;
+  const keyBase = (octave + 1) * 12;
   const out = [];
   for (const pattern of patterns) {
-    if (pattern.degrees.some((d) => d >= steps.length)) continue;
-    const chords = pattern.degrees.map((d) => chordAt(key, d, octave));
-    chords.forEach((c, i) => {
-      c.roman = romanFor(pattern.degrees[i], c.quality);
+    if (type !== 'arpeggios' && pattern.degrees.some((d) => d >= steps.length)) continue;
+    const items = pattern.degrees.map((degree) => {
+      if (type === 'arpeggios') {
+        const midi = noteAt(key, degree, octave);
+        const note = midiToNote(midi);
+        return {
+          midis: [midi],
+          quality: '',
+          keys: [KEY_BY_OFFSET.get(midi - keyBase) || ''],
+          short: noteLabel(note, 'latin'),
+          fullName: noteLabel(note, 'latin'),
+          letters: note.replace(/-?\d+$/, ''),
+          roman: `${romanFor(degree % ROMAN.length, '')}${degree >= ROMAN.length ? '′' : ''}`,
+        };
+      }
+      const chord = chordAt(key, degree, octave);
+      chord.roman = romanFor(degree, chord.quality);
+      return chord;
     });
-    const roman = chords.map((c) => c.roman).join('–');
+    const roman = items.map((c) => c.roman).join('–');
     out.push({
       index: out.length,
       mood: pattern.mood,
-      label: `${roman} · ${chords.map((c) => c.short).join(' – ')}`,
-      chords,
+      type,
+      stepMs: type === 'arpeggios' ? 650 : 2000,
+      label: `${roman} · ${items.map((c) => c.short).join(' – ')}`,
+      chords: items,
     });
   }
   return out;
@@ -133,8 +202,12 @@ export function createPerformance({ store, audio, actions }) {
   let startedPlayback = false;
   let warnedLimit = false;
   let warnedCloud = false;
+  let progType = 'chords';
   const held = new Map(); // tecla → midi
   const chord = new Set(); // midi que suena ahora
+  const tapNotes = new Set();
+  const tapTimers = new Map();
+  const previewNotes = [];
 
   const dot = h('span', { class: 'perform__dot', 'aria-hidden': 'true' });
   const title = h('b');
@@ -150,15 +223,26 @@ export function createPerformance({ store, audio, actions }) {
     title: 'Repetir la progresión', onclick: () => togglePreviewLoop(),
   }, '⟲');
   const progCards = h('div', { class: 'perform__prog-cards' });
+  const typeChords = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'true', onclick: () => setProgType('chords') }, 'Acordes');
+  const typeArps = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'false', onclick: () => setProgType('arpeggios') }, 'Arpegios');
+  const typeWrap = h('div', { class: 'perform__types', role: 'group', 'aria-label': 'Tipo de progresión' }, typeChords, typeArps);
   const progWrap = h('div', { class: 'perform__progressions' },
-    h('span', { class: 'perform__progression-label' }, 'Progresión'), progSelect, progPlay, progLoop);
+    h('span', { class: 'perform__progression-label' }, 'Progresión'), typeWrap, progSelect, progPlay, progLoop);
   const progArea = h('div', { class: 'perform__prog-area' }, progWrap, progCards);
-  const keys = h('div', { class: 'perform__keys', 'aria-hidden': 'true' });
+  const kb = keyboard({
+    octave,
+    notation: store.state.view.notation,
+    hintFor: hintForMidi,
+    showNav: false,
+    isOn: (midi) => chord.has(midi) || tapNotes.has(midi) || previewNotes.some((n) => noteToMidi(n) === midi),
+    onKey: (note) => tapNote(note),
+  });
+  const kbWrap = h('div', { class: 'perform__keyboard' }, kb);
   const exit = h('button', { type: 'button', class: 'btn btn--quiet perform__exit', onclick: () => stop() }, 'Salir · Esc');
   const top = h('div', { class: 'perform__top' },
     h('div', { class: 'perform__head' }, dot, title, detail), chips, exit);
   const bar = h('div', { class: 'perform', role: 'region', 'aria-label': 'Modo teclado', hidden: true },
-    top, progArea, keys);
+    top, progArea, kbWrap);
   document.body.append(bar);
   progSelect.addEventListener('change', () => playSelectedProgression());
 
@@ -167,7 +251,6 @@ export function createPerformance({ store, audio, actions }) {
   let previewTimer = 0;
   let previewLoop = false;
   let previewPlaying = false;
-  const previewNotes = [];
 
   function syncPlayButton() {
     progPlay.textContent = previewPlaying ? '■' : '▶';
@@ -188,7 +271,7 @@ export function createPerformance({ store, audio, actions }) {
       return;
     }
     prog.chords.forEach((c, i) => progCards.append(h('div', {
-      class: `perform__prog-card${i === active ? ' is-active' : ''}`,
+      class: `perform__prog-card${c.midis.length === 1 ? ' perform__prog-card--note' : ''}${i === active ? ' is-active' : ''}`,
       title: `${c.fullName} (${c.letters})`,
     },
     h('span', { class: 'perform__prog-cipher' }, c.roman),
@@ -205,16 +288,46 @@ export function createPerformance({ store, audio, actions }) {
     previewNotes.length = 0;
     setActiveCard(-1);
     syncPlayButton();
+    kb.update();
+  }
+
+  function clearTaps() {
+    for (const [midi, timer] of tapTimers) {
+      clearTimeout(timer);
+      audio.noteOff(midiToNote(midi));
+    }
+    tapTimers.clear();
+    tapNotes.clear();
+  }
+
+  /** Pulsación corta al hacer clic en el piano del popup. */
+  function tapNote(note) {
+    if (!active) return;
+    const t = track();
+    if (!t) return;
+    const midi = noteToMidi(note);
+    if (midi === null) return;
+    stopPreview();
+    if (tapTimers.has(midi)) clearTimeout(tapTimers.get(midi));
+    tapNotes.add(midi);
+    audio.noteOn(note, t, store.state.project.tuning?.a4 ?? 440);
+    tapTimers.set(midi, setTimeout(() => {
+      tapTimers.delete(midi);
+      tapNotes.delete(midi);
+      audio.noteOff(note);
+      hud();
+    }, 900));
+    hud();
   }
 
   function buildProgressions() {
-    const sig = JSON.stringify([store.state.project.key || {}, octave]);
+    const sig = JSON.stringify([store.state.project.key || {}, octave, progType]);
     if (sig === progSig) return;
     progSig = sig;
     stopPreview();
-    progList = progressionOptions(store.state.project.key, octave);
+    progList = progressionOptions(store.state.project.key, octave, progType);
     progSelect.textContent = '';
-    progSelect.append(h('option', { value: '' }, 'Elige una progresión…'));
+    progSelect.append(h('option', { value: '' }, progType === 'arpeggios' ? 'Elige un arpegio…' : 'Elige una progresión…'));
     const groups = new Map();
     for (const p of progList) {
       if (!groups.has(p.mood)) groups.set(p.mood, []);
@@ -229,6 +342,24 @@ export function createPerformance({ store, audio, actions }) {
     renderProgCards(null);
   }
 
+  function syncProgType() {
+    typeChords.setAttribute('aria-pressed', String(progType === 'chords'));
+    typeArps.setAttribute('aria-pressed', String(progType === 'arpeggios'));
+  }
+
+  function setProgType(type) {
+    if (progType === type) return;
+    progType = type;
+    stopPreview();
+    syncProgType();
+    progSig = '';
+    buildProgressions();
+    if (progList.length) {
+      progSelect.value = '0';
+      renderProgCards(progList[0]);
+    }
+  }
+
   function setPreviewChord(midis) {
     for (const note of previewNotes) audio.noteOff(note);
     previewNotes.length = 0;
@@ -240,6 +371,7 @@ export function createPerformance({ store, audio, actions }) {
       previewNotes.push(note);
       audio.noteOn(note, t, a4);
     }
+    kb.update();
   }
 
   function playProgression(prog) {
@@ -248,7 +380,7 @@ export function createPerformance({ store, audio, actions }) {
     previewPlaying = true;
     syncPlayButton();
     renderProgCards(prog);
-    const step = 2000;
+    const step = prog.stepMs || 2000;
     let i = 0;
     const advance = () => {
       if (!active || mode !== 'test') {
@@ -283,11 +415,19 @@ export function createPerformance({ store, audio, actions }) {
     if (previewLoop && !previewPlaying) playSelectedProgression();
   }
 
-  const lower = PERFORMANCE_KEYS.filter(([, o]) => o < 12).map(([k]) => k.toUpperCase()).join(' ');
-  const upper = PERFORMANCE_KEYS.filter(([, o]) => o >= 12).map(([k]) => k).join(' ');
-  keys.append(h('span', {}, h('b', {}, 'grave'), ` ${lower}`), h('span', {}, h('b', {}, 'aguda'), ` ${upper}`));
+  function selectedTrack() {
+    const s = store.state.selection;
+    if (s.kind === 'track') return findTrack(store.state.project, s.trackId);
+    if (s.kind === 'element' && s.elementIds.length) return findElement(store.state.project, s.elementIds[0])?.track || null;
+    return null;
+  }
 
-  const track = () => findTrack(store.state.project, trackId);
+  const track = () => {
+    if (mode === 'record') return findTrack(store.state.project, trackId);
+    const selected = selectedTrack();
+    if (selected && selected.family !== 'layer') return selected;
+    return findTrack(store.state.project, trackId);
+  };
   const element = () => (elementId ? findElement(store.state.project, elementId)?.el || null : null);
 
   function hud() {
@@ -295,7 +435,7 @@ export function createPerformance({ store, audio, actions }) {
     const e = element();
     buildProgressions();
     progArea.hidden = mode !== 'test';
-    title.textContent = mode === 'record' ? 'Grabando' : 'Teclado libre';
+    title.textContent = mode === 'record' ? 'Grabando' : 'Tocar';
     detail.textContent = t ? ` · ${t.name} · oct. ${octave}–${octave + 1}` : '';
     const notes = [...chord].sort((a, b) => a - b);
     chips.textContent = '';
@@ -310,6 +450,7 @@ export function createPerformance({ store, audio, actions }) {
         detail.textContent = ` · ${t?.name || ''} · oct. ${octave}–${octave + 1} · ${rel.toFixed(1).replace('.', ',')} s de ${e.length.toFixed(1).replace('.', ',')}`;
       }
     }
+    kb.update();
     bar.dataset.mode = mode;
     bar.hidden = !active;
   }
@@ -413,6 +554,7 @@ export function createPerformance({ store, audio, actions }) {
     const t = track();
     if (!t) return false;
     stopPreview();
+    clearTaps();
     held.set(key, midi);
     chord.add(midi);
     audio.noteOn(midiToNote(midi), t, store.state.project.tuning?.a4 ?? 440);
@@ -452,7 +594,9 @@ export function createPerformance({ store, audio, actions }) {
     if (next === octave) return;
     if (active) releaseAll(true);
     stopPreview();
+    clearTaps();
     octave = next;
+    kb.setOctave(next);
     hud();
   }
 
@@ -481,6 +625,10 @@ export function createPerformance({ store, audio, actions }) {
     warnedCloud = false;
     held.clear();
     chord.clear();
+    clearTaps();
+    kb.setOctave(octave);
+    syncProgType();
+    syncPlayButton();
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     audio.ensure().catch(() => {});
     hud();
@@ -504,8 +652,6 @@ export function createPerformance({ store, audio, actions }) {
         startedPlayback = false;
         actions.notify('Grabando notas propias: toca las letras para añadirlas a la nube. Esc para salir.');
       }
-    } else {
-      actions.notify('Teclado libre: toca las letras. Esc para salir.');
     }
     actions.performanceChanged?.();
     return true;
@@ -515,6 +661,7 @@ export function createPerformance({ store, audio, actions }) {
     if (!active && bar.hidden) return;
     active = false;
     stopPreview();
+    clearTaps();
     releaseAll(false);
     audio.setMonitorMute(null);
     store.endGesture();
@@ -569,6 +716,18 @@ export function createPerformance({ store, audio, actions }) {
     else hud();
   }
 
+  /** En Tocar, el teclado sigue a la pista que se selecciona. */
+  function selectionChanged() {
+    if (!active || mode !== 'test') return;
+    const selected = selectedTrack();
+    if (!selected || selected.family === 'layer' || selected.id === trackId) return;
+    trackId = selected.id;
+    stopPreview();
+    clearTaps();
+    releaseAll(false);
+    hud();
+  }
+
   return {
     start,
     stop,
@@ -578,6 +737,7 @@ export function createPerformance({ store, audio, actions }) {
     releaseAll,
     setOctave,
     validate,
+    selectionChanged,
     hud,
     info: () => ({ active, mode, trackId, elementId }),
   };

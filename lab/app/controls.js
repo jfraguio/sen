@@ -184,7 +184,7 @@ export function noteSelect(binding, syncers, notation, label) {
 /**
  * Mini teclado de dos octavas. `onKey(note)`; `isOn(midi)` marca teclas.
  */
-export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'latin', hintFor = null, onOctaveChange = null }) {
+export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'latin', hintFor = null, onOctaveChange = null, showNav = true }) {
   let oct = octave;
   const wrap = h('div', { class: 'kb' });
   const keys = h('div', { class: 'keyboard', role: 'group', 'aria-label': 'Teclado' });
@@ -204,9 +204,10 @@ export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'la
         const key = h('button', {
           type: 'button',
           class: `key ${white ? 'key--white' : 'key--black'}${isOn(midi) ? ' is-on' : ''}`,
+          dataset: { midi: String(midi) },
           'aria-label': hint ? `${name} (tecla ${hint})` : name,
           title: hint ? `${name} · tecla ${hint}` : name,
-          onclick: () => onKey(note),
+          onclick: () => onKey?.(note),
         }, white && s === 0 ? h('span', { class: 'key-name' }, name) : null, hint ? h('span', { class: 'key-hint' }, hint) : null);
         if (white) {
           key.style.left = `${wi * W}%`;
@@ -226,10 +227,22 @@ export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'la
     h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más grave', onclick: () => { oct = Math.max(0, oct - 1); render(); onOctaveChange?.(oct); } }, '‹'),
     label,
     h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más aguda', onclick: () => { oct = Math.min(7, oct + 1); render(); onOctaveChange?.(oct); } }, '›'));
-  wrap.append(nav, keys);
+  wrap.append(...(showNav ? [nav, keys] : [keys]));
   render();
   wrap.refresh = render;
   wrap.getOctave = () => oct;
+  wrap.setOctave = (value) => {
+    const next = clampNum(Math.round(Number(value) || 0), 0, 7);
+    if (next !== oct) {
+      oct = next;
+      render();
+    }
+  };
+  wrap.update = () => {
+    keys.querySelectorAll('.key').forEach((node) => {
+      node.classList.toggle('is-on', !!isOn(Number(node.dataset.midi)));
+    });
+  };
   return wrap;
 }
 
