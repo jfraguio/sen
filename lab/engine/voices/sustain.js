@@ -35,9 +35,11 @@ export function compileSustainElement(track, el, ctx) {
   // entra. El usuario lo ajusta por elemento (`crossfade`); 0 es corte seco.
   const shortest = segments.reduce((m, s) => Math.min(m, s.end - s.t), Infinity);
   const requested = Number.isFinite(el.crossfade) ? el.crossfade : 0.15;
-  const cross = clamp(requested, 0, Math.min(2, shortest * 0.5));
+  const fade = clamp(requested, 0, Math.min(2, shortest * 0.5));
+  const half = fade / 2;
   const loopFull = !!ctx.loopFull;
-  const seam = loopFull ? Math.max(cross, Math.min(0.02, shortest * 0.5)) : cross;
+  // En bucle, el primer y el último tramo también se cruzan en la costura.
+  const edge = loopFull ? Math.max(fade, Math.min(0.02, shortest * 0.5)) : fade;
   const out = [];
   for (let k = 0; k < segments.length; k++) {
     const seg = segments[k];
@@ -46,13 +48,21 @@ export function compileSustainElement(track, el, ctx) {
     const noteGain = 1 / Math.sqrt(notes.length);
     const last = k === segments.length - 1;
     const first = k === 0;
-    const d = seg.end - seg.t + (last ? (loopFull ? seam : 0) : cross);
-    const shape = multi ? segmentElement(el, seg, d, cross, first, last, loopFull, seam) : el;
+    // Cruce centrado: la nota anterior empieza a apagarse antes del cambio y
+    // la siguiente entra antes, para que ambas se crucen alrededor del corte.
+    const start = first ? seg.t : Math.max(0, seg.t - half);
+    const end = seg.end + (last ? (loopFull ? edge : 0) : half);
+    const d = Math.max(0.001, end - start);
+    const fadeIn = first ? (loopFull ? Math.max(el.fadeIn || 0, edge) : (el.fadeIn || 0)) : fade;
+    const fadeOut = last ? (loopFull ? Math.max(el.fadeOut || 0, edge) : (el.fadeOut || 0)) : fade;
+    const crossIn = !first || loopFull;
+    const crossOut = !last || loopFull;
+    const shape = multi ? segmentElement(el, start, end, d, fadeIn, fadeOut, crossIn, crossOut) : el;
     for (let j = 0; j < notes.length; j++) {
       const f = noteFrequency(notes[j], ctx.a4);
       const seed = subSeed(ctx.elementSeed, multi ? k * 16 + j : j);
       out.push({
-        t: seg.t,
+        t: start,
         d,
         bed: true,
         voices: unison(track.instrument, p),
@@ -65,21 +75,19 @@ export function compileSustainElement(track, el, ctx) {
 
 /**
  * Envolvente y curva de un tramo de un `tone` con cambios. El tramo hereda el
- * nivel y la curva global del elemento, pero sus fundidos son cortos (salvo en
- * los extremos del elemento) para que el cambio de nota cruce con el anterior.
+ * nivel y la curva global del elemento, pero sus fundidos son los del cruce
+ * centrado alrededor del cambio de nota.
  */
-function segmentElement(el, seg, d, cross, first, last, loopFull = false, seam = cross) {
+function segmentElement(el, start, end, d, fadeIn, fadeOut, crossIn, crossOut) {
   const total = Math.max(0.1, el.length || 0.1);
   const global = curveFunction(el.curve);
-  const x0 = seg.t / total;
-  const x1 = Math.min(1, (seg.end + (last ? (loopFull ? seam : 0) : cross)) / total);
+  const x0 = Math.min(1, Math.max(0, start / total));
+  const x1 = Math.min(1, Math.max(0, end / total));
   const curve = [];
   for (let q = 0; q <= 8; q++) curve.push([q / 8, global(x0 + (x1 - x0) * (q / 8))]);
-  let fadeIn = first ? (loopFull ? Math.max(el.fadeIn || 0, seam) : (el.fadeIn || 0)) : cross;
-  fadeIn = Math.min(fadeIn, d * 0.9);
-  let fadeOut = last ? (loopFull ? Math.max(el.fadeOut || 0, seam) : (el.fadeOut || 0)) : cross;
-  fadeOut = Math.min(fadeOut, Math.max(0, d - fadeIn));
-  return { ...el, start: 0, length: d, fadeIn, fadeOut, curve };
+  const fIn = Math.min(fadeIn, d * 0.9);
+  const fOut = Math.min(fadeOut, Math.max(0, d - fIn));
+  return { ...el, start: 0, length: d, fadeIn: fIn, fadeOut: fOut, crossIn, crossOut, curve };
 }
 
 class SustainVoice {

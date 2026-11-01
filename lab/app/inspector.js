@@ -287,7 +287,7 @@ export function createInspector(root, store, actions) {
     const test = h('button', {
       type: 'button', class: 'btn', title: 'Toca las letras sin modificar el tema (Esc para salir)',
       onclick: () => actions.togglePerformance('test', target('test')),
-    }, '▶ Tocar');
+    }, '▶ Teclado');
     const kind = recordKind(el);
     const rec = kind ? h('button', {
       type: 'button', class: 'btn perf-rec',
@@ -479,7 +479,7 @@ export function createInspector(root, store, actions) {
       done,
     }, syncers);
 
-    return section('Cambios de nota',
+    return section('Notas',
       performanceButtons(track, el, () => state.view.keyboardOctave ?? 3),
       list,
       crossControl);

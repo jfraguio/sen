@@ -134,11 +134,11 @@ cualquier escena sin tocar código.
 - Tonalidad, tempo opcional, reverb y eco maestros, automatización por pista,
   deshacer, autoguardado, plantillas (Vacío y las canciones de sen), modo
   compacto en móvil e importación MIDI.
-- **Cambios de nota con el teclado:** en una capa sostenida, «Cambios de nota» reúne la fila base
+- **Notas con el teclado:** en una capa sostenida, «Notas» reúne la fila base
   de 0 s y los cambios posteriores; si solo hay una fila, esa nota dura todo el
-  elemento. «Tocar» te deja tocar con las letras sin modificar el tema y
+  elemento. «Teclado» te deja tocar con las letras sin modificar el tema y
   «Grabar» guarda las notas dentro del mismo elemento mientras avanza el
-  cabezal. Los acordes se cruzan sin cortes, con un fundido entre notas ajustable; la
+  cabezal. Los acordes se cruzan con un fundido entre notas ajustable; la
   octava se puede cambiar en caliente y la lista se edita a mano (segundo y
   notas). En las nubes generativas el teclado aparece por defecto y «Grabar»
   añade las notas tocadas al conjunto de la nube; la casilla «Notas aleatorias»
@@ -146,7 +146,7 @@ cualquier escena sin tocar código.
   dos octavas, un conmutador
   de acordes/arpegios y progresiones agrupadas por carácter, con sus notas y
   las teclas para tocarlas, reproducción en bucle y un botón para llevarlas a
-  Cambios de nota cada 3 s.
+  Notas cada 2 s.
 - **Exportar → WAV** directamente desde el navegador (48 kHz/24 bits,
   44,1 kHz/16 bits o «Escena para sen»), con final con cola, exacto o en bucle
   sin costura, y sonoridad normalizada. Cada WAV lleva el proyecto dentro y se

@@ -183,6 +183,27 @@ function smallProject(over = {}) {
   const firstVoice = fadePlan.tracks[0].voices.find((v) => v.start === 0);
   ok(firstVoice && firstVoice.end === 4 * 22050, 'con fundido 0 los tramos no se solapan');
 
+  const centerProject = createProject({ seed: 'fade-centro', duration: 10 });
+  const centerTrack = createTrack('pad', centerProject);
+  const centerEl = createElement(centerTrack, centerProject, 0, 'tone');
+  centerEl.length = 10;
+  centerEl.fadeIn = 0;
+  centerEl.fadeOut = 0;
+  centerEl.notes = ['C3'];
+  centerEl.changes = [{ t: 4, notes: ['E3'] }];
+  centerEl.crossfade = 1;
+  centerTrack.elements.push(centerEl);
+  centerProject.tracks.push(centerTrack);
+  const centerPlan = compile(centerProject, { sampleRate: 22050 });
+  const centerFirst = centerPlan.tracks[0].voices.find((v) => v.start === 0);
+  const centerSecond = centerPlan.tracks[0].voices.find((v) => v.start > 0 && v.start < 4 * 22050);
+  ok(centerFirst && centerFirst.end === 4.5 * 22050 && centerSecond && centerSecond.start === 3.5 * 22050,
+    'el fundido entre notas centra el cruce: la anterior se alarga y la siguiente se adelanta');
+  const centerAudio = createRenderer(centerPlan, { limiter: false }).render(22050 * 6).L;
+  const centerMid = rms(centerAudio, 3.9, 4.1, 22050);
+  const centerSide = (rms(centerAudio, 3.5, 3.7, 22050) + rms(centerAudio, 4.3, 4.5, 22050)) / 2;
+  ok(centerMid > centerSide * 0.45, `el cruce no deja un hueco de silencio (${(centerMid / centerSide).toFixed(2)} de nivel en el centro)`);
+
   const split = splitToneChanges(el, 3);
   ok(split.notes[0] === 'E3' && split.before.length === 1 && split.after.length === 2 && split.after[0].t === 1 && split.after[1].t === 3,
     'al dividir un tone, cada parte conserva su tramo de cambios');

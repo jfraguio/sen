@@ -246,6 +246,8 @@ export class ElementEnvelope {
     this.len = period ? period / sr : el.length;
     this.fadeIn = period ? 0 : el.fadeIn || 0;
     this.fadeOut = period ? 0 : el.fadeOut || 0;
+    this.crossIn = !period && !!el.crossIn;
+    this.crossOut = !period && !!el.crossOut;
     this.level = dbToGain(el.level || 0);
     this.curve = curveFunction(el.curve);
   }
@@ -259,8 +261,14 @@ export class ElementEnvelope {
     const t = this.timeAt(i);
     if (!this.period && (t < 0 || t >= this.len)) return 0;
     let g = this.level * this.curve(clamp(t / this.len, 0, 1));
-    if (this.fadeIn > 0 && t < this.fadeIn) g *= fadeCurve(t / this.fadeIn);
-    if (this.fadeOut > 0 && t > this.len - this.fadeOut) g *= fadeCurve((this.len - t) / this.fadeOut);
+    if (this.fadeIn > 0 && t < this.fadeIn) {
+      const x = t / this.fadeIn;
+      g *= this.crossIn ? Math.sin((Math.PI / 2) * x) : fadeCurve(x);
+    }
+    if (this.fadeOut > 0 && t > this.len - this.fadeOut) {
+      const x = (this.len - t) / this.fadeOut;
+      g *= this.crossOut ? Math.sin((Math.PI / 2) * x) : fadeCurve(x);
+    }
     return g;
   }
 }

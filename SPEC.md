@@ -837,8 +837,10 @@ No objetivos:
   base siguen en `notes` y suenan desde el principio hasta el primer cambio; un
   cambio en `t = 0` se funde con las notas base al validar el proyecto. Los
   tramos se cruzan con un fundido
-  configurable (`crossfade`, 0–2 s; 0 es corte seco; por defecto 0,15 s), y la
-  curva, el nivel y los fundidos del elemento se reparten entre los tramos.
+  configurable (`crossfade`, 0–2 s; 0 es sin solape; por defecto 0,15 s): la
+  nota anterior se alarga atenuándose y la siguiente se adelanta, repartiendo
+  el cruce a ambos lados del cambio. La curva, el nivel y los fundidos del
+  elemento se reparten entre los tramos.
   Los cambios viven **dentro del elemento**: no hace falta dividirlo en
   fragmentos. Al dividir con `S` o al recortar una región, cada parte conserva
   sus cambios y adopta como notas base las que sonaban en el corte.
@@ -857,7 +859,7 @@ No objetivos:
   - `velocity`: rango `[min, max]`.
   - `seed`: semilla propia; “Aleatorizar” la incrementa.
   - `pitches`: por defecto la nube usa un conjunto de notas propias (hasta 24)
-    que se puede tocar con el teclado del inspector (**Tocar**) o ampliar
+    que se puede tocar con el teclado del inspector (**Teclado**) o ampliar
     tocando notas (**Grabar**). La casilla **Notas aleatorias** oculta el
     teclado y los controles de notas propias: entonces `pitches` pasa a `null`
     y la nube elige notas de la escala y el registro con los controles de
@@ -1089,10 +1091,10 @@ por parámetro.
 - **Inspector:** controles de la pista o del elemento seleccionado, del bus
   maestro o del tema (sin selección). En los golpes y en las nubes con notas
   propias hay un mini teclado de dos octavas. En un elemento sostenido,
-  **Cambios de nota** es el editor único de las notas: la fila de **0 s**
+  **Notas** es el editor único de las notas: la fila de **0 s**
   contiene las notas base (si no hay más cambios, duran todo el elemento), **+**
   añade un cambio al final, **×** borra los cambios añadidos y el **fundido
-  entre notas** ajusta el cruce (0–2 s). Desde ahí se toca (**Tocar**) o se
+  entre notas** ajusta el cruce (0–2 s). Desde ahí se toca (**Teclado**) o se
   graba con el teclado (**Grabar**, con la bolita en rojo). Cada fila se edita
   con su segundo y sus notas; la octava se cambia desde el piano del popup y se
   aplica en caliente durante la prueba o grabación.
@@ -1151,7 +1153,7 @@ sin animaciones de fondo que compitan con el trabajo.
 
 Los atajos de una letra no actúan mientras el foco está en un campo de texto.
 
-En el **modo teclado** (Tocar o Grabar), las letras tocan notas y sustituyen a
+En el **modo teclado** (Teclado o Grabar), las letras tocan notas y sustituyen a
 los atajos de una letra: `Z S X D C V G B H N J M` son la octava grave y
 `Q 2 W 3 E R 5 T 6 Y 7 U` la aguda, partiendo de la octava que muestre el
 inspector. Las flechas de octava del mini teclado se aplican en caliente
@@ -1159,7 +1161,7 @@ mientras se prueba o graba. `Espacio` sigue reproduciendo o pausando y `Escape`
 sale del modo. Las teclas se pueden mantener para formar acordes; al soltarlas
 todas, el siguiente cambio grabado es silencio.
 
-El popup de **Tocar** incluye un piano de dos octavas que ilumina las teclas
+El popup de **Teclado** incluye un piano de dos octavas que ilumina las teclas
 pulsadas y las notas de la progresión que suena, un conmutador
 **Acordes / Arpegios** y un combo de progresiones adaptadas a la tonalidad del
 tema. Los acordes se agrupan por carácter (**Alegres**, **Nostálgicas**,
@@ -1169,11 +1171,11 @@ movimiento (**Ascendentes**, **Descendentes**, **Ondulantes**, **Largos** y
 elegir una se escucha en bucle, paso a paso (2 s por acorde, 0,65 s por nota).
 Debajo aparecen tarjetas con el cifrado, las notas en letras y las teclas del
 ordenador que tocan cada nota. **▶** se convierte en **■** mientras suena y
-detiene la reproducción. **→ Cambios** lleva la progresión seleccionada a
-Cambios de nota, con un paso cada 3 s (3, 6, 9…), sustituyendo los cambios que
-coincidan en esos instantes.
+detiene la reproducción. **→ Notas** lleva la progresión seleccionada a
+Notas, con un paso cada 2 s desde 0 (0, 2, 4…), poniendo el primer paso en la
+fila base y sustituyendo los cambios que coincidan en los demás instantes.
 En **Grabar** el combo se oculta, porque el foco es capturar notas o cambios
-con el teclado. En **Tocar**, el instrumento del piano flotante sigue siempre a
+con el teclado. En **Teclado**, el instrumento del piano flotante sigue siempre a
 la pista seleccionada; al cambiar de pista o de elemento, se detienen las notas
 anteriores y las siguientes suenan con el instrumento nuevo. Durante **Grabar**
 se mantiene el instrumento del elemento que se está grabando.
@@ -1727,7 +1729,7 @@ opcional (7.4.6).
 | Pistas | 32 |
 | Elementos por tema | 500 |
 | Notas por elemento `tone` | 8 |
-| Cambios de nota por elemento `tone` | 64 |
+| Cambios por elemento `tone` | 64 |
 | Notas propias de una `cloud` | 24 |
 | Voces sostenidas simultáneas (notas × voces) | 96 |
 | Golpes simultáneos | 16 por pista, 64 en total |

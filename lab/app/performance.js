@@ -219,9 +219,9 @@ export function createPerformance({ store, audio, actions }) {
     onclick: () => { if (previewPlaying) stopPreview(); else playSelectedProgression(); },
   }, '▶');
   const progApply = h('button', {
-    type: 'button', class: 'btn btn--quiet perform__apply', 'aria-label': 'Llevar a Cambios de nota',
-    title: 'Llevar la progresión seleccionada a Cambios de nota', onclick: () => applyProgressionToChanges(),
-  }, '→ Cambios');
+    type: 'button', class: 'btn btn--quiet perform__apply', 'aria-label': 'Llevar a Notas',
+    title: 'Llevar la progresión seleccionada a Notas', onclick: () => applyProgressionToChanges(),
+  }, '→ Notas');
   const progCards = h('div', { class: 'perform__prog-cards' });
   const typeChords = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'true', onclick: () => setProgType('chords') }, 'Acordes');
   const typeArps = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'false', onclick: () => setProgType('arpeggios') }, 'Arpegios');
@@ -432,31 +432,36 @@ export function createPerformance({ store, audio, actions }) {
     }
     const target = selectedTone();
     if (!target) {
-      actions.notify('Selecciona un elemento sostenido para llevar la progresión a sus cambios.', true);
+      actions.notify('Selecciona un elemento sostenido para llevar la progresión a Notas.', true);
       return;
     }
     const limit = Math.max(0, target.el.length - 0.001);
     const generated = [];
-    let t = 3;
+    let t = 0;
     for (const step of prog.chords) {
       if (t > limit) break;
       generated.push({ t: Math.round(t * 1000) / 1000, notes: step.midis.map((m) => midiToNote(m)) });
-      t += 3;
+      t += 2;
     }
     if (!generated.length) {
-      actions.notify('El elemento es demasiado corto: necesita al menos 3 s.', true);
+      actions.notify('El elemento es demasiado corto para añadir la progresión.', true);
       return;
     }
     store.commit((d) => {
       const f = findElement(d, target.el.id);
       if (!f || f.el.type !== 'tone') return false;
       const map = new Map((f.el.changes || []).map((c) => [Math.round(c.t * 1000), c]));
-      for (const c of generated) map.set(Math.round(c.t * 1000), c);
+      for (const c of generated) {
+        if (c.t <= 0.0005) f.el.notes = c.notes;
+        else map.set(Math.round(c.t * 1000), c);
+      }
       const merged = [...map.values()].sort((a, b) => a.t - b.t);
-      f.el.changes = merged.slice(0, LIMITS.changesPerTone);
+      if (merged.length) f.el.changes = merged.slice(0, LIMITS.changesPerTone);
+      else delete f.el.changes;
       return true;
     }, { source: 'performance' });
-    actions.notify(`${prog.type === 'arpeggios' ? 'Arpegio' : 'Progresión'} añadido a Cambios de nota: ${generated.length} pasos cada 3 s.`);
+    const label = prog.type === 'arpeggios' ? 'Arpegio llevado' : 'Progresión llevada';
+    actions.notify(`${label} a Notas: ${generated.length} pasos cada 2 s.`);
   }
 
   function selectedTrack() {
@@ -479,7 +484,7 @@ export function createPerformance({ store, audio, actions }) {
     const e = element();
     buildProgressions();
     progArea.hidden = mode !== 'test';
-    title.textContent = mode === 'record' ? 'Grabando' : 'Tocar';
+    title.textContent = mode === 'record' ? 'Grabando' : 'Teclado';
     detail.textContent = t ? ` · ${t.name} · oct. ${octave}–${octave + 1}` : '';
     const notes = [...chord].sort((a, b) => a - b);
     chips.textContent = '';
