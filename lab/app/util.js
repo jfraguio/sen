@@ -126,3 +126,61 @@ export function clampNum(v, lo, hi) {
 }
 
 export const isCompact = () => window.matchMedia('(max-width: 899px)').matches;
+
+/* ------------------------------------------------------------ títulos de interfaz */
+
+const TITLE_SELECTOR = [
+  'button', 'a[href]', 'input', 'select', 'textarea', 'summary', 'label',
+  'section', 'aside', 'header', 'footer', 'nav', 'main', 'dialog', 'details', 'fieldset', 'form', 'table',
+  'h1', 'h2', 'h3', 'h4', 'canvas', '[role]',
+].join(',');
+
+const TITLE_CONTAINERS = new Set(['SECTION', 'ASIDE', 'HEADER', 'FOOTER', 'NAV', 'MAIN', 'DIALOG', 'DETAILS', 'FIELDSET', 'FORM']);
+const TITLE_SKIP = new Set(['HTML', 'BODY', 'SCRIPT', 'STYLE', 'LINK', 'META']);
+
+function titleFor(el) {
+  const aria = el.getAttribute('aria-label');
+  if (aria) return aria;
+  if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
+    const label = el.labels?.[0]?.textContent?.replace(/\s+/g, ' ').trim();
+    if (label) return label;
+    if (el.placeholder) return el.placeholder;
+    if (el instanceof HTMLInputElement && el.value && el.type !== 'text') return el.value;
+  }
+  if (TITLE_CONTAINERS.has(el.tagName)) {
+    const heading = el.querySelector('h1, h2, h3, summary');
+    const text = heading?.textContent?.replace(/\s+/g, ' ').trim();
+    if (text) return text;
+  }
+  const text = el.textContent?.replace(/\s+/g, ' ').trim();
+  if (text) return text.slice(0, 90);
+  if (el.id) return el.id;
+  return '';
+}
+
+/**
+ * Añade `title` a los controles y secciones de la interfaz para poder
+ * identificarlos desde el inspector del navegador. Los elementos nuevos que
+ * crea la UI se decoran solos.
+ */
+export function installTitles(root = document.body) {
+  const decorate = (el) => {
+    if (!(el instanceof Element) || TITLE_SKIP.has(el.tagName) || !el.matches(TITLE_SELECTOR)) return;
+    if (el.hasAttribute('title')) return;
+    const text = titleFor(el);
+    if (text) el.setAttribute('title', text);
+  };
+  const scan = (node) => {
+    if (!(node instanceof Element)) return;
+    decorate(node);
+    node.querySelectorAll(TITLE_SELECTOR).forEach(decorate);
+  };
+  scan(root);
+  const observer = new MutationObserver((list) => {
+    for (const mutation of list) {
+      for (const node of mutation.addedNodes) scan(node);
+    }
+  });
+  observer.observe(root, { childList: true, subtree: true });
+  return () => observer.disconnect();
+}

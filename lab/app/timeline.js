@@ -50,16 +50,15 @@ export function createTimeline(root, store, actions) {
   const rows = h('div', { class: 'tl-rows' });
   const addRow = h('div', { class: 'tl-addrow' }, h('div', { class: 'tl-head' },
     h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.focusLibrary() }, '+ pista')), h('div', { class: 'tl-lane' }));
-  const masterBtn = h('button', { type: 'button', class: 'tl-name', onclick: () => store.select({ kind: 'master' }) }, 'Maestro', h('small', {}, 'reverb · eco · eq · techo'));
+  const masterBtn = h('button', { type: 'button', class: 'tl-name', onclick: () => store.select({ kind: 'master' }) }, 'Maestro');
   const masterRow = h('div', { class: 'tl-masterrow' }, h('div', { class: 'tl-head' }, masterBtn), h('div', { class: 'tl-lane' }));
   const playhead = h('div', { class: 'tl-playhead', 'aria-hidden': 'true' });
   const endMark = h('div', { class: 'tl-end', 'aria-hidden': 'true', title: 'Fin del tema' });
   const after = h('div', { class: 'tl-after', 'aria-hidden': 'true' });
-  const empty = h('p', { class: 'tl-empty' }, 'Arrastra un instrumento de la biblioteca hasta aquí, o haz clic en él para añadirlo en el cabezal.');
   const marquee = h('div', { class: 'tl-marquee', hidden: true });
   const region = h('div', { class: 'tl-region', hidden: true });
   ruler.append(region);
-  content.append(rulerbar, rows, addRow, masterRow, after, endMark, playhead, empty, marquee);
+  content.append(rulerbar, rows, addRow, masterRow, after, endMark, playhead, marquee);
   scroll.append(content);
   root.append(scroll);
 
@@ -230,7 +229,6 @@ export function createTimeline(root, store, actions) {
     masterBtn.closest('.tl-masterrow').classList.toggle('is-selected', state.selection.kind === 'master');
     endMark.style.left = `${x(p.duration)}px`;
     after.style.left = `${x(p.duration)}px`;
-    empty.hidden = p.tracks.length > 0;
     renderRegion();
     updatePlayhead(state.playhead);
   }

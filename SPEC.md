@@ -1043,7 +1043,7 @@ por parámetro.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ← sen   Estanque al anochecer ✎     guardado ·  ↶  ↷   Abrir   Exportar │
+│ ← sen   Estanque al anochecer ✎   ●   ↶  ↷   Abrir   Guardar   Exportar │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ▶  ■   01:12,4 / 03:00   ⟲ región   rejilla 0,5 s   zoom −/+   vol escucha │
 ├────────────┬───────────────────────────────────────────────┬─────────────┤
@@ -1054,15 +1054,17 @@ por parámetro.
 │ Texturas   │ Grillos  M S ▮▮ │        ▒▒▒▒▒▒ crece ▒▒▒▒▒▒▒ │  seleccio-  │
 │ Naturaleza │ Aire     M S ▮▮ │▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │  nado)      │
 │ Sonidos    │ + pista                                       │             │
-│ Plantillas │ Maestro  reverb · eco · eq · techo            │             │
+│ Plantillas │ Maestro                                       │             │
 ├────────────┴───────────────────────────────────────────────┴─────────────┤
 │ nivel ▮▮▮▮▮▯ −14 LUFS · pico −2,1 · motor 18 % · Do mayor · sin tempo     │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Cabecera:** volver, nombre editable del tema, estado de guardado, enlace
-  **?** a las instrucciones (`lab/guia.html`, en otra pestaña),
-  deshacer/rehacer, abrir y exportar.
+- **Cabecera:** volver, nombre editable del tema, un punto mientras se
+  autoguarda en el navegador, enlace **?** a las instrucciones
+  (`lab/guia.html`, en otra pestaña), deshacer/rehacer, abrir, **Guardar**
+  (descarga el `.sen.json`) y exportar. Todos los controles y secciones de la
+  interfaz llevan un atributo `title` para poder identificarlos.
 - **Transporte:** reproducir/pausa, detener (vuelve al inicio), posición y
   duración (`mm:ss,d`), región de escucha en bucle, rejilla, zoom y volumen de
   escucha (no afecta a la exportación).

@@ -70,7 +70,7 @@ export function createLibrary(root, store, actions) {
   const templates = fold('Plantillas');
   templates.body.append(h('p', { class: 'help' }, 'Cargando las canciones de sen…'));
 
-  const close = h('div', { class: 'ins-head' }, h('h2', {}, 'Añadir'), h('button', { type: 'button', class: 'icon-btn ins-close', 'aria-label': 'Cerrar la biblioteca', onclick: () => actions.closeSheet() }, '×'));
+  const close = h('div', { class: 'ins-head ins-head--bare' }, h('button', { type: 'button', class: 'icon-btn ins-close', 'aria-label': 'Cerrar la biblioteca', onclick: () => actions.closeSheet() }, '×'));
   root.append(close, ...groups, templates.el);
 
   return {

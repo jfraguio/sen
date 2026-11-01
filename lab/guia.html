@@ -315,7 +315,7 @@
 └───────────────────────────────────────────────────────────────────┘</pre>
         <table>
           <tr><th>Zona</th><th>Para qué sirve</th></tr>
-          <tr><td>Cabecera</td><td>Volver a sen, nombre del tema, estado de guardado («sin descargar» si aún no has bajado el proyecto), estas instrucciones (<b>?</b>), deshacer y rehacer, <b>Nuevo</b>, <b>Abrir</b>, <b>Proyecto</b> (descarga el <code>.sen.json</code>) y <b>Exportar</b>.</td></tr>
+          <tr><td>Cabecera</td><td>Volver a sen, nombre del tema, un punto mientras el tema se autoguarda, estas instrucciones (<b>?</b>), deshacer y rehacer, <b>Nuevo</b>, <b>Abrir</b>, <b>Guardar</b> (descarga el <code>.sen.json</code>) y <b>Exportar</b>.</td></tr>
           <tr><td>Transporte</td><td>Reproducir/pausa, detener (vuelve al inicio), posición, región en bucle, rejilla de ajuste, zoom y volumen de escucha. El volumen no afecta a lo que exportas.</td></tr>
           <tr><td>Biblioteca</td><td>Instrumentos agrupados por gesto (<b>Sostenidos</b>, <b>Puntuales</b>, <b>Texturas</b> y <b>Naturaleza</b>) y, dentro, por timbre, y <b>Plantillas</b>. Cada sección y subsección se pliega con su título y empieza plegada. El botón <b>▶</b> hace sonar una muestra de 3 s sin añadir nada.</td></tr>
           <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja sus fundidos, su curva y una forma de onda resumida.</td></tr>
@@ -566,7 +566,7 @@ node scripts/render-lab.mjs tema.wav     # usa el proyecto guardado dentro del W
         <!-- ------------------------------------------------------------ -->
         <h2 id="archivos">Guardar, abrir y MIDI</h2>
         <ul>
-          <li><b>Autoguardado</b>: el tema se guarda solo en el navegador, un segundo después de cada cambio, y se recupera al volver. Es una copia local: si borras los datos del navegador se pierde, así que <b>descarga el proyecto</b> (<b>Proyecto</b> o <kbd>Cmd/Ctrl</kbd> + <kbd>S</kbd>) para conservarlo. La cabecera indica «sin descargar» cuando hay cambios que aún no has bajado.</li>
+          <li><b>Autoguardado</b>: el tema se guarda solo en el navegador, un segundo después de cada cambio, y se recupera al volver. Mientras guarda aparece un punto en la cabecera; cuando termina, desaparece. Es una copia local: si borras los datos del navegador se pierde, así que <b>descarga el proyecto</b> (<b>Guardar</b> o <kbd>Cmd/Ctrl</kbd> + <kbd>S</kbd>) para conservarlo.</li>
           <li><b>Nuevo</b> te pregunta antes de descartar un tema que no has descargado.</li>
           <li><b>Deshacer</b> hasta 200 pasos. Un arrastre o un gesto de deslizador cuentan como un solo paso.</li>
           <li><b>Abrir</b> (o arrastrar a la ventana): un <code>.sen.json</code>, un WAV exportado por el laboratorio o un MIDI.</li>

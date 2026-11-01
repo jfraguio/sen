@@ -2,7 +2,7 @@
  * sen lab · arranque y orquestación del editor.
  */
 
-import { h, fmtTime, toast, announce, findTrack, findElement, typingTarget, isCompact, clampNum } from './util.js';
+import { h, fmtTime, toast, announce, findTrack, findElement, typingTarget, isCompact, clampNum, installTitles } from './util.js';
 import {
   INSTRUMENTS, LIMITS, LabFileError, createElement, createProject, createSceneProject, createTrack, layerKey, newId, normalizeProject,
   projectCounts, splitToneChanges,
@@ -57,6 +57,7 @@ if (missing.length) {
 /* ------------------------------------------------------------ arranque */
 
 function boot() {
+  installTitles();
   document.getElementById('app').hidden = false;
   const saved = loadAutosave();
   const store = createStore(saved?.project || createProject({ seed: 'vacio' }));
@@ -810,11 +811,18 @@ function boot() {
 
   /* ------------------------------------------------------------ guardado */
 
-  let saveText = 'guardado';
+  let saveState = '';
   function updateSaveState(text) {
-    if (text) saveText = text;
-    const dl = isDownloaded(state.project);
-    $('save-state').textContent = `${saveText}${state.project.tracks.length ? (dl ? ' · descargado' : ' · sin descargar') : ''}`;
+    if (text === 'guardando…') saveState = 'saving';
+    else if (text === 'guardado') saveState = '';
+    else if (typeof text === 'string' && text.startsWith('sin guardar')) saveState = 'error';
+    const dot = $('save-state');
+    const label = saveState === 'error' ? 'No se pudo guardar en el navegador' : saveState === 'saving' ? 'Guardando en el navegador…' : '';
+    dot.hidden = !saveState;
+    dot.classList.toggle('is-error', saveState === 'error');
+    dot.title = label;
+    if (label) dot.setAttribute('aria-label', label);
+    else dot.removeAttribute('aria-label');
   }
 
   /* ------------------------------------------------------------ suscripción */

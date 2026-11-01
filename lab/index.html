@@ -21,21 +21,21 @@
       <p><a href="guia.html">Instrucciones del laboratorio</a> · <a href="../">← Volver a sen</a></p>
     </section>
 
-    <div class="lab" id="app" hidden>
-      <header class="topbar">
+    <div class="lab" id="app" title="Editor del laboratorio" hidden>
+      <header class="topbar" title="Cabecera del laboratorio">
         <a class="back" href="../" aria-label="Volver a sen">← <span>sen</span></a>
         <label class="title">
           <span class="sr-only">Nombre del tema</span>
           <input id="project-name" type="text" autocomplete="off" spellcheck="false" maxlength="120" />
         </label>
-        <span class="save-state" id="save-state">guardado</span>
+        <span class="save-state" id="save-state" role="status" aria-live="polite" hidden></span>
         <div class="topbar__actions">
           <a class="icon-btn help-link" id="help" href="guia.html" target="_blank" rel="noopener" aria-label="Instrucciones (se abre en otra pestaña)" title="Instrucciones (?)">?</a>
           <button class="icon-btn" id="undo" type="button" aria-label="Deshacer" title="Deshacer (Cmd/Ctrl+Z)">↶</button>
           <button class="icon-btn" id="redo" type="button" aria-label="Rehacer" title="Rehacer (Mayús+Cmd/Ctrl+Z)">↷</button>
           <button class="btn btn--quiet" id="new" type="button">Nuevo</button>
           <button class="btn btn--quiet" id="open" type="button" title="Abrir un .sen.json o un WAV del laboratorio, o importar un MIDI">Abrir</button>
-          <button class="btn btn--quiet" id="save-project" type="button" title="Descargar el proyecto (Cmd/Ctrl+S)">Proyecto</button>
+          <button class="btn btn--quiet" id="save-project" type="button" title="Guardar el proyecto (Cmd/Ctrl+S)">Guardar</button>
           <button class="btn btn--primary" id="export" type="button" title="Exportar (Cmd/Ctrl+E)">Exportar</button>
           <input id="open-file" type="file" accept=".json,.wav,.mid,.midi,application/json,audio/wav,audio/x-wav,audio/midi" hidden />
         </div>
@@ -70,7 +70,7 @@
         <aside class="inspector sheet" id="inspector" aria-label="Inspector"></aside>
       </div>
 
-      <footer class="statusbar" id="statusbar">
+      <footer class="statusbar" id="statusbar" title="Barra de estado">
         <div class="meter" aria-hidden="true"><i id="meter-l"></i><i id="meter-r"></i></div>
         <span id="st-lufs">— LUFS</span>
         <span id="st-peak">pico —</span>
