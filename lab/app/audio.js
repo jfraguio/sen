@@ -2,14 +2,26 @@
  * Puente de audio: AudioContext, AudioWorklet «lab-player» y Worker de
  * escucha unidos por un MessageChannel directo.
  *
- * Incluye un sintetizador ligero para el modo teclado: las notas que tocas con
- * el ordenador suenan al instante, sin esperar a que el motor recompile.
+ * El modo teclado usa un segundo AudioWorklet, «lab-live», con las mismas
+ * voces del motor: las notas que tocas suenan al instante, sin esperar a que
+ * el motor recompile, y con el mismo timbre, mezcla y reverb que en el tema.
  */
 
-import { trackParams } from '../engine/schema.js';
-import { noteFrequency } from '../engine/music.js';
+import { echoTime } from '../engine/index.js';
+import { LIMITS, masterDefaults } from '../engine/schema.js';
 
 const noteKey = (note) => (note && typeof note === 'object' ? `hz:${note.hz}` : String(note));
+
+/** Bus maestro tal como lo aplica el motor (eco sincronizado y reverb limitada). */
+function liveMaster(project) {
+  const m = project?.master || masterDefaults();
+  return {
+    gain: m.gain ?? 0,
+    reverb: { ...m.reverb, decay: Math.min(LIMITS.reverbDecay, m.reverb?.decay ?? 4.5) },
+    echo: { ...m.echo, time: echoTime(m.echo, project?.tempo) },
+    eq: { ...(m.eq || {}) },
+  };
+}
 
 export class LabAudio {
   constructor(handlers = {}) {
@@ -28,7 +40,9 @@ export class LabAudio {
     this.samples = {};
     this.monitorMute = null;
     this.liveGain = null;
-    this.live = new Map();
+    this.liveNode = null;
+    this.liveReady = null;
+    this.live = new Set();
     this.liveSeq = new Map();
     this.createWorker();
   }
@@ -86,6 +100,20 @@ export class LabAudio {
       return this.ready;
     }
     this.ctx = new AudioContext({ latencyHint: 'interactive' });
+    // El teclado se prepara aparte: si fallara, la escucha del tema sigue.
+    this.liveReady = this.ctx.audioWorklet.addModule(new URL('../live-worklet.js', import.meta.url))
+      .then(() => {
+        this.liveGain = this.ctx.createGain();
+        this.liveGain.gain.value = this.volume;
+        this.liveGain.connect(this.ctx.destination);
+        this.liveNode = new AudioWorkletNode(this.ctx, 'lab-live', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+        this.liveNode.connect(this.liveGain);
+        return this.liveNode;
+      })
+      .catch((err) => {
+        console.warn('Teclado sin audio:', err);
+        return null;
+      });
     this.ready = (async () => {
       await this.ctx.audioWorklet.addModule(new URL('../player-worklet.js', import.meta.url));
       this.node = new AudioWorkletNode(this.ctx, 'lab-player', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
@@ -156,137 +184,51 @@ export class LabAudio {
 
   /* ------------------------------------------------------------ teclado */
 
-  ensureLive() {
-    if (!this.ctx) return null;
-    if (!this.liveGain) {
-      this.liveGain = this.ctx.createGain();
-      this.liveGain.gain.value = this.volume;
-      this.liveGain.connect(this.ctx.destination);
-    }
-    return this.liveGain;
-  }
-
   /**
-   * Toca una nota con el teclado. No pasa por el motor: un sintetizador ligero
-   * imita el timbre de la pista para responder sin latencia mientras se prueba
-   * o se graba. La nota real se escucha al reproducir el tema.
+   * Toca una nota con el teclado en el AudioWorklet «lab-live»: las mismas
+   * voces del motor, con la mezcla de la pista y el bus maestro del tema.
+   * `opts`: `{ a4, fade, project }`; `fade` es el fundido entre notas (s).
    */
-  async noteOn(note, track, a4 = 440) {
+  async noteOn(note, track, { a4 = 440, fade = 0.15, project = null } = {}) {
     const key = noteKey(note);
     const token = (this.liveSeq.get(key) || 0) + 1;
     this.liveSeq.set(key, token);
+    let node = null;
     try {
       await this.ensure();
+      node = await this.liveReady;
     } catch {
       return;
     }
     // La tecla pudo soltarse (o repetirse) mientras se preparaba el contexto.
-    if (this.liveSeq.get(key) !== token) return;
-    const out = this.ensureLive();
-    if (!out || !track) return;
-    this.noteOff(key, true);
-    const p = trackParams(track);
-    const f = noteFrequency(note, a4);
-    const now = this.ctx.currentTime + 0.004;
-    const g = this.ctx.createGain();
-    g.connect(out);
-    const voice = { g, nodes: [] };
-    this.live.set(key, voice);
-    while (this.live.size > 16) {
-      const oldest = this.live.keys().next().value;
-      if (oldest === key) break;
-      this.noteOff(oldest);
-    }
-    const peak = 0.1;
-    const sustain = track.family === 'sustain';
-    const inst = track.instrument;
-    const attack = sustain ? 0.035 : 0.004;
-
-    if (sustain) {
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = p.filterType === 'hp' ? 'highpass' : p.filterType === 'bp' ? 'bandpass' : 'lowpass';
-      filter.frequency.value = Math.min(16000, Math.max(80, p.cutoff || 2400));
-      filter.Q.value = Math.min(12, Math.max(0.3, p.q || 0.7));
-      filter.connect(g);
-      const kind = inst === 'seno' || inst === 'flauta' ? 'sine' : inst === 'cuerdas' || inst.startsWith('pad') || inst === 'brass80' || inst === 'lead80' || inst === 'bass80' ? 'sawtooth' : 'triangle';
-      const voices = Math.min(3, Math.max(1, Math.round(p.voices || 1)));
-      const detune = Math.min(30, Math.max(0, p.detune || 0));
-      for (let k = 0; k < voices; k++) {
-        const o = this.ctx.createOscillator();
-        o.type = kind;
-        o.frequency.value = f;
-        const spread = voices > 1 ? (k / (voices - 1)) * 2 - 1 : 0;
-        o.detune.value = spread * detune;
-        o.connect(filter);
-        o.start(now);
-        voice.nodes.push(o);
-      }
-      if (inst === 'drone' || inst === 'bass80') {
-        const o = this.ctx.createOscillator();
-        const sub = this.ctx.createGain();
-        o.type = 'sine';
-        o.frequency.value = f / 2;
-        sub.gain.value = Math.min(0.5, p.sub ?? 0.3);
-        o.connect(sub).connect(filter);
-        o.start(now);
-        voice.nodes.push(o);
-      }
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(peak, now + attack);
-      g.gain.setTargetAtTime(peak * 0.86, now + attack, 0.4);
-    } else {
-      const decay = Math.min(8, Math.max(0.25, p.decay || 3));
-      for (let k = 0; k < 2; k++) {
-        const o = this.ctx.createOscillator();
-        o.type = k ? 'sine' : inst === 'piano' || inst === 'arpa' || inst === 'guitarra' || inst === 'pulsada' ? 'triangle' : 'sine';
-        o.frequency.value = f * (k ? 2.005 : 1);
-        o.connect(g);
-        o.start(now);
-        voice.nodes.push(o);
-      }
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(peak * 1.2, now + attack);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + decay);
-      for (const o of voice.nodes) o.stop(now + decay + 0.02);
-    }
+    if (this.liveSeq.get(key) !== token || !node || !track) return;
+    this.live.add(key);
+    node.port.postMessage({
+      type: 'on',
+      id: key,
+      note,
+      track: { id: track.id, family: track.family, instrument: track.instrument, params: track.params, mix: track.mix },
+      a4,
+      fade,
+      seed: project?.seed,
+      key: project?.key,
+      master: liveMaster(project),
+    });
   }
 
-  /** Suelta una nota del teclado. `fast`: sin relajación (reinicio o robo de voz). */
+  /** Suelta una nota del teclado. `fast`: sin cruce (reinicio o robo de voz). */
   noteOff(note, fast = false) {
     const key = noteKey(note);
     this.liveSeq.set(key, (this.liveSeq.get(key) || 0) + 1);
-    if (!this.ctx) return;
-    const voice = this.live.get(key);
-    if (!voice) return;
+    if (!this.live.has(key)) return;
     this.live.delete(key);
-    const now = this.ctx.currentTime;
-    const rel = fast ? 0.02 : 0.28;
-    const g = voice.g.gain;
-    if (g.cancelAndHoldAtTime) g.cancelAndHoldAtTime(now);
-    else {
-      const v = Math.max(0.0001, g.value);
-      g.cancelScheduledValues(now);
-      g.setValueAtTime(v, now);
-    }
-    g.exponentialRampToValueAtTime(0.0001, now + rel);
-    for (const o of voice.nodes) {
-      try {
-        o.stop(now + rel + 0.02);
-      } catch {
-        /* ya parado */
-      }
-    }
-    setTimeout(() => {
-      try {
-        voice.g.disconnect();
-      } catch {
-        /* ya desconectado */
-      }
-    }, (rel + 0.2) * 1000);
+    this.liveNode?.port.postMessage({ type: 'off', id: key, fast });
   }
 
   allNotesOff() {
-    for (const key of new Set([...this.live.keys(), ...this.liveSeq.keys()])) this.noteOff(key, true);
+    for (const key of this.liveSeq.keys()) this.liveSeq.set(key, (this.liveSeq.get(key) || 0) + 1);
+    this.live.clear();
+    this.liveNode?.port.postMessage({ type: 'all-off' });
   }
 
   /** Posición actual estimada (s). */

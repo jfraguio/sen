@@ -3,7 +3,7 @@
  * campos numéricos e inspector como hoja inferior.
  */
 
-import { h, findElement, instrumentLabel, clampNum } from './util.js';
+import { h, findElement, trackTag, clampNum } from './util.js';
 import { ELEMENT_TYPES } from '../engine/schema.js';
 import { elementLabel } from './timeline.js';
 
@@ -31,7 +31,7 @@ export function createCompact(root, store, actions) {
     for (const track of p.tracks) {
       const card = h('div', { class: 'compact-track', style: { '--c': track.color } });
       card.append(h('header', {},
-        h('button', { type: 'button', class: 'tl-name', onclick: () => { store.select({ kind: 'track', trackId: track.id }); actions.openSheet('inspector'); } }, track.name, h('small', {}, track.family === 'layer' ? 'capa' : instrumentLabel(track))),
+        h('button', { type: 'button', class: 'tl-name', onclick: () => { store.select({ kind: 'track', trackId: track.id }); actions.openSheet('inspector'); } }, track.name, trackTag(track) ? h('small', {}, trackTag(track)) : null),
         h('button', { type: 'button', class: 'tl-ms tl-mute', 'aria-pressed': String(!!track.mix.mute), 'aria-label': `Silenciar ${track.name}`, onclick: () => actions.toggleMix(track.id, 'mute') }, 'M'),
         h('button', { type: 'button', class: 'tl-ms tl-solo', 'aria-pressed': String(!!track.mix.solo), 'aria-label': `Solo de ${track.name}`, onclick: () => actions.toggleMix(track.id, 'solo') }, 'S'),
         num('Vol. (dB)', track.mix.gain, (v) => store.commit((d) => {

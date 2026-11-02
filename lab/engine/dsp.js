@@ -248,6 +248,10 @@ export class ElementEnvelope {
     this.fadeOut = period ? 0 : el.fadeOut || 0;
     this.crossIn = !period && !!el.crossIn;
     this.crossOut = !period && !!el.crossOut;
+    // Fundidos del elemento completo cuando la voz es solo un tramo de él
+    // (cambios de nota): `offset` es el inicio del tramo dentro del elemento.
+    const o = el.outer;
+    this.outer = !period && o && (o.fadeIn > 0 || o.fadeOut > 0) ? o : null;
     this.level = dbToGain(el.level || 0);
     this.curve = curveFunction(el.curve);
   }
@@ -268,6 +272,12 @@ export class ElementEnvelope {
     if (this.fadeOut > 0 && t > this.len - this.fadeOut) {
       const x = (this.len - t) / this.fadeOut;
       g *= this.crossOut ? Math.sin((Math.PI / 2) * x) : fadeCurve(x);
+    }
+    const o = this.outer;
+    if (o) {
+      const tg = o.offset + t;
+      if (o.fadeIn > 0 && tg < o.fadeIn) g *= fadeCurve(tg / o.fadeIn);
+      if (o.fadeOut > 0 && tg > o.length - o.fadeOut) g *= fadeCurve((o.length - tg) / o.fadeOut);
     }
     return g;
   }

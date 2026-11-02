@@ -229,6 +229,109 @@ function smallProject(over = {}) {
   const loopData = decodeWavChannels(new Uint8Array(join(loopWav.parts)));
   const loopSeam = seamScore(loopData.data[0]);
   ok(loopSeam <= 1, `un tone con cambios enlaza el bucle sin costura (${loopSeam.toFixed(2)})`);
+
+  // Los fundidos del elemento se miden en el tiempo del elemento, no en cada
+  // tramo: un fundido de entrada largo no se come el primer acorde ni hace que
+  // el segundo entre de golpe.
+  const outerAudio = (changes) => {
+    const op = createProject({ seed: 'fundido-elemento', duration: 12 });
+    const ot = createTrack('pad', op);
+    ot.id = 't-fundido';
+    const oe = createElement(ot, op, 0, 'tone');
+    oe.id = 'e-fundido';
+    oe.length = 12;
+    oe.fadeIn = 4;
+    oe.fadeOut = 0;
+    oe.notes = ['C3', 'E3', 'G3'];
+    if (changes) oe.changes = [{ t: 2, notes: ['C3', 'E3', 'G3'] }];
+    ot.elements.push(oe);
+    op.tracks.push(ot);
+    return createRenderer(compile(op, { sampleRate: 22050 }), { limiter: false }).render(22050 * 6).L;
+  };
+  const plainFade = outerAudio(false);
+  const changedFade = outerAudio(true);
+  const ratio = (a, b) => 20 * Math.log10(rms(a, 2.2, 3.8, 22050) / rms(b, 2.2, 3.8, 22050));
+  const fadeDiff = ratio(changedFade, plainFade);
+  ok(Math.abs(fadeDiff) < 3, `con cambios de nota, el fundido de entrada sigue el del elemento (${fadeDiff.toFixed(1)} dB tras el cambio)`);
+}
+
+/* ------------------------------------------------------------ teclado en vivo */
+
+{
+  // El AudioWorklet «lab-live» usa las voces del motor: un acorde tocado con el
+  // teclado suena al mismo nivel que el mismo acorde en la pista.
+  const rms = (L, a, b, rate) => {
+    let s = 0;
+    for (let i = Math.round(a * rate); i < Math.round(b * rate); i++) s += L[i] * L[i];
+    return Math.sqrt(s / Math.max(1, Math.round((b - a) * rate)));
+  };
+  const sr = 48000;
+  let LiveProc = null;
+  globalThis.sampleRate = sr;
+  globalThis.AudioWorkletProcessor = class {
+    constructor() {
+      this.port = { postMessage() {}, onmessage: null };
+    }
+  };
+  globalThis.registerProcessor = (name, cls) => {
+    LiveProc = cls;
+  };
+  await import('../lab/live-worklet.js');
+  const liveLevels = (inst, notes) => {
+    const p = createProject({ seed: 'teclado', duration: 20 });
+    const t = createTrack(inst, p);
+    t.id = `t-teclado-${inst}`;
+    const m = p.master;
+    const master = { gain: m.gain, reverb: { ...m.reverb }, echo: { ...m.echo }, eq: { ...m.eq } };
+    const live = new LiveProc();
+    for (const n of notes) live.port.onmessage({ data: { type: 'on', id: n, note: n, track: t, a4: 440, fade: 0.15, seed: p.seed, key: p.key, master } });
+    const N = sr * 3;
+    // Se compara la suma de los dos canales: el reparto estéreo de los modos
+    // depende de la semilla de cada nota.
+    const L = new Float32Array(N);
+    const oL = new Float32Array(128);
+    const oR = new Float32Array(128);
+    for (let o = 0; o < N; o += 128) {
+      live.process([], [[oL, oR]]);
+      for (let i = 0; i < 128 && o + i < N; i++) L[o + i] = oL[i] + oR[i];
+    }
+    let e;
+    if (t.family === 'sustain') {
+      e = createElement(t, p, 0, 'tone');
+      e.id = 'e-teclado';
+      e.length = 10;
+      e.fadeIn = 0.15;
+      e.fadeOut = 0;
+      e.notes = notes;
+    } else {
+      e = createElement(t, p, 0, 'hit');
+      e.id = 'e-teclado';
+      e.note = notes[0];
+      e.velocity = 0.7;
+    }
+    t.elements = [e];
+    p.tracks = [t];
+    const out = createRenderer(compile(p, { sampleRate: sr }), { limiter: false }).render(N);
+    const engine = out.L.map((x, i) => x + out.R[i]);
+    for (const n of notes) live.port.onmessage({ data: { type: 'off', id: n } });
+    const T = new Float32Array(sr * 2);
+    for (let o = 0; o < T.length; o += 128) {
+      live.process([], [[oL, oR]]);
+      T.set(oL.subarray(0, Math.min(128, T.length - o)), o);
+    }
+    const a = t.family === 'sustain' ? 0.5 : 0;
+    const b = t.family === 'sustain' ? 2.5 : 0.5;
+    return {
+      diff: 20 * Math.log10(rms(L, a, b, sr) / rms(engine, a, b, sr)),
+      voices: live.voices.length,
+      tail: rms(T, 1.6, 2, sr),
+    };
+  };
+  const padLive = liveLevels('pad', ['C3', 'E3', 'G3']);
+  ok(Math.abs(padLive.diff) < 2.5, `teclado: un acorde de pad suena como en la pista (${padLive.diff.toFixed(1)} dB)`);
+  ok(padLive.voices === 0, 'teclado: al soltar las teclas las voces sostenidas se liberan');
+  const kalLive = liveLevels('kalimba', ['C4']);
+  ok(Math.abs(kalLive.diff) < 2.5, `teclado: un golpe de kalimba suena como en la pista (${kalLive.diff.toFixed(1)} dB)`);
 }
 
 /* ------------------------------------------------------------ todos los instrumentos */
@@ -256,6 +359,139 @@ function smallProject(over = {}) {
   const listed = INSTRUMENT_GROUPS.flatMap((g) => g.subgroups.flatMap((s) => s.instruments));
   ok(playable.length === listed.length && playable.every((id) => listed.filter((x) => x === id).length === 1),
     'la biblioteca agrupa todos los instrumentos una sola vez');
+}
+
+/* ------------------------------------------------------------ timbres */
+
+{
+  const sr = 44100;
+  const render = (id, note, { type = null, len = 3, mutate = () => {} } = {}) => {
+    const p = createProject({ seed: 'timbres', duration: 30 });
+    const t = createTrack(id, p);
+    t.id = 't-timbre';
+    t.mix.reverb = 0;
+    t.mix.pan = 0;
+    const e = createElement(t, p, 0, type || (t.family === 'sustain' ? 'tone' : 'hit'));
+    e.id = 'e-timbre';
+    if (e.type === 'hit') e.note = note;
+    else {
+      e.notes = [note];
+      e.length = len;
+      e.fadeIn = 0.05;
+      e.fadeOut = 0.05;
+    }
+    mutate(e, t);
+    t.elements = [e];
+    p.tracks = [t];
+    return createRenderer(compile(p, { sampleRate: sr }), { limiter: false }).render(Math.round(sr * len));
+  };
+  const lufs = (o) => {
+    const m = new LoudnessMeter(sr, 2);
+    m.push(o.L, o.R, o.L.length);
+    return m.integrated();
+  };
+  const pitch = (x, at) => {
+    const s = Math.round(at * sr);
+    let best = 0;
+    let lagBest = 0;
+    for (let lag = 40; lag < 450; lag++) {
+      let c = 0;
+      let e1 = 0;
+      let e2 = 0;
+      for (let i = 0; i < 2048; i++) {
+        c += x[s + i] * x[s + i + lag];
+        e1 += x[s + i] * x[s + i];
+        e2 += x[s + i + lag] * x[s + i + lag];
+      }
+      c /= Math.sqrt(e1 * e2) || 1;
+      if (c > best) {
+        best = c;
+        lagBest = lag;
+      }
+    }
+    return sr / lagBest;
+  };
+  const slide = render('slide', 'C4', { len: 1.5 });
+  const early = pitch(slide.L, 0.005);
+  const late = pitch(slide.L, 0.6);
+  ok(early < late * 0.96 && Math.abs(late - 261.63) < 4, `slide: la nota entra deslizándose (${early.toFixed(0)} → ${late.toFixed(0)} Hz)`);
+
+  const ther = render('theremin', 'C4', {
+    len: 4,
+    mutate: (e) => {
+      e.changes = [{ t: 2, notes: ['G4'] }];
+    },
+  });
+  const tMid = pitch(ther.L, 2.02);
+  const tEnd = pitch(ther.L, 3);
+  ok(tMid > 275 && tMid < 380 && Math.abs(tEnd - 392) < 6, `theremin: portamento de Do4 a Sol4 (${tMid.toFixed(0)} Hz en el cambio → ${tEnd.toFixed(0)} Hz)`);
+
+  const gp = createProject({ seed: 'gaviotas', duration: 20 });
+  const gt = createTrack('pajaro', gp);
+  gt.id = 't-gaviota';
+  gt.params.species = 'gaviota';
+  const gull = createRenderer(compile(auditionProject(gp, gt, { seconds: 4 }), { sampleRate: sr, audition: true }), { limiter: false }).render(sr * 4);
+  let gpk = 0;
+  for (let i = 0; i < gull.L.length; i++) gpk = Math.max(gpk, Math.abs(gull.L[i]), Math.abs(gull.R[i]));
+  ok(gpk > 0.01 && gpk < 1, `pájaros: las gaviotas suenan (pico ${(20 * Math.log10(gpk)).toFixed(1)} dBFS)`);
+
+  const bowl = render('cuenco', 'C4', { len: 3 });
+  let lr = 0;
+  let ll = 0;
+  let rr = 0;
+  for (let i = 0; i < bowl.L.length; i++) {
+    lr += bowl.L[i] * bowl.R[i];
+    ll += bowl.L[i] * bowl.L[i];
+    rr += bowl.R[i] * bowl.R[i];
+  }
+  const corr = lr / Math.sqrt(ll * rr);
+  ok(corr < 0.98, `cuenco tibetano: sus pares de modos giran en estéreo (correlación L/R ${corr.toFixed(2)})`);
+
+  const bell = render('fmBell', 'C5', { len: 1 });
+  const N = 8192;
+  let hi = 0;
+  let all = 0;
+  for (let k = 1; k < N / 2; k += 4) {
+    let re = 0;
+    let im = 0;
+    for (let i = 0; i < N; i++) {
+      const w = (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / N)) * bell.L[2000 + i];
+      re += w * Math.cos((2 * Math.PI * k * i) / N);
+      im += w * Math.sin((2 * Math.PI * k * i) / N);
+    }
+    const e = re * re + im * im;
+    all += e;
+    if ((k * sr) / N > 10000) hi += e;
+  }
+  ok(hi / all < 0.05, `campana FM: sin bandas laterales ásperas por encima de 10 kHz (${((100 * hi) / all).toFixed(1)} %)`);
+
+  const choir = ['C2', 'C3', 'C4', 'C5'].map((n) => lufs(render('coro', n, { len: 6 })));
+  const spread = Math.max(...choir) - Math.min(...choir);
+  ok(spread < 4, `coro: sonoridad pareja en todos los registros (${spread.toFixed(1)} LU entre Do2 y Do5)`);
+
+  const rain = render('paloLluvia', 'C5', { len: 5 });
+  const segRms = (x, a, b) => Math.sqrt(x.subarray(Math.round(a * sr), Math.round(b * sr)).reduce((s, v) => s + v * v, 0) / ((b - a) * sr));
+  ok(segRms(rain.L, 0.5, 1.5) > 1e-3 && segRms(rain.L, 2.5, 3) > 1e-4 && segRms(rain.L, 4.6, 5) < segRms(rain.L, 0.5, 1.5) * 0.3,
+    'palo de lluvia: el vuelco crece, se sostiene y se apaga');
+
+  // Los sostenidos nuevos enlazan el bucle sin costura (frecuencias y
+  // moduladores periódicos).
+  for (const id of ['eolica', 'cuencoCanto']) {
+    const lp = createProject({ seed: `bucle-${id}`, duration: 10, end: { mode: 'loop', fadeOut: 0 } });
+    const lt = createTrack(id, lp);
+    lt.id = `t-${id}`;
+    const le = createElement(lt, lp, 0, 'tone');
+    le.id = 'e-bucle';
+    le.length = 10;
+    le.fadeIn = 0;
+    le.fadeOut = 0;
+    lt.elements = [le];
+    lp.tracks = [lt];
+    const wav = await renderToWav(lp, { sampleRate: 22050, bits: 16, channels: 1, end: 'loop', loudness: null });
+    const data = decodeWavChannels(new Uint8Array(join(wav.parts)));
+    const seam = seamScore(data.data[0]);
+    ok(seam <= 1, `${INSTRUMENTS[id].label} enlaza el bucle sin costura (${seam.toFixed(2)})`);
+  }
 }
 
 

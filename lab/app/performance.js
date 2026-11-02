@@ -124,7 +124,7 @@ function noteAt(key, degree, octave) {
   return base + oct * 12 + steps[((degree % steps.length) + steps.length) % steps.length];
 }
 
-function chordAt(key, degree, octave) {
+function chordAt(key, degree, octave, notation = 'latin') {
   const midis = [degree, degree + 2, degree + 4].map((d) => noteAt(key, d, octave));
   const third = midis[1] - midis[0];
   const fifth = midis[2] - midis[0];
@@ -132,7 +132,8 @@ function chordAt(key, degree, octave) {
     : third === 3 && fifth === 7 ? 'menor'
       : third === 3 && fifth === 6 ? 'disminuido'
         : third === 4 && fifth === 8 ? 'aumentado' : '';
-  const rootName = noteLabel(midiToNote(midis[0]), 'latin');
+  // El cifrado del acorde no lleva octava: «Lam», no «La3m».
+  const rootName = noteLabel(midiToNote(midis[0]), notation).replace(/-?\d+$/, '');
   const suffix = quality === 'menor' ? 'm' : quality === 'disminuido' ? 'º' : quality === 'aumentado' ? '+' : '';
   const keyBase = (octave + 1) * 12;
   const keys = midis.map((m) => KEY_BY_OFFSET.get(m - keyBase) || '');
@@ -154,7 +155,7 @@ function romanFor(degree, quality) {
 }
 
 /** Progresiones de la escala actual, con su cifrado, acordes/notas y teclas. */
-function progressionOptions(key, octave, type = 'chords') {
+function progressionOptions(key, octave, type = 'chords', notation = 'latin') {
   const steps = SCALES[key?.scale] || SCALES.mayor;
   const patterns = type === 'arpeggios' ? ARPEGGIOS : steps.length >= 7 ? PROGRESSIONS_FULL : PROGRESSIONS_SHORT;
   const keyBase = (octave + 1) * 12;
@@ -169,13 +170,13 @@ function progressionOptions(key, octave, type = 'chords') {
           midis: [midi],
           quality: '',
           keys: [KEY_BY_OFFSET.get(midi - keyBase) || ''],
-          short: noteLabel(note, 'latin'),
-          fullName: noteLabel(note, 'latin'),
+          short: noteLabel(note, notation),
+          fullName: noteLabel(note, notation),
           letters: note.replace(/-?\d+$/, ''),
           roman: `${romanFor(degree % ROMAN.length, '')}${degree >= ROMAN.length ? '′' : ''}`,
         };
       }
-      const chord = chordAt(key, degree, octave);
+      const chord = chordAt(key, degree, octave, notation);
       chord.roman = romanFor(degree, chord.quality);
       return chord;
     });
@@ -184,7 +185,6 @@ function progressionOptions(key, octave, type = 'chords') {
       index: out.length,
       mood: pattern.mood,
       type,
-      stepMs: type === 'arpeggios' ? 650 : 2000,
       label: `${roman} · ${items.map((c) => c.short).join(' – ')}`,
       chords: items,
     });
@@ -203,6 +203,8 @@ export function createPerformance({ store, audio, actions }) {
   let warnedLimit = false;
   let warnedCloud = false;
   let progType = 'chords';
+  // Segundos que suena cada paso de la progresión, por tipo.
+  const stepSeconds = { chords: 2, arpeggios: 0.65 };
   const held = new Map(); // tecla → midi
   const chord = new Set(); // midi que suena ahora
   const tapNotes = new Set();
@@ -222,12 +224,33 @@ export function createPerformance({ store, audio, actions }) {
     type: 'button', class: 'btn btn--quiet perform__apply', 'aria-label': 'Llevar a Notas',
     title: 'Llevar la progresión seleccionada a Notas', onclick: () => applyProgressionToChanges(),
   }, '→ Notas');
+  const stepInput = h('input', {
+    type: 'number', class: 'perform__step-input', min: '0.1', max: '60', step: '0.05', inputmode: 'decimal',
+  });
+  const stepLabel = h('span', { class: 'perform__step-label' });
+  const stepWrap = h('label', { class: 'perform__step' }, stepLabel, stepInput, h('span', { class: 'perform__step-unit' }, 's'));
+  const commitStep = () => {
+    const v = Number(String(stepInput.value).replace(',', '.'));
+    if (Number.isFinite(v) && v > 0) stepSeconds[progType] = Math.round(clampNum(v, 0.1, 60) * 100) / 100;
+    syncStep();
+  };
+  stepInput.addEventListener('change', () => {
+    commitStep();
+    stepInput.blur();
+  });
+  stepInput.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      stepInput.blur();
+    }
+  });
+  stepInput.addEventListener('blur', commitStep);
   const progCards = h('div', { class: 'perform__prog-cards' });
   const typeChords = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'true', onclick: () => setProgType('chords') }, 'Acordes');
   const typeArps = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'false', onclick: () => setProgType('arpeggios') }, 'Arpegios');
   const typeWrap = h('div', { class: 'perform__types', role: 'group', 'aria-label': 'Tipo de progresión' }, typeChords, typeArps);
   const progWrap = h('div', { class: 'perform__progressions' },
-    h('span', { class: 'perform__progression-label' }, 'Progresión'), typeWrap, progSelect, progPlay, progApply);
+    h('span', { class: 'perform__progression-label' }, 'Progresión'), typeWrap, progSelect, stepWrap, progPlay, progApply);
   const progArea = h('div', { class: 'perform__prog-area' }, progWrap, progCards);
   const kb = keyboard({
     octave,
@@ -251,6 +274,17 @@ export function createPerformance({ store, audio, actions }) {
   let progList = [];
   let previewTimer = 0;
   let previewPlaying = false;
+
+  /** Duración de cada paso (s) del tipo de progresión actual. */
+  const stepNow = () => stepSeconds[progType];
+
+  function syncStep() {
+    const text = progType === 'arpeggios' ? 'Cada nota' : 'Cada acorde';
+    stepLabel.textContent = text;
+    stepInput.setAttribute('aria-label', `${text}, en segundos`);
+    stepInput.title = `${text} suena estos segundos al escuchar la progresión y al llevarla a Notas`;
+    if (document.activeElement !== stepInput) stepInput.value = String(stepSeconds[progType]);
+  }
 
   function syncPlayButton() {
     progPlay.textContent = previewPlaying ? '■' : '▶';
@@ -310,7 +344,7 @@ export function createPerformance({ store, audio, actions }) {
     stopPreview();
     if (tapTimers.has(midi)) clearTimeout(tapTimers.get(midi));
     tapNotes.add(midi);
-    audio.noteOn(note, t, store.state.project.tuning?.a4 ?? 440);
+    audio.noteOn(note, t, liveOpts());
     tapTimers.set(midi, setTimeout(() => {
       tapTimers.delete(midi);
       tapNotes.delete(midi);
@@ -321,11 +355,11 @@ export function createPerformance({ store, audio, actions }) {
   }
 
   function buildProgressions() {
-    const sig = JSON.stringify([store.state.project.key || {}, octave, progType]);
+    const sig = JSON.stringify([store.state.project.key || {}, octave, progType, store.state.view.notation]);
     if (sig === progSig) return;
     progSig = sig;
     stopPreview();
-    progList = progressionOptions(store.state.project.key, octave, progType);
+    progList = progressionOptions(store.state.project.key, octave, progType, store.state.view.notation);
     progSelect.textContent = '';
     progSelect.append(h('option', { value: '' }, progType === 'arpeggios' ? 'Elige un arpegio…' : 'Elige una progresión…'));
     const groups = new Map();
@@ -345,6 +379,7 @@ export function createPerformance({ store, audio, actions }) {
   function syncProgType() {
     typeChords.setAttribute('aria-pressed', String(progType === 'chords'));
     typeArps.setAttribute('aria-pressed', String(progType === 'arpeggios'));
+    syncStep();
   }
 
   function setProgType(type) {
@@ -365,11 +400,11 @@ export function createPerformance({ store, audio, actions }) {
     previewNotes.length = 0;
     const t = track();
     if (!t) return;
-    const a4 = store.state.project.tuning?.a4 ?? 440;
+    const opts = liveOpts();
     for (const midi of midis) {
       const note = midiToNote(midi);
       previewNotes.push(note);
-      audio.noteOn(note, t, a4);
+      audio.noteOn(note, t, opts);
     }
     kb.update();
   }
@@ -380,7 +415,6 @@ export function createPerformance({ store, audio, actions }) {
     previewPlaying = true;
     syncPlayButton();
     renderProgCards(prog);
-    const step = prog.stepMs || 2000;
     let i = 0;
     const advance = () => {
       if (!active || mode !== 'test') {
@@ -391,7 +425,8 @@ export function createPerformance({ store, audio, actions }) {
       setPreviewChord(prog.chords[at].midis);
       setActiveCard(at);
       i++;
-      previewTimer = setTimeout(advance, step);
+      // El paso se lee en cada vuelta: cambiarlo mientras suena se oye al momento.
+      previewTimer = setTimeout(advance, stepNow() * 1000);
     };
     advance();
   }
@@ -403,6 +438,17 @@ export function createPerformance({ store, audio, actions }) {
       progSelect.value = String(prog.index);
     }
     if (prog) playProgression(prog);
+  }
+
+  /**
+   * Opciones de las notas en vivo: afinación, bus maestro y el fundido entre
+   * notas del elemento sostenido seleccionado (o el de por defecto).
+   */
+  function liveOpts() {
+    const p = store.state.project;
+    const tone = mode === 'record' ? element() : selectedTone()?.el;
+    const fade = tone?.type === 'tone' && Number.isFinite(tone.crossfade) ? tone.crossfade : 0.15;
+    return { a4: p.tuning?.a4 ?? 440, fade, project: p };
   }
 
   function selectedTone() {
@@ -418,7 +464,11 @@ export function createPerformance({ store, audio, actions }) {
     return null;
   }
 
-  /** Lleva los pasos de la progresión a Cambios de nota, uno cada 3 s. */
+  /**
+   * Lleva la progresión a Notas una sola vez, con la duración de paso elegida:
+   * el paso k empieza en k × paso y el elemento termina con el último, sin
+   * nada después. Sustituye las notas del elemento.
+   */
   function applyProgressionToChanges() {
     let prog = progList[Number(progSelect.value)];
     if (!prog && progList.length) {
@@ -435,33 +485,39 @@ export function createPerformance({ store, audio, actions }) {
       actions.notify('Selecciona un elemento sostenido para llevar la progresión a Notas.', true);
       return;
     }
-    const limit = Math.max(0, target.el.length - 0.001);
+    if (target.el.changes?.length && !window.confirm('Llevar la progresión sustituirá las notas actuales de este elemento. ¿Continuar?')) return;
+    const step = stepNow();
+    const ms = (x) => Math.round(x * 1000) / 1000;
+    const room = ms(Math.max(0.1, store.state.project.duration - target.el.start));
+    const length = ms(Math.min(prog.chords.length * step, room));
     const generated = [];
-    let t = 0;
-    for (const step of prog.chords) {
-      if (t > limit) break;
-      generated.push({ t: Math.round(t * 1000) / 1000, notes: step.midis.map((m) => midiToNote(m)) });
-      t += 2;
-    }
+    prog.chords.forEach((c, k) => {
+      const t = ms(k * step);
+      if (t < length - 0.0005) generated.push({ t, notes: c.midis.map((m) => midiToNote(m)) });
+    });
     if (!generated.length) {
-      actions.notify('El elemento es demasiado corto para añadir la progresión.', true);
+      actions.notify('No cabe la progresión en lo que queda de tema.', true);
       return;
     }
+    // Fundidos cortos: el primer paso se oye entero y el último termina sin
+    // apagarse antes de tiempo.
+    const maxFade = ms(Math.min(0.5, step / 4));
     store.commit((d) => {
       const f = findElement(d, target.el.id);
       if (!f || f.el.type !== 'tone') return false;
-      const map = new Map((f.el.changes || []).map((c) => [Math.round(c.t * 1000), c]));
-      for (const c of generated) {
-        if (c.t <= 0.0005) f.el.notes = c.notes;
-        else map.set(Math.round(c.t * 1000), c);
-      }
-      const merged = [...map.values()].sort((a, b) => a.t - b.t);
-      if (merged.length) f.el.changes = merged.slice(0, LIMITS.changesPerTone);
+      f.el.length = length;
+      f.el.notes = generated[0].notes;
+      const changes = generated.slice(1);
+      if (changes.length) f.el.changes = changes;
       else delete f.el.changes;
+      f.el.fadeIn = Math.min(f.el.fadeIn ?? 0, maxFade);
+      f.el.fadeOut = Math.min(f.el.fadeOut ?? 0, ms(Math.min(1.5, step / 4)), Math.max(0, length - f.el.fadeIn));
       return true;
     }, { source: 'performance' });
     const label = prog.type === 'arpeggios' ? 'Arpegio llevado' : 'Progresión llevada';
-    actions.notify(`${label} a Notas: ${generated.length} pasos cada 2 s.`);
+    const fmt = (x) => String(ms(x)).replace('.', ',');
+    const cut = generated.length < prog.chords.length ? ` (solo caben ${generated.length} de ${prog.chords.length} antes del final del tema)` : '';
+    actions.notify(`${label} a Notas: ${generated.length} pasos de ${fmt(step)} s, de 0 a ${fmt(length)} s${cut}.`);
   }
 
   function selectedTrack() {
@@ -609,7 +665,7 @@ export function createPerformance({ store, audio, actions }) {
     clearTaps();
     held.set(key, midi);
     chord.add(midi);
-    audio.noteOn(midiToNote(midi), t, store.state.project.tuning?.a4 ?? 440);
+    audio.noteOn(midiToNote(midi), t, liveOpts());
     record();
     hud();
     return true;

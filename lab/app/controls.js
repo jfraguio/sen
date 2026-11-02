@@ -1,7 +1,7 @@
 /**
  * Controles del inspector: deslizadores con valor numérico, selectores,
- * interruptores, pares de valores, editor de notas con mini teclado, editor
- * de curvas y mini piano roll para frases.
+ * interruptores, pares de valores, mini teclado, editor de curvas y mini
+ * piano roll para frases.
  *
  * Cada control recibe un `binding` `{ get(), set(value, { gesture }), done() }`
  * y registra una función de sincronización en `syncers` para reflejar
@@ -11,7 +11,6 @@
 import { h, fmtNum, clampNum } from './util.js';
 import { CURVE_PRESETS, curvePoints } from '../engine/schema.js';
 import { LATIN_NAMES, NOTE_NAMES, midiToNote, noteLabel, noteToMidi, scaleMidis } from '../engine/music.js';
-import { hintForMidi } from './keys.js';
 
 let uid = 0;
 const nextId = (p) => `${p}-${++uid}`;
@@ -244,67 +243,6 @@ export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'la
     });
   };
   return wrap;
-}
-
-/* ------------------------------------------------------------ notas */
-
-/**
- * Lista de notas (máximo `max`) con chips, teclado y frecuencia libre.
- * Pulsar una tecla añade la nota o sustituye la seleccionada.
- */
-export function notesEditor({ binding, syncers, notation, max = 8, audition, octave = 3, hintFor = null, onOctave = null }) {
-  let active = -1;
-  const chips = h('div', { class: 'notes' });
-  const hz = h('input', { type: 'number', min: 8, max: 16000, step: 0.1, placeholder: 'Hz', 'aria-label': 'Frecuencia libre en Hz', style: { width: '90px' } });
-  const kb = keyboard({
-    octave,
-    notation,
-    hintFor,
-    onOctaveChange: onOctave,
-    isOn: (m) => binding.get().some((n) => noteToMidi(n) === m),
-    onKey: (note) => {
-      const list = [...binding.get()];
-      if (active >= 0 && active < list.length) list[active] = note;
-      else if (list.some((n) => n === note)) {
-        audition?.(note);
-        return;
-      } else if (list.length < max) list.push(note);
-      else list[list.length - 1] = note;
-      binding.set(list, {});
-      audition?.(note);
-      render();
-    },
-  });
-  const render = () => {
-    chips.textContent = '';
-    const list = binding.get();
-    list.forEach((n, k) => {
-      chips.append(h('span', { class: `note-chip${k === active ? ' is-active' : ''}` },
-        h('button', { type: 'button', 'aria-pressed': String(k === active), title: 'Selecciona para sustituirla con el teclado', onclick: () => { active = active === k ? -1 : k; render(); } }, noteLabel(n, notation)),
-        list.length > 1 ? h('button', { type: 'button', 'aria-label': `Quitar ${noteLabel(n, notation)}`, onclick: () => { const l = [...binding.get()]; l.splice(k, 1); active = -1; binding.set(l, {}); render(); } }, '×') : null));
-    });
-    kb.refresh();
-  };
-  const addHz = h('button', {
-    type: 'button',
-    class: 'btn btn--quiet',
-    onclick: () => {
-      const v = Number(hz.value);
-      if (!Number.isFinite(v) || v < 8 || v > 16000) return;
-      const list = [...binding.get()];
-      const note = { hz: Math.round(v * 100) / 100 };
-      if (active >= 0) list[active] = note;
-      else if (list.length < max) list.push(note);
-      binding.set(list, {});
-      hz.value = '';
-      render();
-    },
-  }, 'Añadir Hz');
-  syncers.push(render);
-  render();
-  const editor = h('div', { class: 'notes-editor' }, chips, kb, h('div', { class: 'ins-actions' }, hz, addHz));
-  editor.getOctave = () => kb.getOctave();
-  return editor;
 }
 
 /* ------------------------------------------------------------ curvas */

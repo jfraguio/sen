@@ -500,9 +500,6 @@ function boot() {
     performanceInfo() {
       return performance.info();
     },
-    setPerformanceOctave(octave) {
-      performance.setOctave(octave);
-    },
   };
 
   /* ------------------------------------------------------------ vistas */

@@ -112,6 +112,12 @@ export function instrumentLabel(track) {
   return INSTRUMENTS[track.instrument]?.label || track.instrument;
 }
 
+/** Etiqueta pequeña junto al nombre de una pista; vacía si repite el nombre. */
+export function trackTag(track) {
+  const tag = track.family === 'layer' ? 'capa' : instrumentLabel(track);
+  return tag.toLowerCase() === String(track.name || '').trim().toLowerCase() ? '' : tag;
+}
+
 /** ¿El foco está en un campo de texto? (para los atajos de una letra) */
 export function typingTarget(target) {
   if (!target || !(target instanceof Element)) return false;

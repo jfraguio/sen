@@ -120,6 +120,34 @@ function songCarabo(rng) {
   ]);
 }
 
+/**
+ * Gaviota: la llamada larga (un «kiaaa» estirado y una serie de «kiau» que
+ * se aceleran y acaban en «ja-ja») o maullidos sueltos. Voz nasal y áspera:
+ * armónicos fuertes, algo de ruido y aspereza rápida.
+ */
+function songGaviota(rng) {
+  const f = rng.range(780, 1050);
+  const rough = { h2: 0.55, h3: 0.3, breath: 0.05, am: rng.range(55, 75), amDepth: 0.3, vib: 0.015, vibRate: 34 };
+  const parts = [];
+  if (rng.chance(0.6)) {
+    parts.push([syl(0, rng.range(0.4, 0.6), f * 0.95, f * 1.3, { shape: 'arch', attack: 0.12, curve: 0.5, ...rough }), rng.range(0.12, 0.2)]);
+    let dur = rng.range(0.2, 0.26);
+    for (let i = 0, n = rng.int(4, 9); i < n; i++) {
+      const g = f * rng.range(0.95, 1.08);
+      parts.push([syl(0, dur, g, g * 1.28, { shape: 'arch', attack: 0.15, curve: 0.6, amp: rng.range(0.75, 1), ...rough }), dur * 0.45]);
+      dur = Math.max(0.1, dur * 0.9);
+    }
+    for (let i = 0, n = rng.int(2, 4); i < n; i++) {
+      parts.push([syl(0, 0.08, f * 1.1, f * 0.95, { attack: 0.2, curve: 0.7, amp: 0.7, ...rough }), 0.05]);
+    }
+  } else {
+    for (let i = 0, n = rng.int(1, 3); i < n; i++) {
+      parts.push([syl(0, rng.range(0.45, 0.7), f * 1.35, f * 0.85, { shape: 'hook', attack: 0.1, curve: 0.55, ...rough }), rng.range(0.35, 0.8)]);
+    }
+  }
+  return chain(parts);
+}
+
 const SONGS = {
   generico: songGeneric,
   mirlo: songMirlo,
@@ -130,9 +158,10 @@ const SONGS = {
   tortola: songTortola,
   autillo: songAutillo,
   carabo: songCarabo,
+  gaviota: songGaviota,
 };
 
-const SPECIES_GAIN = { cuco: 0.7, tortola: 0.7, carabo: 0.8, autillo: 0.8 };
+const SPECIES_GAIN = { cuco: 0.7, tortola: 0.7, carabo: 0.8, autillo: 0.8, gaviota: 0.55 };
 
 export function compilePajaro(track, el, ctx) {
   const k = natureKit(track, el, ctx);

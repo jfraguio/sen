@@ -53,7 +53,8 @@ assets/
   favicon.svg
 lab/
   index.html, guia.html, lab.css
-  worker.js, export-worker.js, overview-worker.js, player-worklet.js
+  worker.js, export-worker.js, overview-worker.js
+  player-worklet.js (escucha), live-worklet.js (modo teclado)
   app/        interfaz del editor
   engine/     motor de síntesis del laboratorio (sin DOM, también en Node)
   templates/  proyectos de ejemplo para las pruebas (.sen.json)
@@ -120,12 +121,14 @@ cualquier escena sin tocar código.
   volúmenes o añadir instrumentos y exportar el WAV con el formato de la app.
   Sin tocar nada, suena igual que en la app.
 - **Línea de tiempo** con pistas y elementos: notas sostenidas (pad, drone,
-  cuerdas, flauta suave, coro, vidrio, seno, pad 80, metales 80, bajo 80 y
-  lead 80), notas puntuales (campana, cuenco, kalimba, caja de música, celesta,
-  marimba, vibráfono, piano de fieltro, arpa, guitarra de nailon, cuerda
-  pulsada, gota tonal, piano FM y campana FM) como golpes, frases o nubes
+  cuerdas, arpa eólica, flauta suave, coro, cuenco tibetano frotado, vidrio,
+  seno, theremin, pad 80, metales 80, bajo 80 y lead 80), notas puntuales
+  (campana, cuenco tibetano, kalimba, caja de música, celesta, marimba,
+  vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa, guitarra de nailon, ukelele, slide
+  hawaiana, cuerda pulsada, gota tonal, palo de lluvia, piano FM y campana FM)
+  como golpes, frases o nubes
   generativas, ruido de color y **simulaciones** (grillos, cigarras, pájaros
-  por especie, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas).
+  por especie, gaviotas incluidas, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas).
   Cada pista tiene silencio, solo y volumen en su cabecera.
 - **Biblioteca plegable por gesto y timbre:** Sostenidos, Puntuales, Texturas y
   Naturaleza, con subgrupos como Sintes, Teclados, Láminas, Agua o Animales.
@@ -140,13 +143,18 @@ cualquier escena sin tocar código.
   «Grabar» guarda las notas dentro del mismo elemento mientras avanza el
   cabezal. Los acordes se cruzan con un fundido entre notas ajustable; la
   octava se puede cambiar en caliente y la lista se edita a mano (segundo y
-  notas). En las nubes generativas el teclado aparece por defecto y «Grabar»
-  añade las notas tocadas al conjunto de la nube; la casilla «Notas aleatorias»
-  lo oculta y muestra los controles de generación. El popup incluye un piano de
-  dos octavas, un conmutador
-  de acordes/arpegios y progresiones agrupadas por carácter, con sus notas y
-  las teclas para tocarlas, reproducción en bucle y un botón para llevarlas a
-  Notas cada 2 s.
+  notas). Las nubes generativas y los golpes usan el mismo diseño de «Notas»:
+  «Teclado» y «Grabar» arriba y la fila de notas debajo; en las nubes,
+  «Grabar» añade las notas tocadas al conjunto y la casilla «Notas aleatorias»
+  lo cambia por un registro de la escala. El teclado suena con las mismas
+  voces del motor, la mezcla de la pista y la reverb del tema, así que lo que
+  tocas suena igual en la pista. El popup incluye un piano de dos octavas, un
+  conmutador de acordes/arpegios y progresiones agrupadas por carácter, con sus
+  notas y las teclas para tocarlas, los segundos que dura cada paso,
+  reproducción en bucle y un botón para llevarlas a Notas una vez, con esos
+  tiempos (4 acordes de 5 s quedan en 0, 5, 10 y 15 s y el elemento acaba en
+  20 s). Bajo las notas, «Repetir hasta el final» repite el patrón, con sus
+  tiempos, hasta el final del tema.
 - **Exportar → WAV** directamente desde el navegador (48 kHz/24 bits,
   44,1 kHz/16 bits o «Escena para sen»), con final con cola, exacto o en bucle
   sin costura, y sonoridad normalizada. Cada WAV lleva el proyecto dentro y se

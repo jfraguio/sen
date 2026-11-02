@@ -18,7 +18,7 @@ export const LIMITS = {
   tracks: 32,
   elements: 500,
   notesPerTone: 8,
-  changesPerTone: 64,
+  changesPerTone: 512,
   cloudPitches: 24,
   sustainVoices: 96,
   strikePerTrack: 16,
@@ -78,6 +78,9 @@ export const PARAMS = {
   pulseWidth: num('Ancho de pulso', 0.05, 0.95, 0.5, { step: 0.01 }),
   filterEnv: num('Envolvente del filtro', 0, 4, 0, { step: 0.05, unit: 'oct' }),
   filterTime: num('Caída de la envolvente', 0.01, 4, 0.2, { log: true, unit: 's' }),
+  glide: num('Portamento', 0, 2, 0.25, { step: 0.01, unit: 's' }),
+  rotation: num('Giro de la maza', 0, 1, 0.35, { step: 0.01 }),
+  rotationRate: num('Velocidad del giro', 0.05, 3, 0.6, { log: true, unit: 'Hz' }),
   // Puntuales
   decay: num('Decaimiento', 0.2, 30, 5, { log: true, unit: 's' }),
   brightness: num('Brillo', 0, 1, 0.5, { step: 0.01 }),
@@ -86,6 +89,8 @@ export const PARAMS = {
   fmRatio: num('Relación FM', 0.25, 12, 2, { step: 0.01, log: true }),
   fmIndex: num('Profundidad FM', 0, 12, 3, { step: 0.01 }),
   fmTime: num('Caída FM', 0.02, 10, 1.2, { log: true, unit: 's' }),
+  slide: num('Deslizamiento', 0, 12, 2, { step: 0.1, unit: 'semitonos' }),
+  slideTime: num('Tiempo del deslizamiento', 0.01, 2, 0.2, { log: true, unit: 's' }),
   // Ruido
   color: opt('Color', o([['blanco', 'Blanco'], ['rosa', 'Rosa'], ['marron', 'Marrón']]), 'rosa'),
   movement: opt('Movimiento', o([['ninguno', 'Ninguno'], ['rafagas', 'Ráfagas'], ['oleaje', 'Oleaje']]), 'rafagas'),
@@ -190,6 +195,29 @@ export const INSTRUMENTS = {
     params: ['drift', 'vibratoDepth', 'vibratoRate', 'tremoloDepth', 'tremoloRate', 'width'],
     defaults: { drift: 0, width: 0 },
   },
+  cuencoCanto: {
+    family: 'sustain', label: 'Cuenco tibetano frotado', color: '#e6d891',
+    description: 'Cuenco tibetano frotado con la maza: el canto crece despacio, sus parciales inarmónicos baten y el sonido gira alrededor.',
+    params: [
+      ['partials', { min: 1, max: 5, def: 4 }], 'rolloff', ['beat', { max: 3, def: 0.8 }], 'rotation', 'rotationRate',
+      ['tremoloDepth', { label: 'Pulso del roce', def: 0.12 }], ['tremoloRate', { label: 'Velocidad del pulso', def: 0.6 }],
+      ['breath', { label: 'Roce', def: 0.25 }], 'drift', 'cutoff', 'width',
+    ],
+    defaults: { rolloff: 1.2, drift: 1.5, cutoff: 7000, width: 0.8 },
+  },
+  theremin: {
+    family: 'sustain', label: 'Theremin', color: '#c7a8ff',
+    description: 'Voz electrónica casi senoidal que se desliza de una nota a otra (portamento) y vibra al sostener: el sonido clásico del espacio y la ciencia ficción. Para melodías.',
+    params: ['glide', ['vibratoDepth', { def: 22 }], ['vibratoRate', { def: 5.5 }], 'drift', 'cutoff', 'tremoloDepth', 'tremoloRate', 'width'],
+    defaults: { drift: 3, cutoff: 4500, width: 0.2 },
+    tone: { length: 3, fadeIn: 0.2, fadeOut: 0.8 },
+  },
+  eolica: {
+    family: 'sustain', label: 'Arpa eólica', color: '#b8e0d2',
+    description: 'Cuerdas que toca el viento: sus armónicos aparecen y se apagan solos, lentos y etéreos. Para atmósferas, playas y espacio.',
+    params: [['partials', { min: 4, max: 24, def: 16 }], 'wind', 'voices', 'detune', 'drift', ['breath', { label: 'Aire', def: 0.15 }], 'cutoff', 'width'],
+    defaults: { voices: 2, detune: 3, drift: 1, cutoff: 5000, width: 0.8, wind: 0.4 },
+  },
   // Sintetizadores de estética ochentera
   pad80: {
     family: 'sustain', label: 'Pad 80', color: '#7ad7ff',
@@ -238,9 +266,9 @@ export const INSTRUMENTS = {
     params: STRIKE_COMMON, defaults: { decay: 7, brightness: 0.5, hardness: 0.35, inharmonic: 0.15, beat: 0.4 },
   },
   cuenco: {
-    family: 'strike', label: 'Cuenco', color: '#e6d891',
-    description: 'Modal inarmónico con pares de modos que baten.',
-    params: STRIKE_COMMON, defaults: { decay: 14, brightness: 0.35, hardness: 0.25, inharmonic: 0.1, beat: 0.9 },
+    family: 'strike', label: 'Cuenco tibetano', color: '#e6d891',
+    description: 'Cuenco tibetano golpeado con la maza: parciales inarmónicos en pares que baten y giran en estéreo, con una cola muy larga.',
+    params: STRIKE_COMMON, defaults: { decay: 16, brightness: 0.35, hardness: 0.2, inharmonic: 0.05, beat: 0.9 },
   },
   kalimba: {
     family: 'strike', label: 'Kalimba', color: '#f0b37e',
@@ -280,8 +308,22 @@ export const INSTRUMENTS = {
   },
   guitarra: {
     family: 'strike', label: 'Guitarra de nailon', color: '#d9b48a',
-    description: 'Cuerda de nailon pulsada cerca del puente: cálida y corta.',
+    description: 'Cuerda de nailon pulsada cerca del puente, con la resonancia de la caja: cálida y corta.',
     params: STRIKE_COMMON, defaults: { decay: 4.5, brightness: 0.4, hardness: 0.3, inharmonic: 0.05, beat: 0 },
+  },
+  ukelele: {
+    family: 'strike', label: 'Ukelele', color: '#f2c38b',
+    description: 'Cuerdas de nailon cortas y una caja pequeña: pulsación clara y alegre, de isla tropical.',
+    params: STRIKE_COMMON, defaults: { decay: 2.4, brightness: 0.55, hardness: 0.35, inharmonic: 0.03, beat: 0 },
+  },
+  slide: {
+    family: 'strike', label: 'Slide hawaiana', color: '#9fd3c7',
+    description: 'Guitarra hawaiana de acero tocada con barra: cada nota entra deslizándose desde abajo y canta con un vibrato lento.',
+    params: [
+      'decay', 'brightness', 'hardness', 'inharmonic', 'slide', 'slideTime',
+      ['vibratoDepth', { def: 12 }], ['vibratoRate', { def: 5 }], 'velocityCurve', 'width',
+    ],
+    defaults: { decay: 6, brightness: 0.55, hardness: 0.25, inharmonic: 0.08 },
   },
   pulsada: {
     family: 'strike', label: 'Cuerda pulsada', color: '#c6b2ff',
@@ -295,11 +337,32 @@ export const INSTRUMENTS = {
     params: ['decay', 'brightness', 'velocityCurve', 'width'],
     defaults: { decay: 0.6, brightness: 0.5 },
   },
+  paloLluvia: {
+    family: 'strike', label: 'Palo de lluvia', color: '#c8b48a',
+    description: 'Semillas que caen por un tubo: cada golpe es un vuelco del palo, un chaparrón que crece y se apaga. La nota fija el color del grano.',
+    params: [['decay', { label: 'Duración del vuelco', def: 4 }], 'brightness', ['hardness', { label: 'Dureza del grano' }], 'velocityCurve', 'width'],
+    defaults: { brightness: 0.5, hardness: 0.4, width: 0.7 },
+  },
+  handpan: {
+    family: 'strike', label: 'Handpan', color: '#c9d7e8',
+    description: 'Tambor de acero afinado tocado con la mano: nota redonda con su octava y su quinta, cola larga y un batido suave.',
+    params: STRIKE_COMMON, defaults: { decay: 10, brightness: 0.4, hardness: 0.15, inharmonic: 0, beat: 0.35 },
+  },
+  lengueta: {
+    family: 'strike', label: 'Tambor de lengüeta', color: '#a9c4e0',
+    description: 'Tambor de acero con lengüetas (tongue drum), tocado con los dedos: nota pura y redonda, con la resonancia grave de la caja y una cola larga. Muy de meditación.',
+    params: STRIKE_COMMON, defaults: { decay: 8, brightness: 0.35, hardness: 0.2, inharmonic: 0, beat: 0.25 },
+  },
+  steelpan: {
+    family: 'strike', label: 'Steel drum', color: '#ffd9a0',
+    description: 'Tambor metálico del Caribe con baqueta de goma: brillante y cantarín, con el batido de sus pares de modos.',
+    params: STRIKE_COMMON, defaults: { decay: 3.2, brightness: 0.6, hardness: 0.35, inharmonic: 0, beat: 0.6 },
+  },
   fmPiano: {
     family: 'strike', label: 'Piano FM', color: '#8fb7ff',
     description: 'Piano eléctrico de FM: campana metálica y cuerpo cálido, al estilo de los ochenta.',
     params: FM_COMMON,
-    defaults: { decay: 7.5, brightness: 0.55, hardness: 0.25, fmRatio: 1, fmIndex: 2.2, fmTime: 1.4 },
+    defaults: { decay: 7.5, brightness: 0.55, hardness: 0.25, fmRatio: 1, fmIndex: 3.2, fmTime: 1.4 },
   },
   fmBell: {
     family: 'strike', label: 'Campana FM', color: '#d8e0ff',
@@ -332,7 +395,7 @@ export const INSTRUMENTS = {
     params: [
       ['species', {
         options: o([['generico', 'Genérico'], ['mirlo', 'Mirlo'], ['petirrojo', 'Petirrojo'], ['carbonero', 'Carbonero'],
-          ['pinzon', 'Pinzón'], ['cuco', 'Cuco'], ['tortola', 'Tórtola'], ['autillo', 'Autillo'], ['carabo', 'Cárabo']]),
+          ['pinzon', 'Pinzón'], ['cuco', 'Cuco'], ['tortola', 'Tórtola'], ['autillo', 'Autillo'], ['carabo', 'Cárabo'], ['gaviota', 'Gaviota']]),
         def: 'mirlo',
       }],
       ['individuals', { max: 8, def: 2 }], 'songRate', 'register', 'syllables', 'shape', ...NATURE_COMMON,
@@ -414,11 +477,12 @@ export const INSTRUMENT_GROUPS = [
   {
     id: 'sostenidos', label: 'Sostenidos',
     subgroups: [
-      { id: 'sintes', label: 'Sintes', instruments: ['pad', 'pad80', 'brass80', 'bass80', 'lead80'] },
+      { id: 'sintes', label: 'Sintes', instruments: ['pad', 'pad80', 'brass80', 'bass80', 'lead80', 'theremin'] },
       { id: 'drone', label: 'Drone', instruments: ['drone'] },
-      { id: 'cuerdas', label: 'Cuerdas', instruments: ['cuerdas'] },
+      { id: 'cuerdas', label: 'Cuerdas', instruments: ['cuerdas', 'eolica'] },
       { id: 'vientos', label: 'Vientos', instruments: ['flauta'] },
       { id: 'voces', label: 'Voces', instruments: ['coro'] },
+      { id: 'cuencos', label: 'Cuencos', instruments: ['cuencoCanto'] },
       { id: 'cristal', label: 'Cristal y puro', instruments: ['vidrio', 'seno'] },
     ],
   },
@@ -427,9 +491,10 @@ export const INSTRUMENT_GROUPS = [
     subgroups: [
       { id: 'teclados', label: 'Teclados', instruments: ['piano', 'fmPiano', 'celesta', 'cajaMusica'] },
       { id: 'laminas', label: 'Láminas', instruments: ['marimba', 'vibrafono', 'kalimba'] },
-      { id: 'pulsadas', label: 'Cuerdas pulsadas', instruments: ['arpa', 'guitarra', 'pulsada'] },
+      { id: 'tambores', label: 'Tambores de acero', instruments: ['handpan', 'lengueta', 'steelpan'] },
+      { id: 'pulsadas', label: 'Cuerdas pulsadas', instruments: ['arpa', 'guitarra', 'ukelele', 'slide', 'pulsada'] },
       { id: 'campanas', label: 'Campanas y cuencos', instruments: ['campana', 'fmBell', 'cuenco'] },
-      { id: 'gotas', label: 'Gotas', instruments: ['gotaTonal'] },
+      { id: 'gotas', label: 'Gotas y lluvia', instruments: ['gotaTonal', 'paloLluvia'] },
     ],
   },
   {
@@ -789,6 +854,9 @@ const SUSTAIN_CHORDS = {
   vidrio: [[4, 0], [4, 4]],
   seno: [[3, 0]],
   flauta: [[4, 0]],
+  cuencoCanto: [[3, 0]],
+  theremin: [[4, 0]],
+  eolica: [[2, 0]],
 };
 
 /** Elemento por defecto para una pista. `type` es opcional. */

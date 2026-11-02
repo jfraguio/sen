@@ -820,8 +820,8 @@ No objetivos:
 
 | Familia | Etiqueta en la UI | Qué es | Tipos de elemento |
 | --- | --- | --- | --- |
-| `sustain` | Sostenidos | Pads, drones, cuerdas, flauta, coros y sintes analógicos 80: tonos que duran lo que dura el elemento. | `tone` |
-| `strike` | Puntuales | Campanas, cuencos, kalimba, piano, arpa, guitarra, vibráfono y FM 80: golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
+| `sustain` | Sostenidos | Pads, drones, cuerdas, arpa eólica, flauta, coros, cuenco tibetano frotado, theremin y sintes analógicos 80: tonos que duran lo que dura el elemento. | `tone` |
+| `strike` | Puntuales | Campanas, cuencos tibetanos, kalimba, piano, tambores de acero (handpan, lengüeta, steel drum), arpa, guitarras, ukelele, vibráfono, palo de lluvia y FM 80: golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
 | `noise` | Texturas | Ruido de color filtrado y con movimiento (aire, rumor, oleaje abstracto). | `span` |
 | `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, pájaros, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas. | `span` |
 | `layer` | Capas de pistas de sen | Una capa de una pista publicada de la app, en bucle (7.17). No está en la biblioteca. | `clip` |
@@ -839,8 +839,11 @@ No objetivos:
   tramos se cruzan con un fundido
   configurable (`crossfade`, 0–2 s; 0 es sin solape; por defecto 0,15 s): la
   nota anterior se alarga atenuándose y la siguiente se adelanta, repartiendo
-  el cruce a ambos lados del cambio. La curva, el nivel y los fundidos del
-  elemento se reparten entre los tramos.
+  el cruce a ambos lados del cambio. La curva y el nivel del elemento se
+  reparten entre los tramos, y sus fundidos de entrada y salida se miden en el
+  tiempo del elemento completo: un fundido largo atenúa igual el principio
+  aunque abarque varios tramos, sin comerse el primero ni hacer que el segundo
+  entre de golpe.
   Los cambios viven **dentro del elemento**: no hace falta dividirlo en
   fragmentos. Al dividir con `S` o al recortar una región, cada parte conserva
   sus cambios y adopta como notas base las que sonaban en el corte.
@@ -859,13 +862,14 @@ No objetivos:
   - `velocity`: rango `[min, max]`.
   - `seed`: semilla propia; “Aleatorizar” la incrementa.
   - `pitches`: por defecto la nube usa un conjunto de notas propias (hasta 24)
-    que se puede tocar con el teclado del inspector (**Teclado**) o ampliar
-    tocando notas (**Grabar**). La casilla **Notas aleatorias** oculta el
-    teclado y los controles de notas propias: entonces `pitches` pasa a `null`
-    y la nube elige notas de la escala y el registro con los controles de
-    generación (densidad, azar, movimiento, gravedad, acordes, velocidad y
-    semilla). La nube sigue generando notas en el tiempo; “Grabar” solo amplía
-    su conjunto de notas, no graba ritmo.
+    que se escribe en la fila de **Notas** (como en un sostenido), se prueba
+    con **Teclado** o se amplía tocando notas (**Grabar**). La casilla **Notas
+    aleatorias** pone `pitches` a `null`: la fila de notas y **Grabar** dejan
+    paso al **registro**, y la nube elige notas de la escala dentro de él. Los
+    controles de generación (densidad, azar, movimiento, gravedad, acordes,
+    velocidad y semilla) se muestran siempre en la sección **Nube generativa**,
+    porque actúan en los dos modos. La nube sigue generando notas en el tiempo;
+    “Grabar” solo amplía su conjunto de notas, no graba ritmo.
 - **`span`** (ruidos y simulaciones): un tramo de actividad. En simulaciones,
   además del nivel, define la **densidad** (0–1) de la actividad.
 - **`clip`** (capas de pistas de sen): un tramo de la capa, que se repite en
@@ -929,10 +933,13 @@ Rangos entre paréntesis; unidades en 7.10.2.
 | `pad` | Pad | Aditiva: parciales armónicos con caída configurable y varias voces desafinadas. |
 | `drone` | Drone | Pocas parciales graves, batidos lentos entre voces y subgrave opcional. |
 | `cuerdas` | Cuerdas | Diente de sierra limitado en banda por voz, paso bajo lento y vibrato suave. |
+| `eolica` | Arpa eólica | Cuerda casi armónica (hasta 24 armónicos) que «toca el viento»: una banda de armónicos sube y baja despacio y cada uno respira por su cuenta (ruido suavizado, periódico en bucle); la suma se normaliza para que el nivel no dependa de cuántos suenan. Aire opcional (ruido en banda). |
 | `flauta` | Flauta suave | Tabla casi senoidal (armónicos 1 : 0,14 : 0,05 : 0,015), soplo (ruido en banda en torno al tercer armónico) y vibrato. Una voz; su elemento por defecto dura 2 s con ataque 0,12 s y relajación 0,45 s. |
-| `coro` | Coro | Fuente rica con tres formantes vocales interpolables (a–o–u). |
+| `coro` | Coro | Fuente rica con tres formantes vocales interpolables (a–o–u). La ganancia se compensa con la respuesta de los formantes a cada nota, para que todos los registros suenen parecido. |
+| `cuencoCanto` | Cuenco tibetano frotado | Cuenco tibetano frotado con la maza: hasta 5 modos inarmónicos (1 : 2,71 : 5,15 : 8,45 : 12,4), cada uno desdoblado en un par que bate (batido 0–3 Hz, más rápido en los modos altos) con sus mitades a cada lado; giro de la maza (panorama oscilante, 0–1, 0,05–3 Hz), pulso del roce (trémolo) y roce (ruido en banda estrecha pegado a la nota). |
 | `vidrio` | Vidrio | Parciales inarmónicos sostenidos, brillo frío. |
 | `seno` | Seno | Una sinusoide pura, para graves y tonos de prueba. |
+| `theremin` | Theremin | Tabla casi senoidal (armónicos 1 : 0,32 : 0,14 : 0,07 : 0,035 : 0,015), vibrato que entra en 0,45 s y **portamento** (0–2 s): en un elemento con cambios de nota, cada nota llega deslizándose desde la que sonaba antes en su misma posición del acorde (curva que frena; no tras un silencio); con el teclado, desde la última nota tocada en esa pista. Una voz; su elemento por defecto dura 3 s con ataque 0,2 s y relajación 0,8 s. |
 | `pad80` | Pad 80 | Pad analógico: pulso/sierra desafinado, coro por voces, filtro lento y subgrave. |
 | `brass80` | Metales 80 | Sinte de metales con sierra desafinada y apertura rápida del filtro al atacar. |
 | `bass80` | Bajo 80 | Bajo analógico de pulso, subgrave y filtro resonante con caída rápida. |
@@ -945,7 +952,14 @@ filtro (paso bajo, alto o banda; 40–18 000 Hz; Q 0,5–12), vibrato
 (0–4 octavas, 0,01–1 Hz), ancho estéreo (0–1) y, en los sintes analógicos,
 forma de onda (sierra, pulso, cuadrada o triángulo), ancho de pulso (0,05–0,95),
 envolvente de filtro (0–4 octavas, caída 0,01–4 s) y subgrave (0–1). Propios:
-`drone` batido (0–2 Hz); `coro` vocal (0–1); `vidrio` inarmonicidad (0–1).
+`drone` batido (0–2 Hz); `coro` vocal (0–1); `vidrio` inarmonicidad (0–1);
+`eolica` actividad del viento (0–1) y aire (0–1); `theremin` portamento (0–2 s); `cuencoCanto` batido, giro de
+la maza, velocidad del giro y roce. El bajo 80 lleva −2,5 dB propios, la
+flauta −4,4 dB y el coro −3 dB (tras compensar sus formantes) para igualar su
+sonoridad con el resto. En bucle, la modulación de tono (vibrato y deriva) se
+normaliza para que cada parcial complete un número entero de ciclos por vuelta
+y, en los aditivos, cada parcial de cada voz se ajusta por separado: la deriva
+y la desafinación no abren la costura.
 `flauta` usa solo vibrato, deriva, soplo (0–1), corte del filtro, trémolo y
 ancho.
 
@@ -954,17 +968,23 @@ ancho.
 | Instrumento | Nombre | Síntesis |
 | --- | --- | --- |
 | `campana` | Campana | Modal con parciales de campana y golpe metálico. |
-| `cuenco` | Cuenco | Modal inarmónico con pares de modos que baten. |
+| `cuenco` | Cuenco tibetano | Modal con los parciales de un cuenco himalayo (1 : 2,72 : 5,18 : 8,48 : 12,4); cada modo es un par a ±batido/2 Hz con panoramas opuestos, así que bate de verdad y gira en estéreo. |
 | `kalimba` | Kalimba | Lengüeta modal con ataque blando y cuerpo de madera. |
 | `cajaMusica` | Caja de música | Púa metálica brillante, decaimiento corto. |
 | `celesta` | Celesta | Láminas metálicas suaves con resonador. |
 | `marimba` | Marimba | Láminas de madera con resonador tubular. |
 | `vibrafono` | Vibráfono | Modal 1 : 4 : 10 con baqueta blanda y trémolo común (motor) de profundidad y velocidad ajustables. |
 | `piano` | Piano de fieltro | Modal armónico ligeramente estirado; cada armónico tiene una parte breve (golpe) y otra larga; martillo blando. |
-| `arpa` | Arpa | Cuerda modal pulsada cerca del centro: amplitudes sen(π·h·0,2)/h y agudos que se apagan antes. |
-| `guitarra` | Guitarra de nailon | Cuerda modal pulsada cerca del puente (p = 0,14), más corta y cálida. |
-| `pulsada` | Cuerda pulsada | Karplus-Strong, entre arpa y guitarra suave. |
+| `handpan` | Handpan | Modal afinado con octava y quinta compuesta (1 : 2 : 3), pares que baten, mano blanda y un leve golpe de aire en la caja. |
+| `lengueta` | Tambor de lengüeta | Modal casi puro (1 : 2 : 4,1 : 6,6, octava y parcial alto débiles), pares que baten, dedo blando y la resonancia grave de la caja (95 Hz). |
+| `steelpan` | Steel drum | Modal con armónicos hasta el sexto, brillante, baqueta de goma y pares que baten. |
+| `arpa` | Arpa | Cuerda modal pulsada cerca del centro: amplitudes sen(π·h·0,2)/h, agudos que se apagan antes y resonancias de la tabla. |
+| `guitarra` | Guitarra de nailon | Cuerda modal pulsada cerca del puente (p = 0,14), más corta y cálida, con tres resonancias de la caja (98, 204 y 392 Hz). |
+| `ukelele` | Ukelele | Cuerda de nailon corta pulsada en p = 0,22, decaimiento breve y caja pequeña (285, 540 y 910 Hz). |
+| `slide` | Slide hawaiana | Cuerdas de acero (p = 0,18) tocadas con barra: cada golpe entra desde «deslizamiento» semitonos por debajo (0–12) y llega a la nota en «tiempo del deslizamiento» (0,01–2 s, curva que frena); después, vibrato de barra (0–50 cents, 0,05–8 Hz) que crece en 0,6 s. Los resonadores se reafinan a ritmo de control sin perder fase. |
+| `pulsada` | Cuerda pulsada | Karplus-Strong, entre arpa y guitarra suave. La excitación es ruido filtrado dos veces, sin media, con el peine del punto de pulsación y nivel normalizado, y entra en 0,7 ms: no chasca. |
 | `gotaTonal` | Gota tonal | Burbuja de Minnaert afinada (el tono sube al final). |
+| `paloLluvia` | Palo de lluvia | Cada golpe es un vuelco: un flujo de granos (proceso de Poisson, 70–300 por segundo según la velocidad) que crece en el primer 7 % y se apaga; cada grano excita uno de cuatro resonadores en banda (3 : 4,7 : 6,9 : 10,3 × nota) normalizados por su ancho de banda, con su propio panorama. Decaimiento = duración del vuelco. |
 | `fmPiano` | Piano FM | FM de dos operadores: campana metálica y cuerpo cálido de piano eléctrico. |
 | `fmBell` | Campana FM | FM de dos operadores con parciales metálicos y cola larga. |
 
@@ -972,7 +992,10 @@ Parámetros comunes: decaimiento (0,2–30 s), brillo (0–1), dureza del golpe
 (0–1), inarmonicidad (0–1), batido (0–3 Hz), curva de velocidad (0–1) y ancho
 estéreo (0–1); el vibráfono cambia inarmonicidad y batido por trémolo (0–1,
 0,05–8 Hz). Los FM sustituyen inarmonicidad y batido por relación FM (0,25–12),
-profundidad FM (0–12) y caída FM (0,02–10 s). Polifonía: 16 golpes simultáneos
+profundidad FM (0–12, índice de modulación en radianes; baja en las notas
+agudas y nunca lleva bandas laterales por encima de Nyquist) y caída FM
+(0,02–10 s). Los modales con ancho estéreo reparten sus modos superiores a los
+lados. Polifonía: 16 golpes simultáneos
 por pista y 64 en total; al superarla se corta el más antiguo con un fundido de
 10 ms.
 
@@ -999,7 +1022,7 @@ Un único instrumento, `ruido`, con:
 | --- | --- | --- |
 | `grillo` | Grillos | individuos (1–24), registro (2–6 kHz), llamadas por segundo, pulsos por llamada (1–8), sincronía entre individuos (0–1). |
 | `cigarra` | Cigarras | individuos (1–6), registro (3–7 kHz), duración de tandas y de pausas. |
-| `pajaro` | Pájaros | especie: genérico, mirlo, petirrojo, carbonero, pinzón, cuco, tórtola, autillo o cárabo; individuos (1–8); frases por minuto. El genérico añade registro, sílabas por frase y forma (silbido, trino, gorjeo). |
+| `pajaro` | Pájaros | especie: genérico, mirlo, petirrojo, carbonero, pinzón, cuco, tórtola, autillo, cárabo o gaviota (llamada larga «kiaaa, kiau-kiau…, ja-ja» que se acelera, o maullidos sueltos; voz nasal con armónicos fuertes y aspereza); individuos (1–8); frases por minuto. El genérico añade registro, sílabas por frase y forma (silbido, trino, gorjeo). |
 | `rana` | Ranas | especie: sapo partero, ranita o croar grave; individuos (1–12). |
 | `gotas` | Gotas | superficie (agua, hoja, cristal, piedra), gotas por segundo (0,1–200), registro. |
 | `lluvia` | Lluvia | intensidad (50–3000 impactos/s), superficie (hojas, tejado, cristal, agua, lona). |
@@ -1089,12 +1112,24 @@ por parámetro.
   admite clic para mover el cabezal y arrastre para marcar la región de
   escucha. Zoom con −/+ o con Cmd/Ctrl + rueda.
 - **Inspector:** controles de la pista o del elemento seleccionado, del bus
-  maestro o del tema (sin selección). En los golpes y en las nubes con notas
-  propias hay un mini teclado de dos octavas. En un elemento sostenido,
+  maestro o del tema (sin selección). La cabecera de un elemento indica su tipo
+  y su posición («Nube generativa · 0:00–0:30»). Sostenidos y puntuales
+  comparten el diseño de la sección **Notas**: arriba **Teclado** (y
+  **Grabar** cuando el elemento lo admite) y debajo las filas de notas, que se
+  escriben como «Do4 Mi4», «C4 E4» o «440Hz». En un golpe es una sola nota; en
+  una nube con notas propias, su conjunto (con el recuento, p. ej. «8/24»),
+  seguido de la casilla **Notas aleatorias**. En un elemento sostenido,
   **Notas** es el editor único de las notas: la fila de **0 s**
   contiene las notas base (si no hay más cambios, duran todo el elemento), **+**
-  añade un cambio al final, **×** borra los cambios añadidos y el **fundido
-  entre notas** ajusta el cruce (0–2 s). Desde ahí se toca (**Teclado**) o se
+  añade un cambio al final, **×** borra los cambios añadidos, **↻ Repetir
+  hasta el final** repite el patrón y el **fundido entre notas** ajusta el
+  cruce (0–2 s). El patrón es el elemento entero (cada fila dura hasta la
+  siguiente y la última hasta el final del elemento): se copia a continuación,
+  con los mismos tiempos, hasta el final del tema, y el elemento se alarga
+  hasta allí (la última vuelta puede quedar cortada). Si se llega al máximo de
+  cambios, el elemento termina con la última vuelta completa y se avisa. Con
+  una sola fila, simplemente se alarga. El botón se desactiva si el elemento ya
+  llega al final del tema. Desde ahí se toca (**Teclado**) o se
   graba con el teclado (**Grabar**, con la bolita en rojo). Cada fila se edita
   con su segundo y sus notas; la octava se cambia desde el piano del popup y se
   aplica en caliente durante la prueba o grabación.
@@ -1156,7 +1191,7 @@ Los atajos de una letra no actúan mientras el foco está en un campo de texto.
 En el **modo teclado** (Teclado o Grabar), las letras tocan notas y sustituyen a
 los atajos de una letra: `Z S X D C V G B H N J M` son la octava grave y
 `Q 2 W 3 E R 5 T 6 Y 7 U` la aguda, partiendo de la octava que muestre el
-inspector. Las flechas de octava del mini teclado se aplican en caliente
+inspector. Las flechas de octava del piano del popup se aplican en caliente
 mientras se prueba o graba. `Espacio` sigue reproduciendo o pausando y `Escape`
 sale del modo. Las teclas se pueden mantener para formar acordes; al soltarlas
 todas, el siguiente cambio grabado es silencio.
@@ -1168,12 +1203,21 @@ tema. Los acordes se agrupan por carácter (**Alegres**, **Nostálgicas**,
 **Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**); los arpegios, por
 movimiento (**Ascendentes**, **Descendentes**, **Ondulantes**, **Largos** y
 **Saltos**). Al
-elegir una se escucha en bucle, paso a paso (2 s por acorde, 0,65 s por nota).
+elegir una se escucha en bucle, paso a paso. Junto al combo, **Cada acorde** /
+**Cada nota** fija los segundos de cada paso (0,1–60 s; por defecto 2 s los
+acordes y 0,65 s los arpegios; cada tipo recuerda el suyo). Cambiarlo mientras
+suena se aplica en el paso siguiente.
 Debajo aparecen tarjetas con el cifrado, las notas en letras y las teclas del
 ordenador que tocan cada nota. **▶** se convierte en **■** mientras suena y
 detiene la reproducción. **→ Notas** lleva la progresión seleccionada a
-Notas, con un paso cada 2 s desde 0 (0, 2, 4…), poniendo el primer paso en la
-fila base y sustituyendo los cambios que coincidan en los demás instantes.
+Notas **una sola vez**, con esa duración de paso: el paso k empieza en
+k × paso (4 acordes de 5 s → 0, 5, 10 y 15 s) y el elemento pasa a durar
+exactamente la progresión (20 s), sin nada después; si no cabe antes del final
+del tema, se recorta y se avisa. El primer paso va a la fila base y la
+progresión sustituye los cambios del elemento (pide confirmación si había).
+Los fundidos se acortan para no comerse el primer ni el último paso: el de
+entrada a un cuarto de paso (máx. 0,5 s) y el de salida a un cuarto de paso
+(máx. 1,5 s).
 En **Grabar** el combo se oculta, porque el foco es capturar notas o cambios
 con el teclado. En **Teclado**, el instrumento del piano flotante sigue siempre a
 la pista seleccionada; al cambiar de pista o de elemento, se detienen las notas
@@ -1256,8 +1300,19 @@ UI ◀────────────────────────�
   permite.
 - El `AudioContext` se crea o reanuda dentro del gesto del usuario (iOS).
 - La audición de la biblioteca se renderiza aparte en el mismo Worker y suena
-  con un `AudioBufferSourceNode`. El modo teclado usa además un sintetizador
-  ligero en el `AudioContext` para responder al instante sin esperar al motor.
+  con un `AudioBufferSourceNode`.
+- El modo teclado usa un segundo AudioWorklet, **«lab-live»**
+  (`live-worklet.js`), que importa las voces del motor (`voices/sustain.js`,
+  `voices/strike.js`), la reverb y el eco (`space.js`) y la ecualización
+  (`master.js`). Cada tecla es una voz del motor con los parámetros de la
+  pista, su volumen, panorama y envíos, y el bus maestro del tema: responde al
+  instante, sin esperar a que el Worker recompile, y **suena igual que las
+  mismas notas en la pista**. Las notas sostenidas entran y se sueltan con el
+  fundido entre notas del elemento seleccionado (por defecto 0,15 s, de
+  potencia constante, como un cambio de nota) y se reparten la ganancia como
+  un acorde del motor (1/√notas); los golpes suenan enteros aunque se suelte
+  la tecla. No pasa por el limitador (solo una saturación suave de
+  seguridad).
 
 #### 7.6.2 Edición mientras suena
 
@@ -1367,7 +1422,10 @@ Dos tipos de azar, ambos sin estado global:
   deriva), con la fase referida al inicio de la voz.
 - **Modal:** suma de modos sinusoidales amortiguados para campanas, cuencos,
   kalimba, celesta, marimba, vibráfono (con trémolo común), piano de fieltro,
-  arpa y guitarra; ráfaga de ruido filtrada para el golpe.
+  handpan, tambor de lengüeta, steel drum, arpa, guitarra, ukelele y slide; ráfaga de ruido
+  filtrada para el golpe. Opciones: pares que baten (cuencos y tambores de
+  acero), resonancias fijas del cuerpo (cuerdas pulsadas y handpan), modos
+  repartidos en estéreo y reafinado continuo (slide).
 - **Capa de audio:** lectura en bucle de un búfer mono con interpolación
   lineal y la envolvente del elemento (exacta a la misma frecuencia).
 - **Karplus-Strong** para la cuerda pulsada, con afinación fraccional.
@@ -1729,7 +1787,7 @@ opcional (7.4.6).
 | Pistas | 32 |
 | Elementos por tema | 500 |
 | Notas por elemento `tone` | 8 |
-| Cambios por elemento `tone` | 64 |
+| Cambios por elemento `tone` | 512 |
 | Notas propias de una `cloud` | 24 |
 | Voces sostenidas simultáneas (notas × voces) | 96 |
 | Golpes simultáneos | 16 por pista, 64 en total |
@@ -1780,14 +1838,15 @@ lab/
   overview-worker.js        Worker de vistas: formas de onda resumidas
   scene-worker.js           Worker de canciones de sen: capas con scripts/lib/published.js
   player-worklet.js         AudioWorkletProcessor "lab-player"
+  live-worklet.js           AudioWorkletProcessor "lab-live": notas del modo teclado con las voces del motor
   app/
     main.js                 Arranque, requisitos, acciones, transporte, teclado
     store.js                Estado inmutable, deshacer/rehacer, gestos
     storage.js              Autoguardado, abrir y descargar proyectos
-    audio.js                AudioContext, worklet, Worker de escucha, audición
+    audio.js                AudioContext, worklets, Worker de escucha, audición, teclado
     timeline.js             Línea de tiempo, selección, arrastres, regla
     inspector.js            Paneles del tema, pista, elemento y maestro
-    controls.js             Deslizadores, notas y teclado, curvas, piano roll, automatización
+    controls.js             Deslizadores, teclado, curvas, piano roll, automatización
     keys.js                 Distribución del teclado del ordenador para tocar notas
     performance.js          Modo teclado: prueba y grabación de cambios de nota
     library.js              Biblioteca plegable por gesto/timbre y plantillas
@@ -1807,8 +1866,8 @@ lab/
     master.js               EQ, limitador (pico real), sonoridad BS.1770
     wav.js                  Escritura RIFF por trozos, chunks INFO y senp, lectura
     voices/
-      sustain.js            pad, drone, cuerdas, flauta, coro, vidrio, seno y sintes analógicos 80
-      strike.js             campana, cuenco, kalimba, cajaMusica, celesta, marimba, vibrafono, piano, arpa, guitarra, pulsada, gotaTonal y FM 80
+      sustain.js            pad, drone, cuerdas, eolica, flauta, coro, cuencoCanto, vidrio, seno, theremin y sintes analógicos 80
+      strike.js             campana, cuenco, kalimba, cajaMusica, celesta, marimba, vibrafono, piano, handpan, lengueta, steelpan, arpa, guitarra, ukelele, slide, pulsada, gotaTonal, paloLluvia y FM 80
       layer.js              capa (capas de pistas de sen)
       noise.js              ruido
       nature/kit.js         Planificación, sílabas y partículas

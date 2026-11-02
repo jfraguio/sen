@@ -325,7 +325,8 @@ textarea {
   resize: vertical;
 }
 
-input[type="range"] {
+input[type="range"],
+input[type="checkbox"] {
   accent-color: var(--accent);
 }
 
@@ -353,6 +354,8 @@ input[type="range"] {
   overflow: auto;
   background: var(--bg-2);
   min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
 }
 
 .library {
@@ -1143,11 +1146,11 @@ input[type="range"] {
   grid-template-areas: "label a b";
 }
 
-.ctl--pair > :nth-child(2) {
+.ctl.ctl--pair > :nth-child(2) {
   grid-area: a;
 }
 
-.ctl--pair > :nth-child(3) {
+.ctl.ctl--pair > :nth-child(3) {
   grid-area: b;
 }
 
@@ -1156,44 +1159,23 @@ input[type="range"] {
   font-size: 11px;
 }
 
+.ctl > .ctl-value:has(.ctl-seed) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ctl-seed {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .switch {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
-}
-
-.notes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.note-chip {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
-  background: var(--panel-2);
-  overflow: hidden;
-}
-
-.note-chip button {
-  border: 0;
-  background: transparent;
-  padding: 3px 8px;
-  cursor: pointer;
-}
-
-.note-chip button + button {
-  padding: 3px 7px 3px 2px;
-  color: var(--muted);
-}
-
-.note-chip.is-active {
-  border-color: var(--accent);
-  background: #1c2a33;
 }
 
 .keyboard {
@@ -1411,6 +1393,11 @@ input[type="range"] {
   .topbar__actions {
     margin-left: 0;
     flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .topbar__actions .btn {
+    padding: 6px 8px;
   }
 
   .volume,
@@ -1561,6 +1548,12 @@ input[type="range"] {
   color: #ffc9c9;
 }
 
+/* Con el teclado abierto, los avisos suben para no taparlo. */
+body:has(.perform:not([hidden])) .toast {
+  top: 104px;
+  bottom: auto;
+}
+
 /* ------------------------------------------------------------ cambios de nota y teclado */
 
 .btn[aria-pressed="true"] {
@@ -1698,6 +1691,34 @@ input[type="range"] {
 .note-change__spacer {
   width: 20px;
   height: 20px;
+}
+
+/* Fila de notas sin tiempo (notas de una nube o de un golpe). */
+.note-change--set {
+  grid-template-columns: 1fr auto;
+  padding: 4px 6px;
+}
+
+.note-change--single {
+  grid-template-columns: 1fr;
+}
+
+.note-change__count {
+  min-width: 34px;
+  color: var(--dim);
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.note-change__notes--wrap {
+  display: block;
+  resize: none;
+  overflow: hidden;
+  font: inherit;
+  line-height: 1.45;
+  field-sizing: content;
+  min-height: calc(1.45em + 6px);
 }
 
 .note-change__notes::placeholder {
@@ -1880,7 +1901,7 @@ input[type="range"] {
 
 .perform__progression-select {
   flex: 1;
-  min-width: 220px;
+  min-width: 160px;
   max-width: none;
   padding: 7px 10px;
   border: 1px solid #3a4564;
@@ -1888,6 +1909,44 @@ input[type="range"] {
   background: #0b0f19;
   color: var(--ink);
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.perform__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 8px 0 10px;
+  border: 1px solid #3a4564;
+  border-radius: 8px;
+  background: #0b0f19;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.perform__step:focus-within {
+  border-color: var(--accent);
+}
+
+.perform__step-input {
+  width: 54px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.perform__step-input:focus {
+  outline: none;
+}
+
+.perform__step-unit {
+  color: var(--dim);
 }
 
 .perform__transport {
@@ -2065,6 +2124,7 @@ input[type="range"] {
     order: 1;
   }
 
+  .perform__step,
   .perform__transport,
   .perform__apply {
     order: 3;

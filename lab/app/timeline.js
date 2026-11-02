@@ -4,7 +4,7 @@
  * doble clic o arrastrando desde la biblioteca, y teclado.
  */
 
-import { h, fmtShort, findElement, elementSpan, instrumentLabel, clampNum, typingTarget } from './util.js';
+import { h, fmtShort, findElement, elementSpan, instrumentLabel, trackTag, clampNum, typingTarget } from './util.js';
 import { AUTOMATION_DEFS, ELEMENT_TYPES, INSTRUMENTS, LIMITS, curveFunction, newId, projectCounts } from '../engine/schema.js';
 import { noteLabel } from '../engine/music.js';
 import { planStrikeHits } from '../engine/voices/strike.js';
@@ -217,7 +217,7 @@ export function createTimeline(root, store, actions) {
       }
       const head = h('div', { class: 'tl-head' },
         h('button', { type: 'button', class: 'tl-name', onclick: () => store.select({ kind: 'track', trackId: track.id }), title: 'Seleccionar pista' },
-          track.name, h('small', {}, track.family === 'layer' ? 'capa' : instrumentLabel(track)), track.automation && Object.keys(track.automation).length ? h('small', { class: 'tl-auto', title: 'Pista con automatización' }, 'A') : null),
+          track.name, trackTag(track) ? h('small', {}, trackTag(track)) : null, track.automation && Object.keys(track.automation).length ? h('small', { class: 'tl-auto', title: 'Pista con automatización' }, 'A') : null),
         h('div', { class: 'tl-ctrls' },
           h('button', { type: 'button', class: 'tl-ms tl-mute', 'aria-pressed': String(!!track.mix.mute), 'aria-label': `Silenciar ${track.name}`, title: 'Silencio (M)', onclick: () => actions.toggleMix(track.id, 'mute') }, 'M'),
           h('button', { type: 'button', class: 'tl-ms tl-solo', 'aria-pressed': String(!!track.mix.solo), 'aria-label': `Solo de ${track.name}`, title: 'Solo (Mayús+S)', onclick: () => actions.toggleMix(track.id, 'solo') }, 'S'),
