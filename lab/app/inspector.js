@@ -779,9 +779,13 @@ export function createInspector(root, store, actions) {
             e.pitches = v ? null : cloudNotesFor(e, d.key);
           }),
         }, syncers)));
-      blocks.push(section('Nube generativa',
-        ...ELEMENT_DEFS.cloud.map((def) => (def.type === 'range' ? pairControl(def, eb(def.key), syncers) : numberControl(def, eb(def.key), syncers))),
-        seedRow(id)));
+      // Los controles de generación se muestran solo en modo de notas
+      // aleatorias; con notas propias queda únicamente la sección «Notas».
+      if (random) {
+        blocks.push(section('Nube generativa',
+          ...ELEMENT_DEFS.cloud.map((def) => (def.type === 'range' ? pairControl(def, eb(def.key), syncers) : numberControl(def, eb(def.key), syncers))),
+          seedRow(id)));
+      }
     } else if (el.type === 'span') {
       blocks.push(section(track.family === 'nature' ? 'Actividad' : 'Tramo',
         ...ELEMENT_DEFS.span.map((def) => numberControl(def, eb(def.key), syncers)),

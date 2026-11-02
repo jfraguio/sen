@@ -146,7 +146,8 @@ cualquier escena sin tocar código.
   notas). Las nubes generativas y los golpes usan el mismo diseño de «Notas»:
   «Teclado» y «Grabar» arriba y la fila de notas debajo; en las nubes,
   «Grabar» añade las notas tocadas al conjunto y la casilla «Notas aleatorias»
-  lo cambia por un registro de la escala. El teclado suena con las mismas
+  lo cambia por un registro de la escala; los controles de «Nube generativa»
+  solo se muestran con esa casilla marcada. El teclado suena con las mismas
   voces del motor, la mezcla de la pista y la reverb del tema, así que lo que
   tocas suena igual en la pista. El popup incluye un piano de dos octavas, un
   conmutador de acordes/arpegios y progresiones agrupadas por carácter, con sus

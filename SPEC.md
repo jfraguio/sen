@@ -1118,7 +1118,9 @@ por parámetro.
   **Grabar** cuando el elemento lo admite) y debajo las filas de notas, que se
   escriben como «Do4 Mi4», «C4 E4» o «440Hz». En un golpe es una sola nota; en
   una nube con notas propias, su conjunto (con el recuento, p. ej. «8/24»),
-  seguido de la casilla **Notas aleatorias**. En un elemento sostenido,
+  seguido de la casilla **Notas aleatorias**; los controles de generación de la
+  sección **Nube generativa** solo aparecen con esa casilla marcada. En un
+  elemento sostenido,
   **Notas** es el editor único de las notas: la fila de **0 s**
   contiene las notas base (si no hay más cambios, duran todo el elemento), **+**
   añade un cambio al final, **×** borra los cambios añadidos, **↻ Repetir
