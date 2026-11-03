@@ -1205,13 +1205,20 @@ tema. Los acordes se agrupan por carácter (**Alegres**, **Nostálgicas**,
 **Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**); los arpegios, por
 movimiento (**Ascendentes**, **Descendentes**, **Ondulantes**, **Largos** y
 **Saltos**). Al
-elegir una se escucha en bucle, paso a paso. Junto al combo, **Cada acorde** /
-**Cada nota** fija los segundos de cada paso (0,1–60 s; por defecto 2 s los
-acordes y 0,65 s los arpegios; cada tipo recuerda el suyo). Cambiarlo mientras
+elegir una se escucha en bucle, paso a paso. Cuando hay una progresión elegida
+aparecen el campo de segundos (0,1–60 s; por defecto 2 s los acordes y 0,65 s
+los arpegios; cada tipo recuerda el suyo) y **▶**. Cambiar los segundos mientras
 suena se aplica en el paso siguiente.
 Debajo aparecen tarjetas con el cifrado, las notas en letras y las teclas del
-ordenador que tocan cada nota. **▶** se convierte en **■** mientras suena y
-detiene la reproducción. **→ Notas** lleva la progresión seleccionada a
+ordenador que tocan cada nota. A la derecha de la última tarjeta, **+** abre un
+desplegable para añadir acordes o notas al final de la progresión: se elige
+raíz y tipo de acorde, o una nota cromática. Si no hay tarjetas, **+** queda al
+principio. El desplegable sigue abierto para encadenar varias altas y cada
+tarjeta se quita con **×**. Al editar, el combo pasa a **Personalizada**; la
+progresión propia se conserva al cambiar de octava (se transporta) y al cambiar
+de notación (se reetiqueta). **▶** se convierte en
+**■** mientras suena y detiene la reproducción. **→ Notas** lleva la progresión
+elegida o construida a
 Notas **una sola vez**, con esa duración de paso: el paso k empieza en
 k × paso (4 acordes de 5 s → 0, 5, 10 y 15 s) y el elemento pasa a durar
 exactamente la progresión (20 s), sin nada después; si no cabe antes del final

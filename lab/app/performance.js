@@ -117,6 +117,20 @@ const ARPEGGIOS = [
 const KEY_BY_OFFSET = new Map(PERFORMANCE_KEYS.map(([key, offset]) => [offset, key]));
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 
+/** Acordes que se pueden añadir a mano desde el desplegable «+». */
+const CHORD_QUALITIES = [
+  { id: 'M', label: 'Mayor', suffix: '', intervals: [0, 4, 7] },
+  { id: 'm', label: 'Menor', suffix: 'm', intervals: [0, 3, 7] },
+  { id: '7', label: 'Séptima', suffix: '7', intervals: [0, 4, 7, 10] },
+  { id: 'm7', label: 'Menor séptima', suffix: 'm7', intervals: [0, 3, 7, 10] },
+  { id: 'maj7', label: 'Séptima mayor', suffix: 'maj7', intervals: [0, 4, 7, 11] },
+  { id: 'sus2', label: 'Sus2', suffix: 'sus2', intervals: [0, 2, 7] },
+  { id: 'sus4', label: 'Sus4', suffix: 'sus4', intervals: [0, 5, 7] },
+  { id: 'dim', label: 'Disminuido', suffix: 'º', intervals: [0, 3, 6] },
+  { id: 'aug', label: 'Aumentado', suffix: '+', intervals: [0, 4, 8] },
+];
+const qualityById = (id) => CHORD_QUALITIES.find((q) => q.id === id) || CHORD_QUALITIES[0];
+
 function noteAt(key, degree, octave) {
   const steps = SCALES[key?.scale] || SCALES.mayor;
   const base = (octave + 1) * 12 + rootIndex(key?.root || 'C');
@@ -124,27 +138,82 @@ function noteAt(key, degree, octave) {
   return base + oct * 12 + steps[((degree % steps.length) + steps.length) % steps.length];
 }
 
-function chordAt(key, degree, octave, notation = 'latin') {
-  const midis = [degree, degree + 2, degree + 4].map((d) => noteAt(key, d, octave));
-  const third = midis[1] - midis[0];
-  const fifth = midis[2] - midis[0];
+/** Nombre de una raíz sin octava: «Si», «B», «Fa#»… */
+function rootLabel(pc, notation = 'latin') {
+  return noteLabel(midiToNote(60 + pc), notation).replace(/-?\d+$/, '');
+}
+
+/** Ficha de un acorde a partir de sus notas MIDI, para pintar la tarjeta. */
+function chordItem(midis, { notation = 'latin', octave = 3, roman = '', suffix = null, qualityLabel = '' } = {}) {
+  const third = midis.length > 1 ? midis[1] - midis[0] : 0;
+  const fifth = midis.length > 2 ? midis[2] - midis[0] : 0;
   const quality = third === 4 && fifth === 7 ? 'mayor'
     : third === 3 && fifth === 7 ? 'menor'
       : third === 3 && fifth === 6 ? 'disminuido'
         : third === 4 && fifth === 8 ? 'aumentado' : '';
+  const derivedSuffix = quality === 'menor' ? 'm' : quality === 'disminuido' ? 'º' : quality === 'aumentado' ? '+' : '';
   // El cifrado del acorde no lleva octava: «Lam», no «La3m».
-  const rootName = noteLabel(midiToNote(midis[0]), notation).replace(/-?\d+$/, '');
-  const suffix = quality === 'menor' ? 'm' : quality === 'disminuido' ? 'º' : quality === 'aumentado' ? '+' : '';
+  const name = rootLabel(midis[0], notation);
   const keyBase = (octave + 1) * 12;
-  const keys = midis.map((m) => KEY_BY_OFFSET.get(m - keyBase) || '');
   return {
     midis,
     quality,
-    keys,
-    short: `${rootName}${suffix}`,
-    fullName: `${rootName}${quality ? ` ${quality}` : ''}`,
+    keys: midis.map((m) => KEY_BY_OFFSET.get(m - keyBase) || ''),
+    short: `${name}${suffix ?? derivedSuffix}`,
+    fullName: qualityLabel ? `${name} ${qualityLabel}` : `${name}${quality ? ` ${quality}` : ''}`,
     letters: midis.map((m) => midiToNote(m).replace(/-?\d+$/, '')).join(' '),
+    roman,
+    suffix,
+    qualityLabel: qualityLabel || null,
   };
+}
+
+/** Ficha de una nota suelta (modo arpegios). */
+function noteItem(midi, { notation = 'latin', octave = 3, roman = '' } = {}) {
+  const keyBase = (octave + 1) * 12;
+  const note = midiToNote(midi);
+  const label = noteLabel(note, notation);
+  return {
+    midis: [midi],
+    quality: '',
+    keys: [KEY_BY_OFFSET.get(midi - keyBase) || ''],
+    short: label,
+    fullName: label,
+    letters: note.replace(/-?\d+$/, ''),
+    roman,
+  };
+}
+
+function chordAt(key, degree, octave, notation = 'latin') {
+  const midis = [degree, degree + 2, degree + 4].map((d) => noteAt(key, d, octave));
+  const chord = chordItem(midis, { notation, octave });
+  chord.roman = romanFor(degree, chord.quality);
+  return chord;
+}
+
+/** Grado de la escala del tema para una clase de altura, o -1 si no está. */
+function degreeForPc(key, pc) {
+  const steps = SCALES[key?.scale] || SCALES.mayor;
+  const diff = (((pc - rootIndex(key?.root || 'C')) % 12) + 12) % 12;
+  return steps.indexOf(diff);
+}
+
+/** Cifra romana de una ficha propia según la tonalidad actual. */
+function romanForItem(item, key) {
+  const degree = degreeForPc(key, ((item.midis[0] % 12) + 12) % 12);
+  return degree < 0 ? '' : romanFor(degree, item.quality || '');
+}
+
+/** Copia una ficha para que la progresión no comparta estado con el catálogo. */
+const cloneItem = (c) => ({ ...c, midis: [...c.midis], keys: [...c.keys] });
+
+/** Transpone una ficha de la progresión propia y recalcula letras y teclas. */
+function transposeItem(item, delta, { notation, octave }) {
+  const midis = item.midis.map((m) => m + delta);
+  if (midis.length === 1) return noteItem(midis[0], { notation, octave, roman: item.roman });
+  return chordItem(midis, {
+    notation, octave, roman: item.roman, suffix: item.suffix ?? null, qualityLabel: item.qualityLabel || '',
+  });
 }
 
 function romanFor(degree, quality) {
@@ -216,6 +285,7 @@ export function createPerformance({ store, audio, actions }) {
   const detail = h('span', { class: 'perform__detail' });
   const chips = h('div', { class: 'perform__notes', 'aria-live': 'polite' });
   const progSelect = h('select', { class: 'perform__progression-select', 'aria-label': 'Progresiones de inspiración' });
+  const customOption = h('option', { value: '__custom', hidden: true }, 'Personalizada');
   const progPlay = h('button', {
     type: 'button', class: 'btn perform__transport', 'aria-label': 'Escuchar la progresión elegida', title: 'Escuchar la progresión elegida',
     onclick: () => { if (previewPlaying) stopPreview(); else playSelectedProgression(); },
@@ -227,8 +297,7 @@ export function createPerformance({ store, audio, actions }) {
   const stepInput = h('input', {
     type: 'number', class: 'perform__step-input', min: '0.1', max: '60', step: '0.05', inputmode: 'decimal',
   });
-  const stepLabel = h('span', { class: 'perform__step-label' });
-  const stepWrap = h('label', { class: 'perform__step' }, stepLabel, stepInput, h('span', { class: 'perform__step-unit' }, 's'));
+  const stepWrap = h('label', { class: 'perform__step' }, stepInput, h('span', { class: 'perform__step-unit' }, 's'));
   const commitStep = () => {
     const v = Number(String(stepInput.value).replace(',', '.'));
     if (Number.isFinite(v) && v > 0) stepSeconds[progType] = Math.round(clampNum(v, 0.1, 60) * 100) / 100;
@@ -246,12 +315,24 @@ export function createPerformance({ store, audio, actions }) {
   });
   stepInput.addEventListener('blur', commitStep);
   const progCards = h('div', { class: 'perform__prog-cards' });
+  const addTitle = h('span', { class: 'perform__add-title' });
+  const addHint = h('span', { class: 'perform__add-hint' });
+  const addBody = h('div', { class: 'perform__add-body' });
+  const addMenu = h('div', { class: 'perform__add-menu', role: 'group', 'aria-label': 'Añadir a la progresión', hidden: true }, addTitle, addHint, addBody);
+  const addBtn = h('button', {
+    type: 'button', class: 'perform__add', 'aria-expanded': 'false', 'aria-controls': 'perform-add-menu',
+    'aria-haspopup': 'true', 'aria-label': 'Añadir a la progresión', title: 'Añadir un acorde o una nota a la progresión',
+    onclick: () => toggleAdd(),
+  }, '+');
+  addMenu.id = 'perform-add-menu';
+  const addWrap = h('div', { class: 'perform__add-wrap' }, addBtn, addMenu);
+  const progRow = h('div', { class: 'perform__prog-row' }, progCards, addWrap);
   const typeChords = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'true', onclick: () => setProgType('chords') }, 'Acordes');
   const typeArps = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'false', onclick: () => setProgType('arpeggios') }, 'Arpegios');
   const typeWrap = h('div', { class: 'perform__types', role: 'group', 'aria-label': 'Tipo de progresión' }, typeChords, typeArps);
   const progWrap = h('div', { class: 'perform__progressions' },
     h('span', { class: 'perform__progression-label' }, 'Progresión'), typeWrap, progSelect, stepWrap, progPlay, progApply);
-  const progArea = h('div', { class: 'perform__prog-area' }, progWrap, progCards);
+  const progArea = h('div', { class: 'perform__prog-area' }, progWrap, progRow);
   const kb = keyboard({
     octave,
     notation: store.state.view.notation,
@@ -268,21 +349,33 @@ export function createPerformance({ store, audio, actions }) {
   const bar = h('div', { class: 'perform', role: 'region', 'aria-label': 'Modo teclado', hidden: true },
     top, progArea, kbWrap);
   document.body.append(bar);
-  progSelect.addEventListener('change', () => playSelectedProgression());
+  progSelect.addEventListener('change', () => selectProgression(progSelect.value));
 
   let progSig = '';
+  let sigState = null;
   let progList = [];
+  let current = null; // progresión editable: elegida del catálogo o construida a mano
+  let addOpen = false;
+  let addRootPc = 0;
+  let addQualityId = 'M';
+  let addNoteMidi = 60;
+  let addDefaultsSig = '';
   let previewTimer = 0;
   let previewPlaying = false;
+
+  document.addEventListener('pointerdown', (e) => {
+    if (addOpen && !addWrap.contains(e.target)) closeAdd();
+  }, true);
+  window.addEventListener('resize', () => {
+    if (addOpen) positionAddMenu();
+  });
 
   /** Duración de cada paso (s) del tipo de progresión actual. */
   const stepNow = () => stepSeconds[progType];
 
   function syncStep() {
-    const text = progType === 'arpeggios' ? 'Cada nota' : 'Cada acorde';
-    stepLabel.textContent = text;
-    stepInput.setAttribute('aria-label', `${text}, en segundos`);
-    stepInput.title = `${text} suena estos segundos al escuchar la progresión y al llevarla a Notas`;
+    stepInput.setAttribute('aria-label', 'Segundos por paso');
+    stepInput.title = 'Segundos que dura cada paso al escuchar la progresión y al llevarla a Notas';
     if (document.activeElement !== stepInput) stepInput.value = String(stepSeconds[progType]);
   }
 
@@ -300,18 +393,92 @@ export function createPerformance({ store, audio, actions }) {
 
   function renderProgCards(prog, active = -1) {
     progCards.textContent = '';
-    if (!prog) {
-      progCards.append(h('span', { class: 'perform__prog-empty' }, 'Elige una progresión para ver sus notas y teclas.'));
+    if (prog?.chords.length) {
+      prog.chords.forEach((c, i) => progCards.append(h('div', {
+        class: `perform__prog-card${c.midis.length === 1 ? ' perform__prog-card--note' : ''}${i === active ? ' is-active' : ''}`,
+        title: `${c.fullName} (${c.letters})`,
+      },
+      c.roman ? h('span', { class: 'perform__prog-cipher' }, c.roman) : null,
+      h('button', {
+        type: 'button', class: 'perform__prog-remove',
+        'aria-label': `Quitar ${c.short} de la progresión`, title: `Quitar ${c.short}`,
+        onclick: () => removeFromProgression(i),
+      }, '×'),
+      h('b', {}, c.short),
+      h('span', { class: 'perform__prog-notes' }, c.letters),
+      h('span', { class: 'perform__prog-keys' }, ...c.keys.filter(Boolean).map((key) => h('kbd', {}, key.toUpperCase()))))));
+    }
+    syncProgressionControls(prog);
+  }
+
+  /** El + va pegado a la última tarjeta; los controles de paso solo con progresión. */
+  function syncProgressionControls(prog = current) {
+    const has = !!prog && prog.chords.length > 0;
+    stepWrap.hidden = !has;
+    progPlay.hidden = !has;
+    if (addOpen) positionAddMenu();
+  }
+
+  /** Deja el combo en la progresión de catálogo o en «Personalizada». */
+  function syncSelectValue() {
+    if (current?.edited) {
+      customOption.hidden = false;
+      progSelect.value = '__custom';
+    } else if (current?.sourceIndex != null && progList[current.sourceIndex]) {
+      customOption.hidden = true;
+      progSelect.value = String(current.sourceIndex);
+    } else {
+      customOption.hidden = true;
+      progSelect.value = '';
+    }
+  }
+
+  function markEdited() {
+    if (!current) return;
+    current.edited = true;
+    current.sourceIndex = null;
+    syncSelectValue();
+  }
+
+  function addToProgression(item) {
+    if (!current || current.type !== progType) current = { type: progType, sourceIndex: null, edited: false, chords: [] };
+    stopPreview();
+    current.chords.push(cloneItem(item));
+    markEdited();
+    renderProgCards(current);
+  }
+
+  function removeFromProgression(index) {
+    if (!current) return;
+    stopPreview();
+    current.chords.splice(index, 1);
+    if (!current.chords.length) current = null;
+    else markEdited();
+    renderProgCards(current);
+    syncSelectValue();
+  }
+
+  /** Carga una progresión del catálogo en el editor de tarjetas. */
+  function choosePreset(index, { play = true } = {}) {
+    const prog = progList[index];
+    if (!prog) return;
+    current = { type: progType, sourceIndex: index, edited: false, chords: prog.chords.map(cloneItem) };
+    renderProgCards(current);
+    syncSelectValue();
+    if (play) playProgression(current);
+  }
+
+  function selectProgression(value) {
+    if (value === '__custom') return;
+    if (value === '') {
+      stopPreview();
+      current = null;
+      renderProgCards(null);
+      syncSelectValue();
       return;
     }
-    prog.chords.forEach((c, i) => progCards.append(h('div', {
-      class: `perform__prog-card${c.midis.length === 1 ? ' perform__prog-card--note' : ''}${i === active ? ' is-active' : ''}`,
-      title: `${c.fullName} (${c.letters})`,
-    },
-    h('span', { class: 'perform__prog-cipher' }, c.roman),
-    h('b', {}, c.short),
-    h('span', { class: 'perform__prog-notes' }, c.letters),
-    h('span', { class: 'perform__prog-keys' }, ...c.keys.filter(Boolean).map((key) => h('kbd', {}, key.toUpperCase()))))));
+    const index = Number(value);
+    if (Number.isInteger(index)) choosePreset(index);
   }
 
   function stopPreview() {
@@ -354,14 +521,159 @@ export function createPerformance({ store, audio, actions }) {
     hud();
   }
 
+  /* ------------------------------------------------------- añadir a la progresión */
+
+  function closeAdd() {
+    if (!addOpen) return;
+    addOpen = false;
+    addMenu.hidden = true;
+    addBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleAdd() {
+    if (addOpen) {
+      closeAdd();
+      return;
+    }
+    addOpen = true;
+    const key = store.state.project.key;
+    const steps = SCALES[key?.scale] || SCALES.mayor;
+    const low = (octave + 1) * 12;
+    const defaultsSig = JSON.stringify([key?.root, key?.scale]);
+    if (addDefaultsSig !== defaultsSig) {
+      addDefaultsSig = defaultsSig;
+      addRootPc = rootIndex(key?.root || 'C');
+      addQualityId = steps.includes(3) ? 'm' : 'M';
+    }
+    if (addNoteMidi < low || addNoteMidi > low + 23) {
+      addNoteMidi = low + ((((addRootPc - (low % 12)) % 12) + 12) % 12);
+    }
+    addMenu.hidden = false;
+    addBtn.setAttribute('aria-expanded', 'true');
+    renderAddMenu();
+  }
+
+  /** Coloca el desplegable junto al + sin salirse del panel. */
+  function positionAddMenu() {
+    if (!addOpen) return;
+    const panel = bar.getBoundingClientRect();
+    const btn = addBtn.getBoundingClientRect();
+    const width = addMenu.offsetWidth || 340;
+    const margin = 8;
+    const minLeft = panel.left + margin;
+    const maxLeft = Math.max(minLeft, panel.right - width - margin);
+    const left = clampNum(btn.left + btn.width / 2 - width / 2, minLeft, maxLeft);
+    const wrap = addWrap.getBoundingClientRect();
+    addMenu.style.left = `${Math.round(left - wrap.left)}px`;
+    addMenu.style.right = 'auto';
+    const arrow = clampNum(btn.left + btn.width / 2 - left - 4, 10, width - 18);
+    addMenu.style.setProperty('--add-arrow', `${Math.round(arrow)}px`);
+  }
+
+  function freeChordItem() {
+    const quality = qualityById(addQualityId);
+    const rootMidi = (octave + 1) * 12 + addRootPc;
+    return chordItem(quality.intervals.map((i) => rootMidi + i), {
+      notation: store.state.view.notation,
+      octave,
+      suffix: quality.suffix,
+      qualityLabel: quality.label.toLowerCase(),
+    });
+  }
+
+  function addFreeChord() {
+    const notation = store.state.view.notation;
+    const rootSel = h('select', { class: 'perform__add-select', 'aria-label': 'Raíz del acorde' },
+      ...Array.from({ length: 12 }, (_, pc) => h('option', { value: String(pc) }, rootLabel(pc, notation))));
+    rootSel.value = String(addRootPc);
+    const qualitySel = h('select', { class: 'perform__add-select', 'aria-label': 'Tipo de acorde' },
+      ...CHORD_QUALITIES.map((q) => h('option', { value: q.id }, q.label)));
+    qualitySel.value = addQualityId;
+    const preview = h('span', { class: 'perform__add-preview' });
+    const sync = () => {
+      const item = freeChordItem();
+      preview.textContent = `${item.short} · ${item.letters}`;
+      preview.title = item.fullName;
+    };
+    rootSel.addEventListener('change', () => {
+      addRootPc = Number(rootSel.value);
+      sync();
+    });
+    qualitySel.addEventListener('change', () => {
+      addQualityId = qualitySel.value;
+      sync();
+    });
+    sync();
+    addBody.append(
+      h('div', { class: 'perform__add-fields' },
+        h('label', { class: 'perform__add-field' }, h('span', {}, 'Raíz'), rootSel),
+        h('label', { class: 'perform__add-field' }, h('span', {}, 'Tipo'), qualitySel),
+        h('button', {
+          type: 'button', class: 'btn perform__add-confirm',
+          onclick: () => addToProgression(freeChordItem()),
+        }, 'Añadir')),
+      preview);
+  }
+
+  function addFreeNote() {
+    const notation = store.state.view.notation;
+    const low = (octave + 1) * 12;
+    if (addNoteMidi < low || addNoteMidi > low + 23) {
+      addNoteMidi = low + ((((addRootPc - (low % 12)) % 12) + 12) % 12);
+    }
+    const noteSel = h('select', { class: 'perform__add-select', 'aria-label': 'Nota' },
+      ...Array.from({ length: 24 }, (_, k) => {
+        const midi = low + k;
+        const hint = KEY_BY_OFFSET.get(k);
+        return h('option', { value: String(midi) }, `${noteLabel(midiToNote(midi), notation)}${hint ? ` · ${hint.toUpperCase()}` : ''}`);
+      }));
+    noteSel.value = String(addNoteMidi);
+    const item = () => noteItem(addNoteMidi, { notation, octave });
+    const preview = h('span', { class: 'perform__add-preview' });
+    const sync = () => {
+      preview.textContent = item().short;
+      preview.title = item().short;
+    };
+    noteSel.addEventListener('change', () => {
+      addNoteMidi = Number(noteSel.value);
+      sync();
+    });
+    sync();
+    addBody.append(
+      h('div', { class: 'perform__add-fields' },
+        h('label', { class: 'perform__add-field perform__add-field--grow' }, h('span', {}, 'Nota'), noteSel),
+        h('button', {
+          type: 'button', class: 'btn perform__add-confirm',
+          onclick: () => addToProgression(item()),
+        }, 'Añadir')),
+      preview);
+  }
+
+  function renderAddMenu() {
+    if (!addOpen) return;
+    addTitle.textContent = progType === 'arpeggios' ? 'Añadir nota' : 'Añadir acorde';
+    addHint.textContent = progType === 'arpeggios' ? 'Elige cualquier nota cromática.' : 'Elige raíz y tipo de acorde.';
+    addBody.textContent = '';
+    if (progType === 'arpeggios') addFreeNote();
+    else addFreeChord();
+    positionAddMenu();
+  }
+
   function buildProgressions() {
-    const sig = JSON.stringify([store.state.project.key || {}, octave, progType, store.state.view.notation]);
+    const next = {
+      key: store.state.project.key || {}, octave, type: progType, notation: store.state.view.notation,
+    };
+    const sig = JSON.stringify(next);
     if (sig === progSig) return;
+    const prev = sigState;
     progSig = sig;
+    sigState = next;
     stopPreview();
     progList = progressionOptions(store.state.project.key, octave, progType, store.state.view.notation);
     progSelect.textContent = '';
-    progSelect.append(h('option', { value: '' }, progType === 'arpeggios' ? 'Elige un arpegio…' : 'Elige una progresión…'));
+    progSelect.append(
+      h('option', { value: '' }, progType === 'arpeggios' ? 'Arpegios' : 'Progresiones'),
+      customOption);
     const groups = new Map();
     for (const p of progList) {
       if (!groups.has(p.mood)) groups.set(p.mood, []);
@@ -372,8 +684,34 @@ export function createPerformance({ store, audio, actions }) {
       for (const p of list) group.append(h('option', { value: String(p.index) }, p.label));
       progSelect.append(group);
     }
-    progSelect.value = '';
-    renderProgCards(null);
+    // La progresión propia se conserva (transportada de octava si hace falta);
+    // una de catálogo se recalcula con la nueva tonalidad u octava.
+    if (current && current.type === progType) {
+      if (current.edited) {
+        const delta = prev && prev.type === progType ? (octave - prev.octave) * 12 : 0;
+        const keyChanged = !!prev && JSON.stringify(prev.key) !== JSON.stringify(next.key);
+        if (delta || keyChanged || (prev && prev.notation !== next.notation)) {
+          current.chords = current.chords.map((item) => {
+            const shifted = transposeItem(item, delta, { notation: next.notation, octave });
+            if (keyChanged && item.roman) shifted.roman = romanForItem(shifted, next.key);
+            return shifted;
+          });
+        }
+        renderProgCards(current);
+        syncSelectValue();
+      } else if (current.sourceIndex != null && progList[current.sourceIndex]) {
+        choosePreset(current.sourceIndex, { play: false });
+      } else {
+        current = null;
+        renderProgCards(null);
+        syncSelectValue();
+      }
+    } else {
+      current = null;
+      renderProgCards(null);
+      syncSelectValue();
+    }
+    if (addOpen) renderAddMenu();
   }
 
   function syncProgType() {
@@ -389,10 +727,7 @@ export function createPerformance({ store, audio, actions }) {
     syncProgType();
     progSig = '';
     buildProgressions();
-    if (progList.length) {
-      progSelect.value = '0';
-      playProgression(progList[0]);
-    }
+    if (progList.length) choosePreset(0);
   }
 
   function setPreviewChord(midis) {
@@ -410,7 +745,7 @@ export function createPerformance({ store, audio, actions }) {
   }
 
   function playProgression(prog) {
-    if (!active || mode !== 'test' || !prog) return;
+    if (!active || mode !== 'test' || !prog || !prog.chords.length) return;
     stopPreview();
     previewPlaying = true;
     syncPlayButton();
@@ -432,12 +767,18 @@ export function createPerformance({ store, audio, actions }) {
   }
 
   function playSelectedProgression() {
-    let prog = progList[Number(progSelect.value)];
-    if (!prog && progList.length) {
-      prog = progList[0];
-      progSelect.value = String(prog.index);
+    if (current?.chords.length) {
+      playProgression(current);
+      return;
     }
-    if (prog) playProgression(prog);
+    if (current) {
+      actions.notify('Añade algún acorde o nota a la progresión con +.', true);
+      return;
+    }
+    if (progList.length) {
+      choosePreset(0, { play: false });
+      if (current?.chords.length) playProgression(current);
+    }
   }
 
   /**
@@ -470,14 +811,9 @@ export function createPerformance({ store, audio, actions }) {
    * nada después. Sustituye las notas del elemento.
    */
   function applyProgressionToChanges() {
-    let prog = progList[Number(progSelect.value)];
-    if (!prog && progList.length) {
-      prog = progList[0];
-      progSelect.value = String(prog.index);
-      renderProgCards(prog);
-    }
-    if (!prog) {
-      actions.notify('Elige una progresión primero.', true);
+    const prog = current;
+    if (!prog || !prog.chords.length) {
+      actions.notify('Elige una progresión o añade acordes y notas con +.', true);
       return;
     }
     const target = selectedTone();
@@ -725,6 +1061,7 @@ export function createPerformance({ store, audio, actions }) {
     }
     if (active) stop(false);
     stopPreview();
+    closeAdd();
     active = true;
     mode = nextMode === 'record' ? 'record' : 'test';
     trackId = t.id;
@@ -770,6 +1107,7 @@ export function createPerformance({ store, audio, actions }) {
     if (!active && bar.hidden) return;
     active = false;
     stopPreview();
+    closeAdd();
     clearTaps();
     releaseAll(false);
     audio.setMonitorMute(null);
@@ -795,6 +1133,12 @@ export function createPerformance({ store, audio, actions }) {
   function handleKeyDown(e) {
     if (!active) return false;
     if (e.key === 'Escape') {
+      if (addOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeAdd();
+        return true;
+      }
       e.preventDefault();
       e.stopPropagation();
       stop();

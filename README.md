@@ -154,8 +154,10 @@ cualquier escena sin tocar código.
   notas y las teclas para tocarlas, los segundos que dura cada paso,
   reproducción en bucle y un botón para llevarlas a Notas una vez, con esos
   tiempos (4 acordes de 5 s quedan en 0, 5, 10 y 15 s y el elemento acaba en
-  20 s). Bajo las notas, «Repetir hasta el final» repite el patrón, con sus
-  tiempos, hasta el final del tema.
+  20 s). La progresión se puede construir a mano: **+** añade acordes o notas
+  desde un desplegable (eligiendo raíz y tipo, o una nota cromática) y **×**
+  quita tarjetas. Bajo las notas, «Repetir hasta el final» repite el patrón, con
+  sus tiempos, hasta el final del tema.
 - **Exportar → WAV** directamente desde el navegador (48 kHz/24 bits,
   44,1 kHz/16 bits o «Escena para sen»), con final con cola, exacto o en bucle
   sin costura, y sonoridad normalizada. Cada WAV lleva el proyecto dentro y se

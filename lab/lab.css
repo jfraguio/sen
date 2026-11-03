@@ -1990,25 +1990,62 @@ body:has(.perform:not([hidden])) .toast {
   background: linear-gradient(180deg, #263147, #151c2a);
 }
 
+.perform__prog-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
 .perform__prog-cards {
   display: flex;
+  flex: 0 1 auto;
   gap: 6px;
+  min-width: 0;
   overflow-x: auto;
   padding: 2px 2px 4px;
   scrollbar-width: thin;
 }
 
 .perform__prog-card {
+  position: relative;
   flex: 0 0 auto;
   min-width: 94px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 7px 9px;
+  padding: 7px 22px 7px 9px;
   border: 1px solid #2c3650;
   border-radius: 8px;
   background: linear-gradient(180deg, #151b29, #0d111b);
   transition: border-color 0.15s, transform 0.15s, background 0.15s;
+}
+
+.perform__prog-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dim);
+  font: 13px/1 ui-monospace, "SF Mono", Menlo, monospace;
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.perform__prog-remove:hover,
+.perform__prog-remove:focus-visible {
+  opacity: 1;
+  color: #fff;
+  background: rgba(255, 122, 122, 0.18);
+  outline: none;
 }
 
 .perform__prog-card.is-active {
@@ -2056,10 +2093,158 @@ body:has(.perform:not([hidden])) .toast {
   text-align: center;
 }
 
-.perform__prog-empty {
+/* --------------------------------------------------- añadir a la progresión */
+
+.perform__add-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.perform__add {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px dashed #4c5b7c;
+  border-radius: 50%;
+  background: rgba(157, 222, 216, 0.04);
+  color: var(--accent);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.perform__add:hover,
+.perform__add:focus-visible,
+.perform__add[aria-expanded="true"] {
+  border-style: solid;
+  border-color: var(--accent);
+  background: rgba(157, 222, 216, 0.12);
+  box-shadow: 0 0 0 3px rgba(157, 222, 216, 0.12);
+  outline: none;
+}
+
+.perform__add:active {
+  transform: scale(0.94);
+}
+
+.perform__add-menu {
+  position: absolute;
+  left: 0;
+  right: auto;
+  bottom: calc(100% + 8px);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(340px, calc(100vw - 48px));
+  padding: 10px;
+  border: 1px solid #3a4564;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(28, 34, 52, 0.99), rgba(10, 13, 22, 0.99));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(18px);
+}
+
+.perform__add-menu[hidden] {
+  display: none;
+}
+
+.perform__add-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(52vh, 300px);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.perform__add-menu::after {
+  content: "";
+  position: absolute;
+  left: var(--add-arrow, 12px);
+  right: auto;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  background: #0a0d16;
+  border-right: 1px solid #3a4564;
+  border-bottom: 1px solid #3a4564;
+}
+
+.perform__add-title {
   color: var(--dim);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.perform__add-hint {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.perform__add-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.perform__add-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.perform__add-field > span {
+  color: var(--dim);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.perform__add-field--grow {
+  flex: 1;
+}
+
+.perform__add-select {
+  padding: 5px 6px;
+  border: 1px solid #3a4564;
+  border-radius: 6px;
+  background: #0b0f19;
+  color: var(--ink);
   font-size: 11px;
-  padding: 4px 2px;
+}
+
+.perform__add-confirm {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #3a4564;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #1b2335, #101520);
+  color: var(--accent);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.perform__add-confirm:hover {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, #263147, #151c2a);
+}
+
+.perform__add-preview {
+  min-height: 13px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
 }
 
 .perform__keyboard {
