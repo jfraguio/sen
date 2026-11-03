@@ -1211,10 +1211,11 @@ los arpegios; cada tipo recuerda el suyo) y **▶**. Cambiar los segundos mientr
 suena se aplica en el paso siguiente.
 Debajo aparecen tarjetas con el cifrado, las notas en letras y las teclas del
 ordenador que tocan cada nota. A la derecha de la última tarjeta, **+** abre un
-desplegable para añadir acordes o notas al final de la progresión: se elige
-raíz y tipo de acorde, o una nota cromática. Si no hay tarjetas, **+** queda al
-principio. El desplegable sigue abierto para encadenar varias altas y cada
-tarjeta se quita con **×**. Al editar, el combo pasa a **Personalizada**; la
+desplegable para añadir acordes o notas al final de la progresión: **Escala**
+ofrece los acordes o notas de la tonalidad en la octava actual y **Libre**
+permite elegir cualquier raíz y tipo de acorde (o cualquier nota). Si no hay
+tarjetas, **+** queda al principio. El desplegable sigue abierto para encadenar
+varias altas y cada tarjeta se quita con **×**. Al editar, el combo pasa a **Personalizada**; la
 progresión propia se conserva al cambiar de octava (se transporta) y al cambiar
 de notación (se reetiqueta). **▶** se convierte en
 **■** mientras suena y detiene la reproducción. **→ Notas** lleva la progresión

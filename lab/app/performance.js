@@ -12,7 +12,7 @@
  */
 
 import { h, typingTarget, findTrack, findElement, clampNum } from './util.js';
-import { SCALES, midiToNote, noteLabel, noteToMidi, rootIndex } from '../engine/music.js';
+import { SCALES, SCALE_LABELS, midiToNote, noteLabel, noteToMidi, rootIndex } from '../engine/music.js';
 import { LIMITS, toneNotesAt } from '../engine/schema.js';
 import { PERFORMANCE_KEYS, hintForMidi, offsetForKey } from './keys.js';
 import { keyboard } from './controls.js';
@@ -316,9 +316,12 @@ export function createPerformance({ store, audio, actions }) {
   stepInput.addEventListener('blur', commitStep);
   const progCards = h('div', { class: 'perform__prog-cards' });
   const addTitle = h('span', { class: 'perform__add-title' });
+  const addTabScale = h('button', { type: 'button', class: 'perform__add-tab', 'aria-pressed': 'true', onclick: () => setAddTab('scale') }, 'Escala');
+  const addTabFree = h('button', { type: 'button', class: 'perform__add-tab', 'aria-pressed': 'false', onclick: () => setAddTab('free') }, 'Libre');
+  const addTabs = h('div', { class: 'perform__add-tabs', role: 'group', 'aria-label': 'Acordes de la escala o libres' }, addTabScale, addTabFree);
   const addHint = h('span', { class: 'perform__add-hint' });
   const addBody = h('div', { class: 'perform__add-body' });
-  const addMenu = h('div', { class: 'perform__add-menu', role: 'group', 'aria-label': 'Añadir a la progresión', hidden: true }, addTitle, addHint, addBody);
+  const addMenu = h('div', { class: 'perform__add-menu', role: 'group', 'aria-label': 'Añadir a la progresión', hidden: true }, addTitle, addTabs, addHint, addBody);
   const addBtn = h('button', {
     type: 'button', class: 'perform__add', 'aria-expanded': 'false', 'aria-controls': 'perform-add-menu',
     'aria-haspopup': 'true', 'aria-label': 'Añadir a la progresión', title: 'Añadir un acorde o una nota a la progresión',
@@ -356,6 +359,7 @@ export function createPerformance({ store, audio, actions }) {
   let progList = [];
   let current = null; // progresión editable: elegida del catálogo o construida a mano
   let addOpen = false;
+  let addTab = 'scale';
   let addRootPc = 0;
   let addQualityId = 'M';
   let addNoteMidi = 60;
@@ -536,6 +540,7 @@ export function createPerformance({ store, audio, actions }) {
       return;
     }
     addOpen = true;
+    addTab = 'scale';
     const key = store.state.project.key;
     const steps = SCALES[key?.scale] || SCALES.mayor;
     const low = (octave + 1) * 12;
@@ -568,6 +573,68 @@ export function createPerformance({ store, audio, actions }) {
     addMenu.style.right = 'auto';
     const arrow = clampNum(btn.left + btn.width / 2 - left - 4, 10, width - 18);
     addMenu.style.setProperty('--add-arrow', `${Math.round(arrow)}px`);
+  }
+
+  function setAddTab(tab) {
+    if (addTab === tab) return;
+    addTab = tab;
+    renderAddMenu();
+  }
+
+  function addChoice(c) {
+    return h('button', {
+      type: 'button', class: 'perform__add-choice',
+      title: `Añadir ${c.fullName} (${c.letters})`,
+      onclick: () => addToProgression(c),
+    },
+    h('span', { class: 'perform__add-choice-cipher' }, c.roman || ''),
+    h('b', {}, c.short),
+    h('span', { class: 'perform__add-choice-notes' }, c.letters),
+    h('span', { class: 'perform__add-choice-plus', 'aria-hidden': 'true' }, '+'));
+  }
+
+  function addNoteChoice(n) {
+    const hint = n.keys[0] ? ` · tecla ${n.keys[0].toUpperCase()}` : '';
+    return h('button', {
+      type: 'button', class: 'perform__add-note',
+      title: `Añadir ${n.short}${hint}`,
+      onclick: () => addToProgression(n),
+    }, h('b', {}, n.short), h('span', { class: 'perform__add-note-cipher' }, n.roman || ''));
+  }
+
+  /** Notas de la escala dentro de las dos octavas del piano. */
+  function scaleNoteItems() {
+    const key = store.state.project.key;
+    const notation = store.state.view.notation;
+    const steps = SCALES[key?.scale] || SCALES.mayor;
+    const root = rootIndex(key?.root || 'C');
+    const low = (octave + 1) * 12;
+    const items = [];
+    for (let m = low; m < low + 24; m++) {
+      const diff = (((m - root) % 12) + 12) % 12;
+      const degree = steps.indexOf(diff);
+      if (degree < 0) continue;
+      const roman = `${romanFor(degree, '')}${m >= low + 12 ? '′' : ''}`;
+      items.push(noteItem(m, { notation, octave, roman }));
+    }
+    return items;
+  }
+
+  function addScaleChoices() {
+    const key = store.state.project.key;
+    const notation = store.state.view.notation;
+    if (progType === 'arpeggios') {
+      const list = h('div', { class: 'perform__add-notes' });
+      list.append(...scaleNoteItems().map(addNoteChoice));
+      addBody.append(list);
+      return;
+    }
+    const steps = SCALES[key?.scale] || SCALES.mayor;
+    const list = h('div', { class: 'perform__add-list' });
+    for (let degree = 0; degree < steps.length; degree++) {
+      list.append(addChoice(chordAt(key, degree, octave, notation)));
+    }
+    addBody.append(list);
   }
 
   function freeChordItem() {
@@ -651,10 +718,20 @@ export function createPerformance({ store, audio, actions }) {
 
   function renderAddMenu() {
     if (!addOpen) return;
-    addTitle.textContent = progType === 'arpeggios' ? 'Añadir nota' : 'Añadir acorde';
-    addHint.textContent = progType === 'arpeggios' ? 'Elige cualquier nota cromática.' : 'Elige raíz y tipo de acorde.';
+    const key = store.state.project.key;
+    const keyName = `${rootLabel(rootIndex(key?.root || 'C'), store.state.view.notation)} ${(SCALE_LABELS[key?.scale] || SCALE_LABELS.mayor).toLowerCase()}`;
+    addTabScale.setAttribute('aria-pressed', String(addTab === 'scale'));
+    addTabFree.setAttribute('aria-pressed', String(addTab === 'free'));
+    const scaleHint = progType === 'arpeggios'
+      ? `Solo las notas de ${keyName}. Para otras, usa Libre.`
+      : `Solo los acordes de ${keyName} en esta octava. Para otros, usa Libre.`;
+    addTitle.textContent = `${progType === 'arpeggios' ? 'Añadir nota' : 'Añadir acorde'} · ${keyName}`;
+    addHint.textContent = addTab === 'scale'
+      ? scaleHint
+      : (progType === 'arpeggios' ? 'Cualquier nota cromática.' : 'Cualquier raíz y tipo de acorde.');
     addBody.textContent = '';
-    if (progType === 'arpeggios') addFreeNote();
+    if (addTab === 'scale') addScaleChoices();
+    else if (progType === 'arpeggios') addFreeNote();
     else addFreeChord();
     positionAddMenu();
   }

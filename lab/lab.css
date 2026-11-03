@@ -2190,6 +2190,121 @@ body:has(.perform:not([hidden])) .toast {
   line-height: 1.35;
 }
 
+.perform__add-tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  overflow: hidden;
+  border: 1px solid #3a4564;
+  border-radius: 7px;
+  background: #0b0f19;
+}
+
+.perform__add-tab {
+  padding: 4px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.perform__add-tab[aria-pressed="true"] {
+  background: #23304a;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(157, 222, 216, 0.35);
+}
+
+.perform__add-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.perform__add-choice {
+  display: grid;
+  grid-template-columns: 20px 48px 1fr 16px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.perform__add-choice:hover,
+.perform__add-choice:focus-visible {
+  border-color: #2c3650;
+  background: #1a2233;
+  outline: none;
+}
+
+.perform__add-choice-cipher {
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.perform__add-choice b {
+  font-size: 13px;
+}
+
+.perform__add-choice-notes {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.perform__add-choice-plus {
+  color: var(--dim);
+  font-size: 14px;
+  text-align: center;
+}
+
+.perform__add-notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 4px;
+}
+
+.perform__add-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 6px 8px;
+  border: 1px solid #2c3650;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #151b29, #0d111b);
+  color: var(--ink);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.perform__add-note:hover,
+.perform__add-note:focus-visible {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, #1d3039, #111a23);
+  outline: none;
+}
+
+.perform__add-note b {
+  font-size: 12px;
+}
+
+.perform__add-note-cipher {
+  color: var(--dim);
+  font-size: 9px;
+}
+
 .perform__add-fields {
   display: flex;
   align-items: flex-end;
