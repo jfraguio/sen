@@ -13,7 +13,7 @@
 
 import { h, icon, setIcon, typingTarget, findTrack, findElement, clampNum } from './util.js';
 import { SCALES, SCALE_LABELS, midiToNote, noteLabel, noteToMidi, rootIndex } from '../engine/music.js';
-import { LIMITS, toneNotesAt } from '../engine/schema.js';
+import { LIMITS, createElement, toneNotesAt } from '../engine/schema.js';
 import { PERFORMANCE_KEYS, hintForMidi, offsetForKey } from './keys.js';
 import { keyboard } from './controls.js';
 
@@ -256,6 +256,20 @@ function progressionOptions(key, octave, type = 'chords', notation = 'latin') {
       type,
       label: `${roman} · ${items.map((c) => c.short).join(' – ')}`,
       chords: items,
+    });
+  }
+  if (type === 'chords') {
+    // Progresión fija de Lluvia: siempre en Si menor, independiente del tema.
+    const fixedKey = { root: 'B', scale: 'menor' };
+    const items = [0, 5, 2, 6].map((degree) => chordAt(fixedKey, degree, octave, notation));
+    const fixedName = notation === 'latin' ? 'Si menor' : 'B minor';
+    out.push({
+      index: out.length,
+      mood: 'Fijas',
+      type,
+      label: `${fixedName} · ${items.map((c) => c.roman).join('–')} · ${items.map((c) => c.short).join(' – ')}`,
+      chords: items,
+      fixed: true,
     });
   }
   return out;
@@ -882,6 +896,17 @@ export function createPerformance({ store, audio, actions }) {
     return null;
   }
 
+  /** Elemento puntual seleccionado o, si no hay, la pista puntual activa. */
+  function selectedStrike() {
+    const s = store.state.selection;
+    let f = null;
+    if (s.kind === 'element' && s.elementIds.length) f = findElement(store.state.project, s.elementIds[0]);
+    else if (elementId) f = findElement(store.state.project, elementId);
+    if (f?.track.family === 'strike') return f;
+    const t = track();
+    return t?.family === 'strike' ? { track: t, el: null } : null;
+  }
+
   /**
    * Lleva la progresión a Notas una sola vez, con la duración de paso elegida:
    * el paso k empieza en k × paso y el elemento termina con el último, sin
@@ -893,15 +918,16 @@ export function createPerformance({ store, audio, actions }) {
       actions.notify('Elige una progresión o añade acordes y notas con +.', true);
       return;
     }
-    const target = selectedTone();
-    if (!target) {
-      actions.notify('Selecciona un elemento sostenido para llevar la progresión a Notas.', true);
+    const tone = selectedTone();
+    const strike = tone ? null : selectedStrike();
+    if (!tone && !strike) {
+      actions.notify('Selecciona una pista o un elemento sostenido o puntual para llevar la progresión a Notas.', true);
       return;
     }
-    if (target.el.changes?.length && !window.confirm('Llevar la progresión sustituirá las notas actuales de este elemento. ¿Continuar?')) return;
     const step = stepNow();
     const ms = (x) => Math.round(x * 1000) / 1000;
-    const room = ms(Math.max(0.1, store.state.project.duration - target.el.start));
+    const start = tone ? tone.el.start : (strike.el?.start ?? store.state.playhead);
+    const room = ms(Math.max(0.1, store.state.project.duration - start));
     const length = ms(Math.min(prog.chords.length * step, room));
     const generated = [];
     prog.chords.forEach((c, k) => {
@@ -912,11 +938,16 @@ export function createPerformance({ store, audio, actions }) {
       actions.notify('No cabe la progresión en lo que queda de tema.', true);
       return;
     }
+    if (strike) {
+      applyStrikeProgression(strike, generated, length, step);
+      return;
+    }
+    if (tone.el.changes?.length && !window.confirm('Llevar la progresión sustituirá las notas actuales de este elemento. ¿Continuar?')) return;
     // Fundidos cortos: el primer paso se oye entero y el último termina sin
     // apagarse antes de tiempo.
     const maxFade = ms(Math.min(0.5, step / 4));
     store.commit((d) => {
-      const f = findElement(d, target.el.id);
+      const f = findElement(d, tone.el.id);
       if (!f || f.el.type !== 'tone') return false;
       f.el.length = length;
       f.el.notes = generated[0].notes;
@@ -930,6 +961,48 @@ export function createPerformance({ store, audio, actions }) {
     const label = prog.type === 'arpeggios' ? 'Arpegio llevado' : 'Progresión llevada';
     const fmt = (x) => String(ms(x)).replace('.', ',');
     const cut = generated.length < prog.chords.length ? ` (solo caben ${generated.length} de ${prog.chords.length} antes del final del tema)` : '';
+    actions.notify(`${label} a Notas: ${generated.length} pasos de ${fmt(step)} s, de 0 a ${fmt(length)} s${cut}.`);
+  }
+
+  /**
+   * Lleva la progresión a una pista puntual: crea o sustituye una frase con
+   * una entrada por nota y paso. La frase se selecciona para editar su lista.
+   */
+  function applyStrikeProgression(strike, generated, length, step) {
+    const existing = strike.el;
+    const replace = existing && (existing.type === 'phrase' ? (existing.events?.length || 0) > 0 : existing.type === 'cloud');
+    if (replace && !window.confirm('Llevar la progresión sustituirá las notas actuales de este elemento. ¿Continuar?')) return;
+    const start = Math.round((existing?.start ?? store.state.playhead) * 1000) / 1000;
+    const events = [];
+    for (const g of generated) for (const note of g.notes) events.push({ t: g.t, note, v: 0.7 });
+    let id = existing?.id || null;
+    store.commit((d) => {
+      const t = findTrack(d, strike.track.id);
+      if (!t) return false;
+      const fresh = createElement(t, d, start, 'phrase');
+      fresh.length = length;
+      fresh.pattern = Math.max(0.25, length);
+      fresh.fadeIn = 0;
+      fresh.fadeOut = 0;
+      fresh.events = events.map((e) => ({ ...e }));
+      if (existing) {
+        const idx = t.elements.findIndex((e) => e.id === existing.id);
+        if (idx < 0) return false;
+        fresh.id = existing.id;
+        fresh.level = existing.level ?? 0;
+        fresh.curve = existing.curve ?? 'plana';
+        t.elements[idx] = fresh;
+        id = existing.id;
+      } else {
+        t.elements.push(fresh);
+        id = fresh.id;
+      }
+      return true;
+    }, { source: 'performance' });
+    if (id) store.select({ kind: 'element', elementIds: [id] });
+    const label = current?.type === 'arpeggios' ? 'Arpegio llevado' : 'Progresión llevada';
+    const fmt = (x) => String(Math.round(x * 1000) / 1000).replace('.', ',');
+    const cut = generated.length < current.chords.length ? ` (solo caben ${generated.length} de ${current.chords.length} antes del final del tema)` : '';
     actions.notify(`${label} a Notas: ${generated.length} pasos de ${fmt(step)} s, de 0 a ${fmt(length)} s${cut}.`);
   }
 

@@ -127,8 +127,8 @@ cualquier escena sin tocar código.
   vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa, guitarra de nailon, ukelele, slide
   hawaiana, cuerda pulsada, gota tonal, palo de lluvia, piano FM y campana FM)
   como golpes, frases o nubes
-  generativas, ruido de color y **simulaciones** (grillos, cigarras, pájaros
-  por especie, gaviotas incluidas, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas).
+  generativas, ruidos de color y **simulaciones** (grillos, cigarras, pájaros
+  por especie, gaviotas incluidas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas).
   Cada pista tiene silencio, solo y volumen en su cabecera.
 - **Biblioteca plegable por gesto y timbre:** Sostenidos, Puntuales, Texturas y
   Naturaleza, con subgrupos como Sintes, Teclados, Láminas, Agua o Animales.
@@ -154,7 +154,9 @@ cualquier escena sin tocar código.
   notas y las teclas para tocarlas, los segundos que dura cada paso,
   reproducción en bucle y un botón para llevarlas a Notas una vez, con esos
   tiempos (4 acordes de 5 s quedan en 0, 5, 10 y 15 s y el elemento acaba en
-  20 s). La progresión se puede construir a mano: **+** añade acordes o notas
+  20 s). En pistas puntuales, el mismo botón crea o sustituye una frase con una
+  entrada por paso y nota, editable como lista de tiempos. La progresión se
+  puede construir a mano: **+** añade acordes o notas
   desde un desplegable (de la escala de la tonalidad o libres) y **×** quita
   tarjetas. Bajo las notas, «Repetir hasta el final» repite el patrón, con sus
   tiempos, hasta el final del tema.

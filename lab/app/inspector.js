@@ -404,27 +404,36 @@ export function createInspector(root, store, actions) {
       });
     };
 
-    const updateChange = (c, patch) => {
+    const updateChange = (at, patch) => {
+      let found = false;
       commit((d) => {
         const x = findElement(d, id)?.el;
         if (!x?.changes) return false;
-        const i = x.changes.findIndex((q) => Math.abs(q.t - c.t) < 0.0005);
+        const i = x.changes.findIndex((q) => Math.abs(q.t - at) < 0.0005);
         if (i < 0) return false;
         Object.assign(x.changes[i], patch);
         const edited = x.changes[i];
         x.changes = x.changes.filter((q) => q === edited || Math.abs(q.t - edited.t) > 0.0005);
         x.changes.sort((a, b) => a.t - b.t);
+        found = true;
         return true;
       });
+      return found;
     };
 
+    let pendingRender = false;
     const render = () => {
+      if (list.contains(document.activeElement) && document.activeElement.matches('input')) {
+        pendingRender = true;
+        return;
+      }
+      pendingRender = false;
       list.textContent = '';
       const e = findElement(state.project, id)?.el;
       const start = e?.start ?? el.start;
       const changes = e?.changes || [];
       const maxT = Math.max(0, (e?.length ?? el.length) - 0.001);
-      const baseNotes = e?.notes || [];
+      let baseNotes = e?.notes || [];
       const baseInput = h('input', {
         type: 'text', class: 'note-change__notes', value: notesText(baseNotes, state.view.notation),
         placeholder: 'Do3 Sol3 · vacío = silencio', spellcheck: 'false',
@@ -449,6 +458,7 @@ export function createInspector(root, store, actions) {
           if (!x) return false;
           x.notes = notes;
         });
+        baseNotes = notes;
       };
       baseInput.addEventListener('change', commitBase);
       baseInput.addEventListener('keydown', (ev) => {
@@ -467,6 +477,8 @@ export function createInspector(root, store, actions) {
         baseInput,
         h('span', { class: 'note-change__spacer', 'aria-hidden': 'true' })));
       changes.forEach((c, k) => {
+        let changeT = c.t;
+        let changeNotes = c.notes;
         const timeInput = h('input', {
           type: 'number', class: 'note-change__time', min: '0.01', max: String(maxT), step: '0.01',
           value: String(c.t), inputmode: 'decimal',
@@ -477,11 +489,13 @@ export function createInspector(root, store, actions) {
           const cur = findElement(state.project, id)?.el;
           const v = Number(timeInput.value);
           if (!cur || !timeInput.value.trim() || !Number.isFinite(v)) {
-            timeInput.value = String(c.t);
+            timeInput.value = String(changeT);
             return;
           }
           const t = Math.round(clampNum(v, 0.01, Math.max(0.01, cur.length - 0.001)) * 1000) / 1000;
-          if (Math.abs(t - c.t) > 0.0005) updateChange(c, { t });
+          if (Math.abs(t - changeT) <= 0.0005) return;
+          if (updateChange(changeT, { t })) changeT = t;
+          else timeInput.value = String(changeT);
         };
         timeInput.addEventListener('change', commitTime);
         timeInput.addEventListener('keydown', (ev) => {
@@ -491,7 +505,7 @@ export function createInspector(root, store, actions) {
           }
         });
         const notesInput = h('input', {
-          type: 'text', class: 'note-change__notes', value: notesText(c.notes, state.view.notation),
+          type: 'text', class: 'note-change__notes', value: notesText(changeNotes, state.view.notation),
           placeholder: 'Do3 Sol3 · vacío = silencio', spellcheck: 'false',
           'aria-label': `Notas del cambio ${k + 1}`,
           title: 'Escribe las notas separadas por espacios; vacío es silencio',
@@ -500,7 +514,7 @@ export function createInspector(root, store, actions) {
           const parsed = parseNotesInput(notesInput.value);
           if (!parsed.ok) {
             actions.notify(`No se entiende «${parsed.token}». Usa Do4 Re4 Fa#4, C4 D4 o 440Hz.`, true);
-            notesInput.value = notesText(c.notes, state.view.notation);
+            notesInput.value = notesText(changeNotes, state.view.notation);
             return;
           }
           let notes = parsed.notes;
@@ -508,7 +522,9 @@ export function createInspector(root, store, actions) {
             notes = notes.slice(0, LIMITS.notesPerTone);
             actions.notify(`Máximo ${LIMITS.notesPerTone} notas por cambio.`, true);
           }
-          if (notesText(notes, state.view.notation) !== notesText(c.notes, state.view.notation)) updateChange(c, { notes });
+          if (notesText(notes, state.view.notation) === notesText(changeNotes, state.view.notation)) return;
+          if (updateChange(changeT, { notes })) changeNotes = notes;
+          else notesInput.value = notesText(changeNotes, state.view.notation);
         };
         notesInput.addEventListener('change', commitNotes);
         notesInput.addEventListener('keydown', (ev) => {
@@ -525,7 +541,7 @@ export function createInspector(root, store, actions) {
             onclick: () => commit((d) => {
               const x = findElement(d, id)?.el;
               if (!x?.changes) return false;
-              x.changes = x.changes.filter((q) => Math.abs(q.t - c.t) > 0.0005);
+              x.changes = x.changes.filter((q) => Math.abs(q.t - changeT) > 0.0005);
               if (!x.changes.length) delete x.changes;
             }),
           }, icon('close'))));
@@ -537,6 +553,12 @@ export function createInspector(root, store, actions) {
     };
     syncers.push(render);
     render();
+    list.addEventListener('focusout', () => {
+      if (!pendingRender) return;
+      setTimeout(() => {
+        if (!list.contains(document.activeElement)) render();
+      }, 0);
+    });
 
     const crossDef = ELEMENT_DEFS.tone[0];
     const crossControl = numberControl(crossDef, {
@@ -567,6 +589,188 @@ export function createInspector(root, store, actions) {
       list,
       h('div', { class: 'ins-actions' }, repeatBtn),
       crossControl);
+  }
+
+  /**
+   * Lista editable de notas puntuales de una frase: cada fila es una entrada
+   * (tiempo + notas). Es el equivalente de los cambios de un sostenido.
+   */
+  function phraseEventsSection(track, el) {
+    const id = el.id;
+    const list = h('div', { class: 'note-changes' });
+
+    const groupsOf = (e) => {
+      const events = (Array.isArray(e?.events) ? e.events : [])
+        .filter((ev) => ev && Number.isFinite(ev.t) && ev.note)
+        .sort((a, b) => a.t - b.t);
+      const groups = [];
+      for (const ev of events) {
+        const last = groups[groups.length - 1];
+        if (last && Math.abs(last.t - ev.t) < 0.0005) last.events.push(ev);
+        else groups.push({ t: ev.t, events: [ev] });
+      }
+      return groups;
+    };
+
+    const updateTime = (at, t) => {
+      let found = false;
+      commit((d) => {
+        const x = findElement(d, id)?.el;
+        if (!x?.events) return false;
+        const group = x.events.filter((ev) => Math.abs(ev.t - at) < 0.0005);
+        if (!group.length) return false;
+        x.events = x.events
+          .filter((ev) => Math.abs(ev.t - at) >= 0.0005)
+          .concat(group.map((ev) => ({ ...ev, t })))
+          .sort((a, b) => a.t - b.t);
+        found = true;
+        return true;
+      });
+      return found;
+    };
+
+    const updateNotes = (at, notes) => {
+      let found = false;
+      commit((d) => {
+        const x = findElement(d, id)?.el;
+        if (!x?.events) return false;
+        const group = x.events.filter((ev) => Math.abs(ev.t - at) < 0.0005);
+        if (!group.length) return false;
+        const velocities = new Map(group.map((ev) => [noteToMidi(ev.note), ev.v]));
+        x.events = x.events
+          .filter((ev) => Math.abs(ev.t - at) >= 0.0005)
+          .concat(notes.map((note) => ({ t: at, note, v: velocities.get(noteToMidi(note)) ?? 0.7 })))
+          .sort((a, b) => a.t - b.t);
+        found = true;
+        return true;
+      });
+      return found;
+    };
+
+    const addAtEnd = () => {
+      const f = findElement(state.project, id);
+      if (!f) return;
+      const pattern = Math.max(0.25, f.el.pattern || 4);
+      const groups = groupsOf(f.el);
+      const last = groups[groups.length - 1];
+      const t = last ? Math.min(Math.max(0.001, pattern - 0.0005), last.t + 1) : 0;
+      if (last && t <= last.t + 0.0005) {
+        actions.notify('No queda espacio en el patrón de la frase.', true);
+        return;
+      }
+      const note = last?.events[0]?.note ?? noteLabel(midiToNote(60), state.view.notation);
+      commit((d) => {
+        const x = findElement(d, id)?.el;
+        if (!x || x.type !== 'phrase') return false;
+        x.events = [...(x.events || []), { t, note, v: 0.7 }].sort((a, b) => a.t - b.t);
+        return true;
+      });
+    };
+
+    let pendingRender = false;
+    const render = () => {
+      if (list.contains(document.activeElement) && document.activeElement.matches('input')) {
+        pendingRender = true;
+        return;
+      }
+      pendingRender = false;
+      list.textContent = '';
+      const e = findElement(state.project, id)?.el;
+      const start = e?.start ?? el.start;
+      const pattern = Math.max(0.25, e?.pattern || 4);
+      const maxT = Math.max(0.001, pattern - 0.0005);
+      groupsOf(e).forEach((group) => {
+        let groupT = group.t;
+        let groupNotes = group.events.map((ev) => ev.note);
+        const timeInput = h('input', {
+          type: 'number', class: 'note-change__time', min: '0', max: String(maxT), step: '0.01',
+          value: String(groupT), inputmode: 'decimal',
+          'aria-label': `Segundo de entrada ${fmtShort(start + groupT)}`,
+          title: `Desde el inicio del elemento · en el tema: ${fmtShort(start + groupT)}`,
+        });
+        const commitTime = () => {
+          const v = Number(timeInput.value);
+          if (!timeInput.value.trim() || !Number.isFinite(v)) {
+            timeInput.value = String(groupT);
+            return;
+          }
+          const t = Math.round(clampNum(v, 0, maxT) * 1000) / 1000;
+          if (Math.abs(t - groupT) <= 0.0005) return;
+          if (updateTime(groupT, t)) groupT = t;
+          else timeInput.value = String(groupT);
+        };
+        timeInput.addEventListener('change', commitTime);
+        timeInput.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            timeInput.blur();
+          }
+        });
+        const notesInput = h('input', {
+          type: 'text', class: 'note-change__notes', value: notesText(groupNotes, state.view.notation),
+          placeholder: 'Do4 Mi4 Sol4', spellcheck: 'false',
+          'aria-label': `Notas de la entrada ${fmtShort(start + groupT)}`,
+          title: 'Escribe las notas separadas por espacios',
+        });
+        const commitNotes = () => {
+          const parsed = parseNotesInput(notesInput.value);
+          if (!parsed.ok) {
+            actions.notify(`No se entiende «${parsed.token}». Usa Do4 Re4 Fa#4, C4 D4 o 440Hz.`, true);
+            notesInput.value = notesText(groupNotes, state.view.notation);
+            return;
+          }
+          let notes = parsed.notes;
+          if (notes.length > LIMITS.notesPerTone) {
+            notes = notes.slice(0, LIMITS.notesPerTone);
+            actions.notify(`Máximo ${LIMITS.notesPerTone} notas por entrada.`, true);
+          }
+          if (!notes.length) {
+            commit((d) => {
+              const x = findElement(d, id)?.el;
+              if (!x?.events) return false;
+              x.events = x.events.filter((ev) => Math.abs(ev.t - groupT) >= 0.0005);
+              return true;
+            });
+            return;
+          }
+          if (notesText(notes, state.view.notation) === notesText(groupNotes, state.view.notation)) return;
+          if (updateNotes(groupT, notes)) groupNotes = notes;
+          else notesInput.value = notesText(groupNotes, state.view.notation);
+        };
+        notesInput.addEventListener('change', commitNotes);
+        notesInput.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            notesInput.blur();
+          }
+        });
+        list.append(h('div', { class: 'note-change' },
+          h('span', { class: 'note-change__timebox' }, timeInput, h('span', { class: 'ctl-unit' }, 's')),
+          notesInput,
+          h('button', {
+            type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': `Quitar la entrada de ${fmtShort(start + groupT)}`,
+            onclick: () => commit((d) => {
+              const x = findElement(d, id)?.el;
+              if (!x?.events) return false;
+              x.events = x.events.filter((ev) => Math.abs(ev.t - groupT) >= 0.0005);
+              return true;
+            }),
+          }, icon('close'))));
+      });
+      list.append(h('button', {
+        type: 'button', class: 'note-change-add', title: 'Añadir una entrada al final', 'aria-label': 'Añadir una entrada al final',
+        onclick: addAtEnd,
+      }, icon('plus')));
+    };
+    syncers.push(render);
+    render();
+    list.addEventListener('focusout', () => {
+      if (!pendingRender) return;
+      setTimeout(() => {
+        if (!list.contains(document.activeElement)) render();
+      }, 0);
+    });
+    return list;
   }
 
   /**
@@ -635,7 +839,9 @@ export function createInspector(root, store, actions) {
       done,
     });
     const family = FAMILIES.find((f) => f.id === track.family);
-    const sameFamily = Object.entries(INSTRUMENTS).filter(([, v]) => v.family === track.family).map(([value, v]) => ({ value, label: v.label }));
+    const sameFamily = Object.entries(INSTRUMENTS)
+      .filter(([value, v]) => v.family === track.family && (!v.hidden || value === track.instrument))
+      .map(([value, v]) => ({ value, label: v.label }));
     const color = h('input', { type: 'color', value: track.color, 'aria-label': 'Color de la pista' });
     color.addEventListener('input', () => commit((d) => { findTrack(d, id).color = color.value; }, `color-${id}`));
     color.addEventListener('change', done);
@@ -739,6 +945,7 @@ export function createInspector(root, store, actions) {
           },
           syncers, project: p, notation, audition,
         })));
+      blocks.push(section('Notas', phraseEventsSection(track, el)));
     } else if (el.type === 'cloud') {
       // Mismo diseño que las notas de un sostenido: teclado y grabación arriba,
       // la fila de notas y, como particularidad, el modo de notas aleatorias.

@@ -823,7 +823,7 @@ No objetivos:
 | `sustain` | Sostenidos | Pads, drones, cuerdas, arpa eólica, flauta, coros, cuenco tibetano frotado, theremin y sintes analógicos 80: tonos que duran lo que dura el elemento. | `tone` |
 | `strike` | Puntuales | Campanas, cuencos tibetanos, kalimba, piano, tambores de acero (handpan, lengüeta, steel drum), arpa, guitarras, ukelele, vibráfono, palo de lluvia y FM 80: golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
 | `noise` | Texturas | Ruido de color filtrado y con movimiento (aire, rumor, oleaje abstracto). | `span` |
-| `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, pájaros, ranas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas. | `span` |
+| `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, cigarras, pájaros, gotas, lluvia, arroyo, olas, viento, fuego, campanillas. | `span` |
 | `layer` | Capas de pistas de sen | Una capa de una pista publicada de la app, en bucle (7.17). No está en la biblioteca. | `clip` |
 
 #### 7.3.3 Tipos de elemento
@@ -936,7 +936,7 @@ Rangos entre paréntesis; unidades en 7.10.2.
 | `eolica` | Arpa eólica | Cuerda casi armónica (hasta 24 armónicos) que «toca el viento»: una banda de armónicos sube y baja despacio y cada uno respira por su cuenta (ruido suavizado, periódico en bucle); la suma se normaliza para que el nivel no dependa de cuántos suenan. Aire opcional (ruido en banda). |
 | `flauta` | Flauta suave | Tabla casi senoidal (armónicos 1 : 0,14 : 0,05 : 0,015), soplo (ruido en banda en torno al tercer armónico) y vibrato. Una voz; su elemento por defecto dura 2 s con ataque 0,12 s y relajación 0,45 s. |
 | `coro` | Coro | Fuente rica con tres formantes vocales interpolables (a–o–u). La ganancia se compensa con la respuesta de los formantes a cada nota, para que todos los registros suenen parecido. |
-| `cuencoCanto` | Cuenco tibetano frotado | Cuenco tibetano frotado con la maza: hasta 5 modos inarmónicos (1 : 2,71 : 5,15 : 8,45 : 12,4), cada uno desdoblado en un par que bate (batido 0–3 Hz, más rápido en los modos altos) con sus mitades a cada lado; giro de la maza (panorama oscilante, 0–1, 0,05–3 Hz), pulso del roce (trémolo) y roce (ruido en banda estrecha pegado a la nota). |
+| `cuencoCanto` | Cuenco tibetano | Cuenco tibetano con la maza: hasta 5 modos inarmónicos (1 : 2,71 : 5,15 : 8,45 : 12,4), cada uno desdoblado en un par que bate (batido 0–3 Hz, más rápido en los modos altos) con sus mitades a cada lado; giro de la maza (panorama oscilante, 0–1, 0,05–3 Hz), pulso del roce (trémolo) y roce (ruido en banda estrecha pegado a la nota). |
 | `vidrio` | Vidrio | Parciales inarmónicos sostenidos, brillo frío. |
 | `seno` | Seno | Una sinusoide pura, para graves y tonos de prueba. |
 | `theremin` | Theremin | Tabla casi senoidal (armónicos 1 : 0,32 : 0,14 : 0,07 : 0,035 : 0,015), vibrato que entra en 0,45 s y **portamento** (0–2 s): en un elemento con cambios de nota, cada nota llega deslizándose desde la que sonaba antes en su misma posición del acorde (curva que frena; no tras un silencio); con el teclado, desde la última nota tocada en esa pista. Una voz; su elemento por defecto dura 3 s con ataque 0,2 s y relajación 0,8 s. |
@@ -1001,11 +1001,13 @@ por pista y 64 en total; al superarla se corta el más antiguo con un fundido de
 
 Un elemento nuevo de una pista de notas puntuales es una **nube**; el selector
 «Tipo» del inspector lo convierte en golpe o frase conservando inicio,
-duración y nivel.
+duración y nivel. Las frases muestran, además del piano roll, una **lista de
+entradas** (tiempo + notas) equivalente a los cambios de un sostenido.
 
 #### 7.4.3 Texturas (`noise`)
 
-Un único instrumento, `ruido`, con:
+Seis instrumentos comparten el motor de ruido filtrado. Todos son suaves y
+admiten:
 
 - Color: blanco, rosa o marrón.
 - Filtro: paso bajo, paso alto o banda; corte y Q.
@@ -1016,6 +1018,15 @@ Un único instrumento, `ruido`, con:
     asimetría subida/bajada).
 - Estéreo: correlación entre canales (0 mono, 1 totalmente decorrelado).
 
+| Instrumento | Nombre | Carácter por defecto |
+| --- | --- | --- |
+| `ruido` | Ruido | Ruido de color filtrado, con ráfagas u oleaje. |
+| `ruidoBrisa` | Brisa | Ruido rosa en banda media con ráfagas lentas: aire suave y abierto. |
+| `ruidoMarea` | Marea | Ruido marrón con oleaje largo y grave: una marea lejana. |
+| `ruidoSiseo` | Siseo | Ruido rosa muy filtrado en agudos, con un vaivén casi imperceptible. |
+| `ruidoCalor` | Calor | Ruido marrón grave y redondo, como un zumbido lejano y cálido. |
+| `ruidoTerciopelo` | Terciopelo | Ruido rosa suave y ancho, con respiración lenta y sin aristas. |
+
 #### 7.4.4 Naturaleza (`nature`)
 
 | Instrumento | Nombre | Parámetros propios |
@@ -1023,7 +1034,6 @@ Un único instrumento, `ruido`, con:
 | `grillo` | Grillos | individuos (1–24), registro (2–6 kHz), llamadas por segundo, pulsos por llamada (1–8), sincronía entre individuos (0–1). |
 | `cigarra` | Cigarras | individuos (1–6), registro (3–7 kHz), duración de tandas y de pausas. |
 | `pajaro` | Pájaros | especie: genérico, mirlo, petirrojo, carbonero, pinzón, cuco, tórtola, autillo, cárabo o gaviota (llamada larga «kiaaa, kiau-kiau…, ja-ja» que se acelera, o maullidos sueltos; voz nasal con armónicos fuertes y aspereza); individuos (1–8); frases por minuto. El genérico añade registro, sílabas por frase y forma (silbido, trino, gorjeo). |
-| `rana` | Ranas | especie: sapo partero, ranita o croar grave; individuos (1–12). |
 | `gotas` | Gotas | superficie (agua, hoja, cristal, piedra), gotas por segundo (0,1–200), registro. |
 | `lluvia` | Lluvia | intensidad (50–3000 impactos/s), superficie (hojas, tejado, cristal, agua, lona). |
 | `arroyo` | Arroyo | caudal (0–1), fuentes de burbujeo (1–24), registro. |
@@ -1095,8 +1105,11 @@ por parámetro.
   (descarga el `.sen.json`) y exportar. Todos los controles y secciones de la
   interfaz llevan un atributo `title` para poder identificarlos.
 - **Transporte:** reproducir/pausa, detener (vuelve al inicio), posición y
-  duración (`mm:ss,d`), región de escucha en bucle, rejilla, zoom y volumen de
-  escucha (no afecta a la exportación).
+  duración (`mm:ss,d`), botón **Tema** para abrir los ajustes generales, región
+  de escucha en bucle, rejilla, zoom y volumen de escucha (no afecta a la
+  exportación). Durante la escucha, al llegar al final de la capa más a la
+  derecha (o al final de la región si el bucle de región está activo) el
+  cabezal vuelve al principio. La opción **Final** se aplica a la exportación.
 - **Biblioteca:** instrumentos agrupados por gesto (**Sostenidos**,
   **Puntuales**, **Texturas** y **Naturaleza**) y, dentro, por timbre, y
   **Plantillas** (Vacío y canciones). Cada sección y subsección se puede plegar
@@ -1202,7 +1215,9 @@ El popup de **Teclado** incluye un piano de dos octavas que ilumina las teclas
 pulsadas y las notas de la progresión que suena, un conmutador
 **Acordes / Arpegios** y un combo de progresiones adaptadas a la tonalidad del
 tema. Los acordes se agrupan por carácter (**Alegres**, **Nostálgicas**,
-**Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**); los arpegios, por
+**Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**), y hay una progresión
+fija en **Si menor** (**Bm – G – D – A**) dentro del grupo **Fijas**; los
+arpegios, por
 movimiento (**Ascendentes**, **Descendentes**, **Ondulantes**, **Largos** y
 **Saltos**). Al
 elegir una se escucha en bucle, paso a paso. Cuando hay una progresión elegida
@@ -1227,7 +1242,9 @@ del tema, se recorta y se avisa. El primer paso va a la fila base y la
 progresión sustituye los cambios del elemento (pide confirmación si había).
 Los fundidos se acortan para no comerse el primer ni el último paso: el de
 entrada a un cuarto de paso (máx. 0,5 s) y el de salida a un cuarto de paso
-(máx. 1,5 s).
+(máx. 1,5 s). En pistas puntuales, **→ Notas** crea o sustituye una **frase**
+con una entrada por paso y nota (los acordes comparten tiempo) y selecciona el
+elemento para editar su lista de entradas.
 En **Grabar** el combo se oculta, porque el foco es capturar notas o cambios
 con el teclado. En **Teclado**, el instrumento del piano flotante sigue siempre a
 la pista seleccionada; al cambiar de pista o de elemento, se detienen las notas

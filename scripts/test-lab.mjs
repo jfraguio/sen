@@ -357,8 +357,9 @@ function smallProject(over = {}) {
   }
   ok(all, `los ${playable.length} instrumentos suenan en la audición, sin NaN ni saturación`);
   const listed = INSTRUMENT_GROUPS.flatMap((g) => g.subgroups.flatMap((s) => s.instruments));
-  ok(playable.length === listed.length && playable.every((id) => listed.filter((x) => x === id).length === 1),
-    'la biblioteca agrupa todos los instrumentos una sola vez');
+  const visible = playable.filter((id) => !INSTRUMENTS[id].hidden);
+  ok(visible.length === listed.length && visible.every((id) => listed.filter((x) => x === id).length === 1),
+    'la biblioteca agrupa todos los instrumentos visibles una sola vez');
 }
 
 /* ------------------------------------------------------------ timbres */

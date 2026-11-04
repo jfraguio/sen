@@ -147,6 +147,7 @@ const ANALOG_COMMON = [...SUSTAIN_COMMON, 'wave', 'pulseWidth', 'filterEnv', 'fi
 const STRIKE_COMMON = ['decay', 'brightness', 'hardness', 'inharmonic', 'beat', 'velocityCurve', 'width'];
 const FM_COMMON = ['decay', 'brightness', 'hardness', 'velocityCurve', 'width', 'fmRatio', 'fmIndex', 'fmTime'];
 const NATURE_COMMON = ['distance', 'pan', 'spread', 'variation'];
+const NOISE_COMMON = ['color', 'filterType', 'cutoff', 'q', 'movement', 'moveRate', 'moveDepth', 'moveTarget', 'wavePeriod', 'waveShape', 'stereo'];
 
 /* ------------------------------------------------------------ instrumentos */
 
@@ -196,8 +197,8 @@ export const INSTRUMENTS = {
     defaults: { drift: 0, width: 0 },
   },
   cuencoCanto: {
-    family: 'sustain', label: 'Cuenco tibetano frotado', color: '#e6d891',
-    description: 'Cuenco tibetano frotado con la maza: el canto crece despacio, sus parciales inarmónicos baten y el sonido gira alrededor.',
+    family: 'sustain', label: 'Cuenco tibetano', color: '#e6d891',
+    description: 'Cuenco tibetano con la maza: el canto crece despacio, sus parciales inarmónicos baten y el sonido gira alrededor.',
     params: [
       ['partials', { min: 1, max: 5, def: 4 }], 'rolloff', ['beat', { max: 3, def: 0.8 }], 'rotation', 'rotationRate',
       ['tremoloDepth', { label: 'Pulso del roce', def: 0.12 }], ['tremoloRate', { label: 'Velocidad del pulso', def: 0.6 }],
@@ -374,8 +375,53 @@ export const INSTRUMENTS = {
   ruido: {
     family: 'noise', label: 'Ruido', color: '#b7d8d3',
     description: 'Ruido de color filtrado, con ráfagas u oleaje.',
-    params: ['color', 'filterType', 'cutoff', 'q', 'movement', 'moveRate', 'moveDepth', 'moveTarget', 'wavePeriod', 'waveShape', 'stereo'],
+    params: NOISE_COMMON,
     defaults: { cutoff: 1400 },
+  },
+  ruidoBrisa: {
+    family: 'noise', label: 'Brisa', color: '#a9d1ff',
+    description: 'Ruido rosa en banda media con ráfagas lentas: aire suave y abierto.',
+    params: NOISE_COMMON,
+    defaults: {
+      color: 'rosa', filterType: 'bp', cutoff: 1200, q: 0.5, movement: 'rafagas',
+      moveRate: 0.07, moveDepth: 0.28, moveTarget: 'filtro', stereo: 0.9,
+    },
+  },
+  ruidoMarea: {
+    family: 'noise', label: 'Marea', color: '#79a9e8',
+    description: 'Ruido marrón con oleaje largo y grave: una marea lejana.',
+    params: NOISE_COMMON,
+    defaults: {
+      color: 'marron', filterType: 'lp', cutoff: 700, q: 0.6, movement: 'oleaje',
+      moveRate: 0.05, moveDepth: 0.55, moveTarget: 'ambos', wavePeriod: 12, waveShape: 0.32, stereo: 0.7,
+    },
+  },
+  ruidoSiseo: {
+    family: 'noise', label: 'Siseo', color: '#cfd8e6',
+    description: 'Ruido rosa muy filtrado en agudos, con un vaivén casi imperceptible.',
+    params: NOISE_COMMON,
+    defaults: {
+      color: 'rosa', filterType: 'hp', cutoff: 2600, q: 0.5, movement: 'rafagas',
+      moveRate: 0.045, moveDepth: 0.18, moveTarget: 'nivel', stereo: 0.8,
+    },
+  },
+  ruidoCalor: {
+    family: 'noise', label: 'Calor', color: '#ffd08a',
+    description: 'Ruido marrón grave y redondo, como un zumbido lejano y cálido.',
+    params: NOISE_COMMON,
+    defaults: {
+      color: 'marron', filterType: 'lp', cutoff: 380, q: 0.8, movement: 'rafagas',
+      moveRate: 0.035, moveDepth: 0.25, moveTarget: 'nivel', stereo: 0.35,
+    },
+  },
+  ruidoTerciopelo: {
+    family: 'noise', label: 'Terciopelo', color: '#e6b8d8',
+    description: 'Ruido rosa suave y ancho, con respiración lenta y sin aristas.',
+    params: NOISE_COMMON,
+    defaults: {
+      color: 'rosa', filterType: 'lp', cutoff: 900, q: 0.5, movement: 'oleaje',
+      moveRate: 0.05, moveDepth: 0.35, moveTarget: 'ambos', wavePeriod: 9, waveShape: 0.5, stereo: 0.95,
+    },
   },
   // Simulaciones
   grillo: {
@@ -403,7 +449,7 @@ export const INSTRUMENTS = {
     defaults: { distance: 0.35 },
   },
   rana: {
-    family: 'nature', label: 'Ranas', color: '#9ed6a0',
+    family: 'nature', label: 'Ranas', color: '#9ed6a0', hidden: true,
     description: 'Sapo partero, ranita o croar grave.',
     params: [
       ['species', { options: o([['sapoPartero', 'Sapo partero'], ['ranita', 'Ranita'], ['croar', 'Croar grave']]), def: 'sapoPartero' }],
@@ -500,7 +546,7 @@ export const INSTRUMENT_GROUPS = [
   {
     id: 'texturas', label: 'Texturas',
     subgroups: [
-      { id: 'ruido', label: 'Ruido', instruments: ['ruido'] },
+      { id: 'ruido', label: 'Ruido', instruments: ['ruido', 'ruidoBrisa', 'ruidoMarea', 'ruidoSiseo', 'ruidoCalor', 'ruidoTerciopelo'] },
     ],
   },
   {
@@ -508,7 +554,7 @@ export const INSTRUMENT_GROUPS = [
     subgroups: [
       { id: 'agua', label: 'Agua', instruments: ['gotas', 'lluvia', 'arroyo', 'olas'] },
       { id: 'aire', label: 'Aire', instruments: ['viento', 'campanillas'] },
-      { id: 'animales', label: 'Animales', instruments: ['grillo', 'cigarra', 'pajaro', 'rana'] },
+      { id: 'animales', label: 'Animales', instruments: ['grillo', 'cigarra', 'pajaro'] },
       { id: 'fuego', label: 'Fuego', instruments: ['fuego'] },
     ],
   },

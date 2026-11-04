@@ -2,7 +2,7 @@
  * sen lab · arranque y orquestación del editor.
  */
 
-import { h, fmtTime, toast, announce, findTrack, findElement, typingTarget, isCompact, clampNum, installTitles, setIcon } from './util.js';
+import { h, fmtTime, toast, announce, findTrack, findElement, elementSpan, typingTarget, isCompact, clampNum, installTitles, setIcon } from './util.js';
 import {
   INSTRUMENTS, LIMITS, LabFileError, createElement, createProject, createSceneProject, createTrack, layerKey, newId, normalizeProject,
   projectCounts, splitToneChanges,
@@ -340,14 +340,14 @@ function boot() {
     },
     regionChanged() {
       updateTransport();
-      if (state.playing && state.regionLoop) audio.setLoop(state.project.region);
+      if (state.playing) audio.setLoop(previewLoop(state.project));
     },
     clearRegion() {
       store.commit((d) => {
         d.region = null;
       });
       store.set({ regionLoop: false });
-      if (state.playing) audio.setLoop(null);
+      if (state.playing) audio.setLoop(previewLoop(state.project));
       updateTransport();
     },
     auditionTrack(trackId, note = null) {
@@ -524,6 +524,23 @@ function boot() {
     $('clock').textContent = $('clock').value;
   }
 
+  /** Final del contenido: el extremo derecho de la capa más larga. */
+  function contentEnd(p) {
+    let end = 0;
+    for (const track of p.tracks) {
+      for (const el of track.elements) {
+        const span = el.type === 'hit' ? elementSpan(track, el) : (Number(el.length) || 0);
+        end = Math.max(end, (Number(el.start) || 0) + span);
+      }
+    }
+    return end > 0.05 ? end : p.duration;
+  }
+
+  /** Bucle de escucha: la región marcada o todo el contenido. */
+  function previewLoop(p) {
+    return state.regionLoop && p.region ? p.region : { start: 0, end: contentEnd(p) };
+  }
+
   function updateGridOptions() {
     const opts = [['0', 'libre'], ['0.1', '0,1 s'], ['0.25', '0,25 s'], ['0.5', '0,5 s'], ['1', '1 s'], ['5', '5 s']];
     if (state.project.tempo) opts.push(['beat', 'pulso'], ['bar', 'compás']);
@@ -562,10 +579,8 @@ function boot() {
     } else {
       const p = state.project;
       let from = state.playhead;
-      const loop = state.regionLoop && p.region ? p.region : null;
+      const loop = previewLoop(p);
       if (loop && (from < loop.start || from >= loop.end)) from = loop.start;
-      if (!loop && p.end.mode !== 'loop' && from >= p.duration - 0.05) from = 0;
-      if (p.end.mode === 'loop' && from >= p.duration) from = 0;
       state.playhead = from;
       store.set({ playing: true });
       audio.play(from, loop).catch((err) => {
@@ -588,6 +603,10 @@ function boot() {
 
   playBtn.addEventListener('click', togglePlay);
   $('stop').addEventListener('click', stop);
+  $('project-settings').addEventListener('click', () => {
+    store.select({ kind: 'project' });
+    actions.openSheet('inspector');
+  });
   $('region-loop').addEventListener('click', () => toggleRegionLoop());
   $('region-clear').addEventListener('click', () => actions.clearRegion());
   grid.addEventListener('change', () => {
@@ -605,7 +624,7 @@ function boot() {
       return;
     }
     store.set({ regionLoop: !state.regionLoop });
-    if (state.playing) audio.setLoop(state.regionLoop ? state.project.region : null);
+    if (state.playing) audio.setLoop(previewLoop(state.project));
     updateTransport();
     timeline.render();
     announce(state.regionLoop ? 'Región en bucle activada' : 'Región en bucle desactivada');
@@ -837,7 +856,7 @@ function boot() {
         lastGridTempo = !!s.project.tempo;
         updateGridOptions();
       }
-      if (state.playing && state.regionLoop) audio.setLoop(s.project.region);
+      if (state.playing) audio.setLoop(previewLoop(s.project));
       if (s.project.duration !== lastDuration) {
         lastDuration = s.project.duration;
         const view = timeline.scroll.clientWidth;
