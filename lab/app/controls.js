@@ -8,7 +8,7 @@
  * cambios externos (deshacer, arrastres) sin reconstruirse.
  */
 
-import { h, fmtNum, clampNum } from './util.js';
+import { h, icon, fmtNum, clampNum } from './util.js';
 import { CURVE_PRESETS, curvePoints } from '../engine/schema.js';
 import { LATIN_NAMES, NOTE_NAMES, midiToNote, noteLabel, noteToMidi, scaleMidis } from '../engine/music.js';
 
@@ -223,9 +223,9 @@ export function keyboard({ octave = 3, onKey, isOn = () => false, notation = 'la
     wrap.octave = oct;
   };
   const nav = h('div', { class: 'oct' },
-    h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más grave', onclick: () => { oct = Math.max(0, oct - 1); render(); onOctaveChange?.(oct); } }, '‹'),
+    h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más grave', onclick: () => { oct = Math.max(0, oct - 1); render(); onOctaveChange?.(oct); } }, icon('chev-l')),
     label,
-    h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más aguda', onclick: () => { oct = Math.min(7, oct + 1); render(); onOctaveChange?.(oct); } }, '›'));
+    h('button', { type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': 'Octava más aguda', onclick: () => { oct = Math.min(7, oct + 1); render(); onOctaveChange?.(oct); } }, icon('chev-r')));
   wrap.append(...(showNav ? [nav, keys] : [keys]));
   render();
   wrap.refresh = render;
@@ -265,7 +265,7 @@ export function curveEditor({ binding, syncers }) {
     const W = canvas.width;
     const H = canvas.height;
     ctx.clearRect(0, 0, W, H);
-    ctx.strokeStyle = '#2a3045';
+    ctx.strokeStyle = 'rgba(220, 210, 255, 0.4)';
     ctx.beginPath();
     ctx.moveTo(0, H - 1);
     ctx.lineTo(W, H - 1);
@@ -288,12 +288,12 @@ export function curveEditor({ binding, syncers }) {
       ctx.lineTo(x, H - 4 - y * (H - 8));
     }
     ctx.lineTo(W, H);
-    ctx.fillStyle = 'rgba(157,222,216,0.14)';
+    ctx.fillStyle = 'rgba(195, 180, 255, 0.14)';
     ctx.fill();
-    ctx.strokeStyle = '#9dded8';
+    ctx.strokeStyle = '#c3b4ff';
     ctx.lineWidth = 1.5;
     ctx.stroke();
-    ctx.fillStyle = '#9dded8';
+    ctx.fillStyle = '#c3b4ff';
     for (const [x, y] of pts) {
       ctx.beginPath();
       ctx.arc(x * W, H - 4 - y * (H - 8), 3.5, 0, Math.PI * 2);
@@ -388,13 +388,13 @@ export function phraseEditor({ binding, syncers, project, notation, audition }) 
     ctx.clearRect(0, 0, W, H);
     ps.forEach((m, k) => {
       const y = H - (k + 1) * rowH;
-      ctx.fillStyle = m % 12 === noteToMidi(`${key.root}0`) % 12 ? '#161c2b' : '#0f1320';
+      ctx.fillStyle = m % 12 === noteToMidi(`${key.root}0`) % 12 ? '#15142c' : '#0c0c1c';
       ctx.fillRect(0, y, W, rowH - 1);
     });
     const st = step();
     for (let t = 0; t <= pattern + 1e-6; t += st) {
       const x = (t / pattern) * W;
-      ctx.fillStyle = Math.abs(t - Math.round(t)) < 1e-6 ? '#2a3045' : '#1a1f30';
+      ctx.fillStyle = Math.abs(t - Math.round(t)) < 1e-6 ? 'rgba(220, 210, 255, 0.4)' : 'rgba(220, 210, 255, 0.17)';
       ctx.fillRect(x, 0, 1, H);
     }
     for (const ev of events) {
@@ -466,7 +466,7 @@ export function automationEditor({ binding, syncers, def, duration, base }) {
     const H = canvas.height;
     const py = (v) => H - 5 - clampNum(toY(v), 0, 1) * (H - 10);
     ctx.clearRect(0, 0, W, H);
-    ctx.strokeStyle = '#2a3045';
+    ctx.strokeStyle = 'rgba(220, 210, 255, 0.4)';
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
     ctx.moveTo(0, py(base()));

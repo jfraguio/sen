@@ -11,7 +11,7 @@
  * desde el inicio del elemento. Un cambio con `notes: []` es silencio.
  */
 
-import { h, typingTarget, findTrack, findElement, clampNum } from './util.js';
+import { h, icon, setIcon, typingTarget, findTrack, findElement, clampNum } from './util.js';
 import { SCALES, SCALE_LABELS, midiToNote, noteLabel, noteToMidi, rootIndex } from '../engine/music.js';
 import { LIMITS, toneNotesAt } from '../engine/schema.js';
 import { PERFORMANCE_KEYS, hintForMidi, offsetForKey } from './keys.js';
@@ -289,11 +289,11 @@ export function createPerformance({ store, audio, actions }) {
   const progPlay = h('button', {
     type: 'button', class: 'btn perform__transport', 'aria-label': 'Escuchar la progresión elegida', title: 'Escuchar la progresión elegida',
     onclick: () => { if (previewPlaying) stopPreview(); else playSelectedProgression(); },
-  }, '▶');
+  }, icon('play'));
   const progApply = h('button', {
     type: 'button', class: 'btn btn--quiet perform__apply', 'aria-label': 'Llevar a Notas',
     title: 'Llevar la progresión seleccionada a Notas', onclick: () => applyProgressionToChanges(),
-  }, '→ Notas');
+  }, icon('arrow-r'), 'Notas');
   const stepInput = h('input', {
     type: 'number', class: 'perform__step-input', min: '0.1', max: '60', step: '0.05', inputmode: 'decimal',
   });
@@ -326,7 +326,7 @@ export function createPerformance({ store, audio, actions }) {
     type: 'button', class: 'perform__add', 'aria-expanded': 'false', 'aria-controls': 'perform-add-menu',
     'aria-haspopup': 'true', 'aria-label': 'Añadir a la progresión', title: 'Añadir un acorde o una nota a la progresión',
     onclick: () => toggleAdd(),
-  }, '+');
+  }, icon('plus'));
   addMenu.id = 'perform-add-menu';
   const addWrap = h('div', { class: 'perform__add-wrap' }, addBtn, addMenu);
   const progRow = h('div', { class: 'perform__prog-row' }, progCards, addWrap);
@@ -384,7 +384,7 @@ export function createPerformance({ store, audio, actions }) {
   }
 
   function syncPlayButton() {
-    progPlay.textContent = previewPlaying ? '■' : '▶';
+    setIcon(progPlay.querySelector('.i'), previewPlaying ? 'stop' : 'play');
     progPlay.classList.toggle('is-playing', previewPlaying);
     const label = previewPlaying ? 'Detener la progresión' : 'Escuchar la progresión elegida';
     progPlay.setAttribute('aria-label', label);
@@ -407,7 +407,7 @@ export function createPerformance({ store, audio, actions }) {
         type: 'button', class: 'perform__prog-remove',
         'aria-label': `Quitar ${c.short} de la progresión`, title: `Quitar ${c.short}`,
         onclick: () => removeFromProgression(i),
-      }, '×'),
+      }, icon('close')),
       h('b', {}, c.short),
       h('span', { class: 'perform__prog-notes' }, c.letters),
       h('span', { class: 'perform__prog-keys' }, ...c.keys.filter(Boolean).map((key) => h('kbd', {}, key.toUpperCase()))))));
@@ -590,7 +590,7 @@ export function createPerformance({ store, audio, actions }) {
     h('span', { class: 'perform__add-choice-cipher' }, c.roman || ''),
     h('b', {}, c.short),
     h('span', { class: 'perform__add-choice-notes' }, c.letters),
-    h('span', { class: 'perform__add-choice-plus', 'aria-hidden': 'true' }, '+'));
+    h('span', { class: 'perform__add-choice-plus', 'aria-hidden': 'true' }, icon('plus')));
   }
 
   function addNoteChoice(n) {

@@ -3,7 +3,7 @@
  * canciones de sen y plantillas. Cada sección se puede plegar.
  */
 
-import { h } from './util.js';
+import { h, icon } from './util.js';
 import { INSTRUMENTS, INSTRUMENT_GROUPS } from '../engine/schema.js';
 
 /** Opción para empezar un tema desde cero. */
@@ -43,7 +43,7 @@ function fold(title, cls = 'lib-group', open = false) {
 export function createLibrary(root, store, actions) {
   const item = (id, inst) => {
     const el = h('div', { class: 'lib-item', draggable: 'true', style: { '--c': inst.color }, title: inst.description },
-      h('button', { type: 'button', class: 'lib-play', 'aria-label': `Escuchar ${inst.label}`, title: 'Escuchar 3 s', onclick: () => actions.auditionInstrument(id) }, '▶'),
+      h('button', { type: 'button', class: 'lib-play', 'aria-label': `Escuchar ${inst.label}`, title: 'Escuchar 3 s', onclick: () => actions.auditionInstrument(id) }, icon('play')),
       h('button', { type: 'button', class: 'lib-add', 'aria-label': `Añadir ${inst.label} en el cabezal`, onclick: () => actions.addTrack(id, store.state.playhead) },
         h('span', { class: 'dot', 'aria-hidden': 'true' }), inst.label));
     el.addEventListener('dragstart', (e) => {
@@ -70,7 +70,7 @@ export function createLibrary(root, store, actions) {
   const templates = fold('Plantillas');
   templates.body.append(h('p', { class: 'help' }, 'Cargando las canciones de sen…'));
 
-  const close = h('div', { class: 'ins-head ins-head--bare' }, h('button', { type: 'button', class: 'icon-btn ins-close', 'aria-label': 'Cerrar la biblioteca', onclick: () => actions.closeSheet() }, '×'));
+  const close = h('div', { class: 'ins-head ins-head--bare' }, h('button', { type: 'button', class: 'icon-btn ins-close', 'aria-label': 'Cerrar la biblioteca', onclick: () => actions.closeSheet() }, icon('close')));
   root.append(close, ...groups, templates.el);
 
   return {

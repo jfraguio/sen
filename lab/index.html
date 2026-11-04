@@ -4,13 +4,33 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#05060b" />
+    <meta name="theme-color" content="#05050e" />
     <meta name="description" content="sen lab: editor de música ambiental sintética. Compón con notas, ruidos y simulaciones de naturaleza y descarga el WAV." />
     <title>sen · lab</title>
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="lab.css" />
   </head>
   <body>
+    <svg class="sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 6.2v11.6a.8.8 0 0 0 1.2.7l9.3-5.8a.8.8 0 0 0 0-1.4L9.2 5.5a.8.8 0 0 0-1.2.7z" fill="currentColor"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><rect x="7" y="5.5" width="3" height="13" rx="1" fill="currentColor"/><rect x="14" y="5.5" width="3" height="13" rx="1" fill="currentColor"/></symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor"/></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4.5 9.5 9 5"/><path d="M4.5 9.5H15a4.5 4.5 0 0 1 0 9h-3"/></symbol>
+      <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 4.5-4.5L15 5"/><path d="M19.5 9.5H9a4.5 4.5 0 0 0 0 9h3"/></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.4a2.4 2.4 0 0 1 4.6 1c0 1.6-2.3 2-2.3 3.6"/><circle cx="12" cy="16.9" r=".9" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-loop" viewBox="0 0 24 24"><path d="M4.5 11.5V10a4 4 0 0 1 4-4h11"/><path d="m16.5 3 3 3-3 3"/><path d="M19.5 12.5V14a4 4 0 0 1-4 4h-11"/><path d="m7.5 21-3-3 3-3"/></symbol>
+      <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></symbol>
+      <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3.5 7h3c2 0 3.1 1 4 2.6l3 5.3c.9 1.6 2 2.6 4 2.6h3"/><path d="m17.5 14.5 3 3-3 3"/><path d="M3.5 17h3c1.3 0 2.2-.4 2.9-1.2"/><path d="M14.6 8.2C15.3 7.4 16.2 7 17.5 7h3"/><path d="m17.5 4 3 3-3 3"/></symbol>
+      <symbol id="i-keys" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M9.2 18.5v-4.5M14.8 18.5v-4.5"/><rect x="7.7" y="5.5" width="3" height="8.5" rx=".7" fill="currentColor" stroke="none"/><rect x="13.3" y="5.5" width="3" height="8.5" rx=".7" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5.5 12h13"/></symbol>
+      <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6"/></symbol>
+      <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+      <symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    </svg>
     <div class="boot" id="boot">sen · lab</div>
 
     <section class="unsupported" id="unsupported" hidden>
@@ -23,16 +43,16 @@
 
     <div class="lab" id="app" title="Editor del laboratorio" hidden>
       <header class="topbar" title="Cabecera del laboratorio">
-        <a class="back" href="../" aria-label="Volver a sen">← <span>sen</span></a>
+        <a class="back" href="../" aria-label="Volver a sen"><svg class="i i--back" aria-hidden="true" focusable="false"><use href="#i-back"/></svg><span>sen</span></a>
         <label class="title">
           <span class="sr-only">Nombre del tema</span>
           <input id="project-name" type="text" autocomplete="off" spellcheck="false" maxlength="120" />
         </label>
         <span class="save-state" id="save-state" role="status" aria-live="polite" hidden></span>
         <div class="topbar__actions">
-          <a class="icon-btn help-link" id="help" href="guia.html" target="_blank" rel="noopener" aria-label="Instrucciones (se abre en otra pestaña)" title="Instrucciones (?)">?</a>
-          <button class="icon-btn" id="undo" type="button" aria-label="Deshacer" title="Deshacer (Cmd/Ctrl+Z)">↶</button>
-          <button class="icon-btn" id="redo" type="button" aria-label="Rehacer" title="Rehacer (Mayús+Cmd/Ctrl+Z)">↷</button>
+          <a class="icon-btn help-link" id="help" href="guia.html" target="_blank" rel="noopener" aria-label="Instrucciones (se abre en otra pestaña)" title="Instrucciones (?)"><svg class="i i--help" aria-hidden="true" focusable="false"><use href="#i-help"/></svg></a>
+          <button class="icon-btn" id="undo" type="button" aria-label="Deshacer" title="Deshacer (Cmd/Ctrl+Z)"><svg class="i i--undo" aria-hidden="true" focusable="false"><use href="#i-undo"/></svg></button>
+          <button class="icon-btn" id="redo" type="button" aria-label="Rehacer" title="Rehacer (Mayús+Cmd/Ctrl+Z)"><svg class="i i--redo" aria-hidden="true" focusable="false"><use href="#i-redo"/></svg></button>
           <button class="btn btn--quiet" id="new" type="button">Nuevo</button>
           <button class="btn btn--quiet" id="open" type="button" title="Abrir un .sen.json o un WAV del laboratorio, o importar un MIDI">Abrir</button>
           <button class="btn btn--quiet" id="save-project" type="button" title="Guardar el proyecto (Cmd/Ctrl+S)">Guardar</button>
@@ -42,25 +62,25 @@
       </header>
 
       <div class="transport" id="transport" role="toolbar" aria-label="Transporte">
-        <button class="play" id="play" type="button" aria-label="Reproducir" title="Reproducir / pausa (Espacio)"><span aria-hidden="true">▶</span></button>
-        <button class="icon-btn" id="stop" type="button" aria-label="Detener y volver al inicio" title="Detener (Inicio)">■</button>
+        <button class="play" id="play" type="button" aria-label="Reproducir" title="Reproducir / pausa (Espacio)"><svg class="i i--play" aria-hidden="true" focusable="false"><use href="#i-play"/></svg></button>
+        <button class="icon-btn" id="stop" type="button" aria-label="Detener y volver al inicio" title="Detener (Inicio)"><svg class="i i--stop" aria-hidden="true" focusable="false"><use href="#i-stop"/></svg></button>
         <output class="clock" id="clock" aria-label="Posición">00:00,0 / 03:00</output>
-        <button class="chip" id="region-loop" type="button" aria-pressed="false" title="Región de escucha en bucle (L)">⟲ región</button>
-        <button class="icon-btn icon-btn--small" id="region-clear" type="button" aria-label="Quitar la región" title="Quitar la región" hidden>×</button>
+        <button class="chip" id="region-loop" type="button" aria-pressed="false" title="Región de escucha en bucle (L)"><svg class="i i--loop" aria-hidden="true" focusable="false"><use href="#i-loop"/></svg>región</button>
+        <button class="icon-btn icon-btn--small" id="region-clear" type="button" aria-label="Quitar la región" title="Quitar la región" hidden><svg class="i i--close" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
         <label class="field-inline">
           <span>rejilla</span>
           <select id="grid"></select>
         </label>
         <div class="zoom" role="group" aria-label="Zoom">
-          <button class="icon-btn" id="zoom-out" type="button" aria-label="Alejar" title="Alejar (−)">−</button>
-          <button class="icon-btn" id="zoom-in" type="button" aria-label="Acercar" title="Acercar (+)">+</button>
+          <button class="icon-btn" id="zoom-out" type="button" aria-label="Alejar" title="Alejar (−)"><svg class="i i--minus" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+          <button class="icon-btn" id="zoom-in" type="button" aria-label="Acercar" title="Acercar (+)"><svg class="i i--plus" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
         </div>
         <label class="field-inline volume">
           <span aria-hidden="true">vol</span>
           <span class="sr-only">Volumen de escucha</span>
           <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" />
         </label>
-        <button class="btn btn--quiet compact-only" id="compact-add" type="button">＋ Añadir</button>
+        <button class="btn btn--quiet compact-only" id="compact-add" type="button"><svg class="i i--plus" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Añadir</button>
       </div>
 
       <div class="workspace">

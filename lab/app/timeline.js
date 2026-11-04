@@ -4,7 +4,7 @@
  * doble clic o arrastrando desde la biblioteca, y teclado.
  */
 
-import { h, fmtShort, findElement, elementSpan, instrumentLabel, trackTag, clampNum, typingTarget } from './util.js';
+import { h, icon, fmtShort, findElement, elementSpan, instrumentLabel, trackTag, clampNum, typingTarget } from './util.js';
 import { AUTOMATION_DEFS, ELEMENT_TYPES, INSTRUMENTS, LIMITS, curveFunction, newId, projectCounts } from '../engine/schema.js';
 import { noteLabel } from '../engine/music.js';
 import { planStrikeHits } from '../engine/voices/strike.js';
@@ -49,7 +49,7 @@ export function createTimeline(root, store, actions) {
   const rulerbar = h('div', { class: 'tl-rulerbar' }, h('div', { class: 'tl-corner' }, 'pistas'), ruler);
   const rows = h('div', { class: 'tl-rows' });
   const addRow = h('div', { class: 'tl-addrow' }, h('div', { class: 'tl-head' },
-    h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.focusLibrary() }, '+ pista')), h('div', { class: 'tl-lane' }));
+    h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.focusLibrary() }, icon('plus'), 'pista')), h('div', { class: 'tl-lane' }));
   const masterBtn = h('button', { type: 'button', class: 'tl-name', onclick: () => store.select({ kind: 'master' }) }, 'Maestro');
   const masterRow = h('div', { class: 'tl-masterrow' }, h('div', { class: 'tl-head' }, masterBtn), h('div', { class: 'tl-lane' }));
   const playhead = h('div', { class: 'tl-playhead', 'aria-hidden': 'true' });

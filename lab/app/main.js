@@ -2,7 +2,7 @@
  * sen lab · arranque y orquestación del editor.
  */
 
-import { h, fmtTime, toast, announce, findTrack, findElement, typingTarget, isCompact, clampNum, installTitles } from './util.js';
+import { h, fmtTime, toast, announce, findTrack, findElement, typingTarget, isCompact, clampNum, installTitles, setIcon } from './util.js';
 import {
   INSTRUMENTS, LIMITS, LabFileError, createElement, createProject, createSceneProject, createTrack, layerKey, newId, normalizeProject,
   projectCounts, splitToneChanges,
@@ -540,7 +540,7 @@ function boot() {
   function updateTransport() {
     playBtn.setAttribute('aria-pressed', String(state.playing));
     playBtn.setAttribute('aria-label', state.playing ? 'Pausa' : 'Reproducir');
-    playBtn.firstElementChild.textContent = state.playing ? '❚❚' : '▶';
+    setIcon(playBtn.querySelector('.i'), state.playing ? 'pause' : 'play');
     const hasRegion = !!state.project.region;
     $('region-loop').hidden = !hasRegion;
     $('region-loop').setAttribute('aria-pressed', String(hasRegion && state.regionLoop));

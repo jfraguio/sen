@@ -29,6 +29,30 @@ export function h(tag, attrs = {}, ...children) {
   return el;
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/**
+ * Icono del juego de trazo fino de `index.html` (`<symbol id="i-…">`).
+ * Hereda el color del texto; el tamaño lo fija el CSS (`.i`).
+ */
+export function icon(name) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', `i i--${name}`);
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const use = document.createElementNS(SVG_NS, 'use');
+  use.setAttribute('href', `#i-${name}`);
+  svg.append(use);
+  return svg;
+}
+
+/** Cambia el icono de un `<svg class="i">` ya creado. */
+export function setIcon(svg, name) {
+  if (!svg) return;
+  svg.setAttribute('class', `i i--${name}`);
+  svg.querySelector('use')?.setAttribute('href', `#i-${name}`);
+}
+
 /** `mm:ss,d` */
 export function fmtTime(t) {
   const s = Math.max(0, t);

@@ -3,7 +3,7 @@
  * cancelación), proyecto `.sen.json` y script autónomo.
  */
 
-import { h, toast, announce, fileBase } from './util.js';
+import { h, icon, toast, announce, fileBase } from './util.js';
 import { EXPORT_PRESETS } from '../engine/schema.js';
 import { ENGINE_MODULES } from '../engine/index.js';
 import { downloadBlob, downloadProject } from './storage.js';
@@ -161,7 +161,7 @@ export function createExportDialog(store, actions) {
         result.hidden = false;
         result.textContent = '';
         result.append(
-          h('strong', {}, `✓ ${name}`), h('br'),
+          h('strong', {}, icon('check'), name), h('br'),
           `${f(s.duration)} s · ${s.sampleRate} Hz · ${s.bits} bits · ${s.channels === 1 ? 'mono' : 'estéreo'} · sonoridad ${f(s.lufs)} LUFS · pico ${f(s.peak)} dBFS · limitador ${f(s.reduction)} dB`,
         );
         const overshoot = s.measured !== null && Number.isFinite(s.lufs) && o.loudness !== null && o.loudness - s.lufs > 0.5;

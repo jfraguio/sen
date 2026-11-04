@@ -3,7 +3,7 @@
  * según la selección. Se construye a partir de las definiciones del esquema.
  */
 
-import { h, findTrack, findElement, instrumentLabel, fmtShort, clampNum } from './util.js';
+import { h, icon, findTrack, findElement, instrumentLabel, fmtShort, clampNum } from './util.js';
 import {
   AUTOMATION_DEFS, ELEMENT_DEFS, ELEMENT_TYPES, END_MODES, FAMILIES, INSTRUMENTS, LIMITS, MASTER_DEFS, MIX_DEFS, convertElement,
   getPath, paramDefs, setPath, cloneValue, toneChangePoints,
@@ -137,7 +137,7 @@ export function createInspector(root, store, actions) {
   const head = (title, sub, extra = null) => h('div', { class: 'ins-head' },
     h('h2', {}, title, sub ? h('small', {}, sub) : null),
     extra,
-    h('button', { type: 'button', class: 'icon-btn ins-close', 'aria-label': 'Cerrar el inspector', onclick: () => actions.closeSheet() }, '×'));
+    h('button', { type: 'button', class: 'icon-btn ins-close', 'aria-label': 'Cerrar el inspector', onclick: () => actions.closeSheet() }, icon('close')));
 
   /* ------------------------------------------------------------ tema */
 
@@ -357,7 +357,7 @@ export function createInspector(root, store, actions) {
     const test = h('button', {
       type: 'button', class: 'btn', title: 'Toca las letras sin modificar el tema (Esc para salir)',
       onclick: () => actions.togglePerformance('test', target('test')),
-    }, '▶ Teclado');
+    }, icon('keys'), 'Teclado');
     const kind = recordKind(el);
     const rec = kind ? h('button', {
       type: 'button', class: 'btn perf-rec',
@@ -528,12 +528,12 @@ export function createInspector(root, store, actions) {
               x.changes = x.changes.filter((q) => Math.abs(q.t - c.t) > 0.0005);
               if (!x.changes.length) delete x.changes;
             }),
-          }, '×')));
+          }, icon('close'))));
       });
       list.append(h('button', {
         type: 'button', class: 'note-change-add', title: 'Añadir un cambio al final', 'aria-label': 'Añadir un cambio al final',
         onclick: addAtEnd,
-      }, '+'));
+      }, icon('plus')));
     };
     syncers.push(render);
     render();
@@ -555,7 +555,7 @@ export function createInspector(root, store, actions) {
       type: 'button', class: 'btn btn--quiet note-repeat',
       title: 'Repite estas notas, con sus tiempos, una y otra vez hasta el final del tema',
       onclick: () => repeatToEnd(id),
-    }, '↻ Repetir hasta el final');
+    }, icon('repeat'), 'Repetir hasta el final');
     syncers.push(() => {
       const e = findElement(state.project, id)?.el;
       repeatBtn.disabled = !e || e.start + e.length >= state.project.duration - 0.0005;
@@ -666,8 +666,8 @@ export function createInspector(root, store, actions) {
           }),
         }, syncers),
         h('div', { class: 'ins-actions' },
-          h('button', { type: 'button', class: 'btn', onclick: () => actions.auditionTrack(id) }, '▶ Escuchar'),
-          h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.addElement(id, state.playhead) }, '+ Elemento en el cabezal')),
+          h('button', { type: 'button', class: 'btn', onclick: () => actions.auditionTrack(id) }, icon('play'), 'Escuchar'),
+          h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.addElement(id, state.playhead) }, icon('plus'), 'Elemento en el cabezal')),
         isLayer ? null : performanceButtons(track, null, () => 3)),
       ...timbre,
       section('Mezcla', ...mix),
@@ -833,7 +833,7 @@ export function createInspector(root, store, actions) {
       class: 'btn btn--quiet',
       title: 'Otra variación con los mismos ajustes',
       onclick: () => commit((d) => { const e = findElement(d, id).el; e.seed = ((e.seed ?? 1) % 999999) + 1; }),
-    }, '⟳ Aleatorizar')));
+    }, icon('shuffle'), 'Aleatorizar')));
   }
 
   /* ------------------------------------------------------------ maestro */
