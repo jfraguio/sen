@@ -882,8 +882,9 @@ duración (0–1) e `y` en 0–1. En `tone`, `phrase` y los `span` de ruido esca
 el nivel; en `cloud` y los `span` de simulaciones escala la densidad (y, más
 suavemente, el nivel). Hay curvas
 predefinidas: **plana**, **crece**, **decrece**, **respira** (sube y baja una
-vez) y **olas** (n ciclos); sus ids son `plana`, `crece`, `decrece`, `respira`
-y `olas:<n>`.
+vez), **olas** (n ciclos) y **olas suaves** (el mismo patrón con picos más bajos
+y valles más altos); sus ids son `plana`, `crece`, `decrece`, `respira`,
+`olas:<n>` y `olas-suaves:<n>`.
 
 #### 7.3.4 Tiempo, tono y azar
 
@@ -1225,7 +1226,10 @@ aparecen el campo de segundos (0,1–60 s; por defecto 2 s los acordes y 0,65 s
 los arpegios; cada tipo recuerda el suyo) y **▶**. Cambiar los segundos mientras
 suena se aplica en el paso siguiente.
 Debajo aparecen tarjetas con el cifrado, las notas en letras y las teclas del
-ordenador que tocan cada nota. A la derecha de la última tarjeta, **+** abre un
+ordenador que tocan cada nota. Cada tarjeta se puede mover un paso a la
+izquierda o a la derecha (**‹**, **›**) y duplicar (**⧉**), para probar
+variaciones antes de llevarlas a Notas. A la derecha de la última tarjeta, **+**
+abre un
 desplegable para añadir acordes o notas al final de la progresión: **Escala**
 ofrece los acordes o notas de la tonalidad en la octava actual y **Libre**
 permite elegir cualquier raíz y tipo de acorde (o cualquier nota). Si no hay

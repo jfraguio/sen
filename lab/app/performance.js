@@ -424,7 +424,23 @@ export function createPerformance({ store, audio, actions }) {
       }, icon('close')),
       h('b', {}, c.short),
       h('span', { class: 'perform__prog-notes' }, c.letters),
-      h('span', { class: 'perform__prog-keys' }, ...c.keys.filter(Boolean).map((key) => h('kbd', {}, key.toUpperCase()))))));
+      h('span', { class: 'perform__prog-keys' }, ...c.keys.filter(Boolean).map((key) => h('kbd', {}, key.toUpperCase()))),
+      h('div', { class: 'perform__prog-actions' },
+        h('button', {
+          type: 'button', class: 'perform__prog-act',
+          'aria-label': `Mover ${c.short} a la izquierda`, title: 'Mover a la izquierda',
+          disabled: i === 0, onclick: () => moveInProgression(i, -1),
+        }, icon('chev-l')),
+        h('button', {
+          type: 'button', class: 'perform__prog-act',
+          'aria-label': `Mover ${c.short} a la derecha`, title: 'Mover a la derecha',
+          disabled: i === prog.chords.length - 1, onclick: () => moveInProgression(i, 1),
+        }, icon('chev-r')),
+        h('button', {
+          type: 'button', class: 'perform__prog-act',
+          'aria-label': `Duplicar ${c.short} en la progresión`, title: `Duplicar ${c.short}`,
+          onclick: () => duplicateInProgression(i),
+        }, icon('copy'))))));
     }
     syncProgressionControls(prog);
   }
@@ -474,6 +490,27 @@ export function createPerformance({ store, audio, actions }) {
     else markEdited();
     renderProgCards(current);
     syncSelectValue();
+  }
+
+  /** Copia un acorde o una nota justo detrás del original. */
+  function duplicateInProgression(index) {
+    if (!current?.chords[index]) return;
+    stopPreview();
+    current.chords.splice(index + 1, 0, cloneItem(current.chords[index]));
+    markEdited();
+    renderProgCards(current);
+  }
+
+  /** Mueve un acorde o una nota un paso a la izquierda o a la derecha. */
+  function moveInProgression(index, delta) {
+    if (!current) return;
+    const to = index + delta;
+    if (to < 0 || to >= current.chords.length) return;
+    stopPreview();
+    const [item] = current.chords.splice(index, 1);
+    current.chords.splice(to, 0, item);
+    markEdited();
+    renderProgCards(current);
   }
 
   /** Carga una progresión del catálogo en el editor de tarjetas. */

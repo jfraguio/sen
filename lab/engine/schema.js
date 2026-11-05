@@ -698,7 +698,7 @@ export const ELEMENT_DEFS = {
 
 /* ------------------------------------------------------------ curvas */
 
-export const CURVE_PRESETS = o([['plana', 'Plana'], ['crece', 'Crece'], ['decrece', 'Decrece'], ['respira', 'Respira'], ['olas', 'Olas']]);
+export const CURVE_PRESETS = o([['plana', 'Plana'], ['crece', 'Crece'], ['decrece', 'Decrece'], ['respira', 'Respira'], ['olas', 'Olas'], ['olas-suaves', 'Olas suaves']]);
 
 /** Puntos `[x, y]` de una curva (nombre predefinido o lista). */
 export function curvePoints(curve) {
@@ -713,9 +713,14 @@ export function curvePoints(curve) {
   if (name === 'decrece') return [[0, 1], [1, 0.1]];
   if (name === 'respira') return [[0, 0.2], [0.5, 1], [1, 0.2]];
   if (name.startsWith('olas')) {
+    // Las olas suaves repiten el patrón con menos recorrido: picos más bajos
+    // y valles más altos.
+    const soft = name.startsWith('olas-suaves');
     const n = Math.max(1, Math.min(12, Number(name.split(':')[1]) || 3));
+    const low = soft ? 0.45 : 0.25;
+    const high = soft ? 0.8 : 1;
     const pts = [];
-    for (let k = 0; k <= 2 * n; k++) pts.push([k / (2 * n), k % 2 ? 1 : 0.25]);
+    for (let k = 0; k <= 2 * n; k++) pts.push([k / (2 * n), k % 2 ? high : low]);
     return pts;
   }
   return [[0, 1], [1, 1]];

@@ -254,11 +254,12 @@ export function curveEditor({ binding, syncers }) {
   const canvas = h('canvas', { class: 'curve-editor', width: 300, height: 70, 'aria-label': 'Editor de curva: clic para añadir puntos, arrastra para moverlos, doble clic para quitarlos' });
   let gesture = null;
   let drag = -1;
-  const presetOf = (c) => (typeof c === 'string' ? (c.startsWith('olas') ? 'olas' : c) : 'custom');
+  const presetOf = (c) => (typeof c === 'string' ? (c.startsWith('olas-suaves') ? 'olas-suaves' : c.startsWith('olas') ? 'olas' : c) : 'custom');
+  const isWaves = (value) => value === 'olas' || value === 'olas-suaves';
   const draw = () => {
     const c = binding.get();
     sel.value = presetOf(c);
-    waves.hidden = sel.value !== 'olas';
+    waves.hidden = !isWaves(sel.value);
     if (typeof c === 'string' && c.startsWith('olas')) waves.value = String(Number(c.split(':')[1]) || 3);
     const pts = curvePoints(c);
     const ctx = canvas.getContext('2d');
@@ -357,10 +358,13 @@ export function curveEditor({ binding, syncers }) {
   });
   sel.addEventListener('change', () => {
     if (sel.value === 'custom') binding.set(curvePoints(binding.get()), {});
-    else if (sel.value === 'olas') binding.set(`olas:${Number(waves.value) || 3}`, {});
+    else if (isWaves(sel.value)) binding.set(`${sel.value}:${Number(waves.value) || 3}`, {});
     else binding.set(sel.value, {});
   });
-  waves.addEventListener('change', () => binding.set(`olas:${clampNum(Math.round(Number(waves.value)) || 3, 1, 12)}`, {}));
+  waves.addEventListener('change', () => {
+    const prefix = isWaves(sel.value) ? sel.value : 'olas';
+    binding.set(`${prefix}:${clampNum(Math.round(Number(waves.value)) || 3, 1, 12)}`, {});
+  });
   syncers.push(draw);
   requestAnimationFrame(draw);
   return h('div', { class: 'curve' },

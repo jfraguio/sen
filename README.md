@@ -157,8 +157,9 @@ cualquier escena sin tocar código.
   20 s). En pistas puntuales, el mismo botón crea o sustituye una frase con una
   entrada por paso y nota, editable como lista de tiempos. La progresión se
   puede construir a mano: **+** añade acordes o notas
-  desde un desplegable (de la escala de la tonalidad o libres) y **×** quita
-  tarjetas. Bajo las notas, «Repetir hasta el final» repite el patrón, con sus
+  desde un desplegable (de la escala de la tonalidad o libres); **×** quita
+  tarjetas, **‹** y **›** las mueven un paso y **⧉** las duplica. Bajo las
+  notas, «Repetir hasta el final» repite el patrón, con sus
   tiempos, hasta el final del tema.
 - **Exportar → WAV** directamente desde el navegador (48 kHz/24 bits,
   44,1 kHz/16 bits o «Escena para sen»), con final con cola, exacto o en bucle
