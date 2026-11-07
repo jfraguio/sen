@@ -27,7 +27,7 @@ for (const amb of catalog) {
       continue;
     }
     const result = renderLayers(amb.id, track.scene - FIRST_SCENE);
-    const layers = result.layers.filter((layer) => layer.progression?.length);
+    const layers = result.layers.filter((layer) => layer.progression?.length > 1);
     for (const layer of layers) {
       list.push({
         name: `${amb.name} ${String(track.track).padStart(2, '0')}`,

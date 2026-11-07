@@ -126,8 +126,8 @@ cualquier escena sin tocar código.
   (campana, cuenco tibetano, kalimba, caja de música, celesta, marimba,
   vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa, guitarra de nailon, ukelele, slide
   hawaiana, cuerda pulsada, gota tonal, palo de lluvia, piano FM y campana FM)
-  como golpes, frases o nubes
-  generativas, ruidos de color y **simulaciones** (grillos, cigarras, pájaros
+  como golpes, frases o nubes de
+  notas, ruidos de color y **simulaciones** (grillos, cigarras, pájaros
   por especie, gaviotas incluidas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas).
   Cada pista tiene silencio, solo y volumen en su cabecera.
 - **Biblioteca plegable por gesto y timbre:** Sostenidos, Puntuales, Texturas y
@@ -143,11 +143,12 @@ cualquier escena sin tocar código.
   «Grabar» guarda las notas dentro del mismo elemento mientras avanza el
   cabezal. Los acordes se cruzan con un fundido entre notas ajustable; la
   octava se puede cambiar en caliente y la lista se edita a mano (segundo y
-  notas). Las nubes generativas y los golpes usan el mismo diseño de «Notas»:
-  «Teclado» y «Grabar» arriba y la fila de notas debajo; en las nubes,
-  «Grabar» añade las notas tocadas al conjunto y la casilla «Notas aleatorias»
-  lo cambia por un registro de la escala; los controles de «Nube generativa»
-  solo se muestran con esa casilla marcada. El teclado suena con las mismas
+  notas). Las nubes de notas y los golpes usan el mismo diseño de «Notas»:
+  «Teclado» y, cuando se puede grabar, el botón de grabación (solo el punto
+  rojo) arriba. Una nube nueva empieza vacía: «Grabar» añade cada nota tocada a
+  la lista con su tiempo, y la lista se edita y se escucha fila a fila con ▶.
+  La casilla «Notas aleatorias» genera una lista de solo lectura con la escala
+  y los controles de «Nube generativa». El teclado suena con las mismas
   voces del motor, la mezcla de la pista y la reverb del tema, así que lo que
   tocas suena igual en la pista. El popup incluye un piano de dos octavas, un
   conmutador de acordes/arpegios y progresiones agrupadas por carácter, con sus
@@ -159,8 +160,11 @@ cualquier escena sin tocar código.
   puede construir a mano: **+** añade acordes o notas
   desde un desplegable (de la escala de la tonalidad o libres); **×** quita
   tarjetas, **‹** y **›** las mueven un paso y **⧉** las duplica. Bajo las
-  notas, «Repetir hasta el final» repite el patrón, con sus
-  tiempos, hasta el final del tema.
+  notas, «Repetir» repite el patrón, con sus tiempos, hasta el final del tema.
+  El patrón termina en la última fila (que dura lo mismo que el hueco anterior),
+  así que no arrastra el silencio que quedaba al final del elemento; si el
+  elemento ya ocupa todo el tema, lo repite dentro de él. «Limpiar» elimina
+  todas las notas y cambios del elemento.
 - **Exportar → WAV** directamente desde el navegador (48 kHz/24 bits,
   44,1 kHz/16 bits o «Escena para sen»), con final con cola, exacto o en bucle
   sin costura, y sonoridad normalizada. Cada WAV lleva el proyecto dentro y se

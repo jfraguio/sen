@@ -37,7 +37,7 @@ export function elementLabel(track, el, notation) {
   }
   if (el.type === 'hit') return noteLabel(el.note, notation);
   if (el.type === 'phrase') return `Frase · ${el.events.length} notas`;
-  if (el.type === 'cloud') return `Nube · ${el.density}/min`;
+  if (el.type === 'cloud') return el.mode === 'mine' ? `Notas · ${el.events?.length || 0}` : `Nube · ${el.density}/min`;
   return `${instrumentLabel(track)} · ${Math.round((el.density ?? 0.6) * 100)} %`;
 }
 

@@ -103,8 +103,26 @@ export function planStrikeHits(track, el, ctx) {
     }
     return hits;
   }
-  if (el.type === 'cloud') return planCloud(el, ctx);
+  if (el.type === 'cloud') {
+    return el.mode === 'mine' || (el.mode === undefined && Array.isArray(el.events))
+      ? planCloudEvents(el, ctx)
+      : planCloud(el, ctx);
+  }
   return [];
+}
+
+/** Nube con notas propias: cada entrada suena en su tiempo, sin bucle. */
+function planCloudEvents(el, ctx) {
+  const a4 = ctx.a4;
+  return (Array.isArray(el.events) ? el.events : [])
+    .filter((ev) => ev && Number.isFinite(ev.t) && ev.t >= 0 && ev.t < el.length && ev.note)
+    .sort((a, b) => a.t - b.t)
+    .map((ev) => ({
+      t: ev.t,
+      freq: noteFrequency(ev.note, a4),
+      vel: ev.v ?? 0.7,
+      gain: elementGainAt(el, ev.t),
+    }));
 }
 
 function planCloud(el, ctx) {

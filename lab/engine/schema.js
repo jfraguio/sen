@@ -20,6 +20,7 @@ export const LIMITS = {
   notesPerTone: 8,
   changesPerTone: 512,
   cloudPitches: 24,
+  cloudEvents: 2048,
   sustainVoices: 96,
   strikePerTrack: 16,
   strikeTotal: 64,
@@ -40,7 +41,7 @@ export const ELEMENT_TYPES = {
   tone: { label: 'Nota o acorde' },
   hit: { label: 'Golpe' },
   phrase: { label: 'Frase' },
-  cloud: { label: 'Nube generativa' },
+  cloud: { label: 'Nube de notas' },
   span: { label: 'Tramo' },
   clip: { label: 'Capa de audio' },
 };
@@ -961,9 +962,11 @@ export function createElement(track, project, start = 0, type = null) {
     };
   }
   if (t === 'cloud') {
+    // Una nube nueva empieza vacía: las notas se graban con el teclado o se
+    // generan activando «Notas aleatorias».
     return {
-      ...base, length: len, level: 0, fadeIn: 0, fadeOut: Math.min(4, len / 4), density: 8,
-      range: [keyNote(key, 4, 0), keyNote(key, 6, 0)], pitches: Array.from({ length: 8 }, (_, k) => keyNote(key, 4, k)),
+      ...base, mode: 'mine', events: [], length: len, level: 0, fadeIn: 0, fadeOut: Math.min(4, len / 4), density: 8,
+      range: [keyNote(key, 4, 0), keyNote(key, 6, 0)], pitches: null,
       timing: 0.6, motion: 0.5, gravity: 0.4,
       chord: 0.1, velocity: [0.35, 0.8], seed: 1, curve: 'plana',
     };
@@ -1018,6 +1021,60 @@ export function toneSegments(el) {
     if (end > start + 1e-6) out.push({ t: start, end, notes: points[k].notes });
   }
   return out;
+}
+
+/**
+ * Repite el patrón de notas de un `tone` hasta el final del tema.
+ *
+ * El patrón dura hasta el final de la última fila, que conserva como duración
+ * el intervalo con la fila anterior. Así, si las notas están en 0, 5, 10 y 15 s
+ * dentro de un elemento de 30 s, se repiten cada 5 s y no se arrastra el
+ * silencio final. Si la última fila ya llega al final del elemento, el patrón
+ * es el elemento entero, como antes.
+ *
+ * Devuelve los cambios ya expandidos y la duración final. Si no cabe una
+ * vuelta completa por el límite de cambios, el elemento termina en la última
+ * vuelta completa. No modifica el elemento.
+ */
+export function repeatToneToEnd(el, duration) {
+  const ms = (x) => Math.round(x * 1000) / 1000;
+  const elementLength = ms(Math.max(0.1, Number(el.length) || 0.1));
+  const end = ms(Math.max(0, Number(duration) - (Number(el.start) || 0)));
+  const copy = (notes) => notes.map((n) => (n && typeof n === 'object' ? { ...n } : n));
+  const rows = toneChangePoints(el).map((row) => ({ t: row.t, notes: copy(row.notes) }));
+  const changes = (Array.isArray(el.changes) ? el.changes : [])
+    .filter((c) => c && Number.isFinite(c.t) && Array.isArray(c.notes))
+    .map((c) => ({ t: c.t, notes: copy(c.notes) }));
+  // La última fila dura lo mismo que el hueco anterior (o el elemento entero
+  // si no hay más filas), sin arrastrar un silencio largo al repetir.
+  let pattern = elementLength;
+  if (rows.length > 1) {
+    const last = rows[rows.length - 1];
+    const gap = last.t - rows[rows.length - 2].t;
+    if (gap > 0.0005) pattern = ms(Math.min(elementLength, Math.max(0.1, last.t + gap)));
+  }
+  const result = (ok, length, reps, full, reason = null) => ({ ok, length, changes, reps, full, reason, pattern, end, rows });
+  if (end <= pattern + 0.0005) return result(false, pattern, 0, true, 'end');
+  if (rows.length <= 1) return result(true, end, 0, true);
+  let length = end;
+  let reps = 0;
+  let full = true;
+  for (let r = 1; r * pattern < end - 0.0005; r++) {
+    // Se cuentan solo los cambios que caben de verdad antes del final.
+    const items = [];
+    for (const row of rows) {
+      const t = ms(r * pattern + row.t);
+      if (t < end - 0.0005) items.push({ t, notes: copy(row.notes) });
+    }
+    if (changes.length + items.length > LIMITS.changesPerTone) {
+      length = ms(r * pattern);
+      full = false;
+      break;
+    }
+    changes.push(...items);
+    reps++;
+  }
+  return result(true, length, reps, full);
 }
 
 /** Reparte los cambios de un `tone` al dividirlo en `cut` (segundos desde su inicio). */
@@ -1314,6 +1371,11 @@ function normalizeElement(e, track, project, uniq, bad) {
       .slice(0, 256);
   }
   if (el.type === 'cloud') {
+    // Proyectos anteriores no tienen `mode`: si traen `pitches` (propias o
+    // nulas) eran nubes generativas; si no lo traen, son listas de notas.
+    el.mode = el.mode === 'random' || el.mode === 'mine'
+      ? el.mode
+      : (el.pitches === undefined || Array.isArray(el.events) ? 'mine' : 'random');
     fix('density', 1, 120, 8);
     for (const k of ['timing', 'motion', 'gravity', 'chord']) fix(k, 0, 1, 0.5);
     const r = Array.isArray(el.range) && el.range.length === 2 && el.range.every(validNote) ? el.range : [keyNote(project.key, 4, 0), keyNote(project.key, 6, 0)];
@@ -1322,6 +1384,19 @@ function normalizeElement(e, track, project, uniq, bad) {
     if (el.pitches && !el.pitches.length) el.pitches = null;
     const v = Array.isArray(el.velocity) && el.velocity.length === 2 && el.velocity.every(Number.isFinite) ? el.velocity : [0.35, 0.8];
     el.velocity = [clampNum(Math.min(v[0], v[1]), 0, 1), clampNum(Math.max(v[0], v[1]), 0, 1)];
+    if (el.mode === 'mine') {
+      const raw = Array.isArray(el.events) ? el.events : [];
+      const events = [];
+      for (const ev of raw) {
+        if (!ev || !validNote(ev.note) || !Number.isFinite(ev.t)) continue;
+        if (ev.t >= el.length - 0.0005) continue;
+        const t = Math.round(clampNum(ev.t, 0, el.length) * 1000) / 1000;
+        events.push({ t, note: ev.note, v: clampNum(Number.isFinite(ev.v) ? ev.v : 0.7, 0, 1) });
+      }
+      events.sort((a, b) => a.t - b.t);
+      if (events.length > LIMITS.cloudEvents) bad(`Se han conservado las primeras ${LIMITS.cloudEvents} notas de una nube.`);
+      el.events = events.slice(0, LIMITS.cloudEvents);
+    }
   }
   if (el.type === 'span') fix('density', 0, 1, 0.6);
   if (el.type === 'clip') fix('offset', 0, 3600, 0);

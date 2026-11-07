@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { compile, createRenderer, renderToWav, ENGINE_MODULES, auditionProject } from '../lab/engine/index.js';
 import {
   INSTRUMENTS, INSTRUMENT_GROUPS, LabFileError, canonicalProject, createElement, createProject, createSceneProject, createTrack, layerKey, normalizeProject,
-  splitToneChanges, toneNotesAt, trimToneStart,
+  repeatToneToEnd, splitToneChanges, toneNotesAt, trimToneStart,
 } from '../lab/engine/schema.js';
 import { publishedLayers } from './lib/published.js';
 import { decodeWavChannels, readSenpProject } from '../lab/engine/wav.js';
@@ -84,7 +84,7 @@ function smallProject(over = {}) {
     return t;
   };
   add('pad', 'tone', (e) => { e.fadeIn = 2; e.fadeOut = 3; });
-  add('campana', 'cloud', (e) => { e.density = 30; });
+  add('campana', 'cloud', (e) => { e.mode = 'random'; e.density = 30; });
   add('ruido', 'span');
   add('grillo', 'span');
   add('lluvia', 'span');
@@ -253,6 +253,55 @@ function smallProject(over = {}) {
   const ratio = (a, b) => 20 * Math.log10(rms(a, 2.2, 3.8, 22050) / rms(b, 2.2, 3.8, 22050));
   const fadeDiff = ratio(changedFade, plainFade);
   ok(Math.abs(fadeDiff) < 3, `con cambios de nota, el fundido de entrada sigue el del elemento (${fadeDiff.toFixed(1)} dB tras el cambio)`);
+
+  // Repetir: el patrón termina en la última fila y no arrastra el silencio que
+  // quedaba al final del elemento.
+  const repeatEl = { type: 'tone', start: 0, length: 30, notes: ['C3'], changes: [{ t: 5, notes: ['E3'] }, { t: 10, notes: ['G3'] }] };
+  const repeated = repeatToneToEnd(repeatEl, 60);
+  const times = repeated.changes.map((c) => c.t);
+  ok(repeated.ok && repeated.pattern === 15 && repeated.length === 60 && repeated.reps === 3 && times.join(',') === '5,10,15,20,25,30,35,40,45,50,55',
+    'repetir usa el hueco entre notas y no el silencio final del elemento');
+  const repeatedFull = repeatToneToEnd({ ...repeatEl, length: 10 }, 60);
+  ok(repeatedFull.pattern === 10 && repeatedFull.length === 60, 'si la última fila llega al final, el patrón es el elemento entero');
+  const extended = repeatToneToEnd({ type: 'tone', start: 0, length: 10, notes: ['C3'], changes: [] }, 60);
+  ok(extended.ok && extended.rows.length === 1 && extended.length === 60 && extended.changes.length === 0,
+    'con una sola fila, repetir solo alarga las notas');
+  const acrossTheme = repeatToneToEnd({
+    type: 'tone', start: 0, length: 60, notes: ['C3'],
+    changes: [{ t: 2, notes: ['E3'] }, { t: 4, notes: ['G3'] }],
+  }, 60);
+  ok(acrossTheme.ok && acrossTheme.pattern === 6 && acrossTheme.length === 60 && acrossTheme.changes.length === 29,
+    'repetir también rellena un elemento que ya ocupa todo el tema');
+  const already = repeatToneToEnd({ type: 'tone', start: 0, length: 30, notes: ['C3'], changes: [] }, 30);
+  ok(!already.ok, 'repetir no hace nada si la nota ya llega al final del tema');
+}
+
+/* ------------------------------------------------------------ nubes de notas */
+
+{
+  const p = createProject({ seed: 'nube-notas', duration: 20 });
+  const track = createTrack('campana', p);
+  const el = createElement(track, p, 0, 'cloud');
+  ok(el.mode === 'mine' && Array.isArray(el.events) && el.events.length === 0, 'una nube nueva empieza vacía y en modo de notas propias');
+  el.length = 10;
+  el.events = [{ t: 2, note: 'C4', v: 0.7 }, { t: 5, note: 'E4', v: 0.5 }];
+  track.elements.push(el);
+  p.tracks.push(track);
+  const hits = planStrikeHits(track, el, { a4: 440, key: p.key, elementSeed: seedFrom(p.seed, track.id, el.id, el.seed) });
+  ok(hits.length === 2 && hits[0].t === 2 && hits[1].t === 5 && hits[0].freq < hits[1].freq,
+    'las notas propias de una nube suenan exactamente en su tiempo');
+  const norm = normalizeProject({ schema: 'sen-lab/3', duration: 20, tracks: [{ instrument: 'campana', elements: [{ type: 'cloud', mode: 'mine', start: 0, length: 10, events: [{ t: -1, note: 'C4' }, { t: 3, note: 'E4', v: 2 }, { t: 11, note: 'G4' }] }] }] });
+  const ne = norm.project.tracks[0].elements[0];
+  ok(ne.mode === 'mine' && ne.events.length === 2 && ne.events[0].t === 0 && ne.events[1].v === 1,
+    'las notas propias se recortan y ordenan al validar el proyecto');
+  const legacy = normalizeProject({ schema: 'sen-lab/3', duration: 20, tracks: [{ instrument: 'campana', elements: [{ type: 'cloud', start: 0, length: 10, pitches: null }] }] });
+  ok(legacy.project.tracks[0].elements[0].mode === 'random', 'las nubes anteriores con pitches se abren en modo aleatorio');
+  const aud = auditionProject(p, track, { notes: ['C4', 'E4'], seconds: 2 });
+  const audTrack = aud.tracks[0];
+  const audHits = planStrikeHits(audTrack, audTrack.elements[0], {
+    a4: 440, key: aud.key, elementSeed: seedFrom(aud.seed, audTrack.id, audTrack.elements[0].id, 1),
+  });
+  ok(audHits.length === 2, 'la audición de una fila con acorde suena con todas sus notas');
 }
 
 /* ------------------------------------------------------------ teclado en vivo */

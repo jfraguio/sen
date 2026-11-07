@@ -560,7 +560,7 @@ export function createRenderer(plan, opts = {}) {
 /* ------------------------------------------------------------ audición */
 
 /** Proyecto mínimo para escuchar un instrumento unos segundos. */
-export function auditionProject(project, track, { note = null, seconds = 3 } = {}) {
+export function auditionProject(project, track, { note = null, notes = null, seconds = 3 } = {}) {
   const base = createProject({
     name: 'audición',
     seed: 'audicion',
@@ -580,9 +580,14 @@ export function auditionProject(project, track, { note = null, seconds = 3 } = {
     el.fadeOut = 0.9;
     if (note) el.notes = [note];
   } else if (t.family === 'strike') {
-    if (note) {
-      el = createElement(t, base, 0.02, 'hit');
-      el.note = note;
+    const chord = Array.isArray(notes) && notes.length ? notes : note ? [note] : null;
+    if (chord) {
+      el = createElement(t, base, 0.02, 'phrase');
+      el.length = Math.min(seconds, 2.6);
+      el.pattern = Math.max(0.25, el.length);
+      el.events = chord.map((n) => ({ t: 0.02, note: n, v: 0.7 }));
+      el.fadeIn = 0;
+      el.fadeOut = Math.min(0.6, el.length / 4);
     } else {
       el = createElement(t, base, 0.02, 'phrase');
       el.length = Math.min(seconds, 2.6);

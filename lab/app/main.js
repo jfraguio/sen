@@ -361,7 +361,13 @@ function boot() {
     },
     auditionTrack(trackId, note = null) {
       const t = findTrack(state.project, trackId);
-      if (t) audio.audition(state.project, t, { note, seconds: note ? 1.6 : 3 });
+      if (!t) return;
+      const notes = Array.isArray(note) ? note : null;
+      audio.audition(state.project, t, {
+        note: notes ? null : note,
+        notes,
+        seconds: notes ? 2 : note ? 1.6 : 3,
+      });
     },
     auditionInstrument(inst) {
       audio.audition(state.project, createTrack(inst, state.project), { seconds: 3 });

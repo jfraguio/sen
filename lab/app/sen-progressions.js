@@ -97,17 +97,6 @@ export const SEN_PROGRESSIONS = [
     ]
   },
   {
-    "name": "Lluvia 04",
-    "layer": "Pad",
-    "chords": [
-      [
-        50,
-        57,
-        64
-      ]
-    ]
-  },
-  {
     "name": "Lluvia 05",
     "layer": "Pad",
     "chords": [
@@ -592,18 +581,6 @@ export const SEN_PROGRESSIONS = [
     ]
   },
   {
-    "name": "Mar 03",
-    "layer": "Pad",
-    "chords": [
-      [
-        43,
-        50,
-        57,
-        62
-      ]
-    ]
-  },
-  {
     "name": "Mar 04",
     "layer": "Pad de cuerdas",
     "chords": [
@@ -938,18 +915,6 @@ export const SEN_PROGRESSIONS = [
     ]
   },
   {
-    "name": "Viento 03",
-    "layer": "Pad",
-    "chords": [
-      [
-        40,
-        47,
-        52,
-        59
-      ]
-    ]
-  },
-  {
     "name": "Viento 04",
     "layer": "Pad de cuerdas",
     "chords": [
@@ -1039,83 +1004,6 @@ export const SEN_PROGRESSIONS = [
         49,
         52,
         57
-      ]
-    ]
-  },
-  {
-    "name": "Espacio 01",
-    "layer": "Pad",
-    "chords": [
-      [
-        38,
-        45,
-        50,
-        54,
-        57,
-        64
-      ]
-    ]
-  },
-  {
-    "name": "Espacio 02",
-    "layer": "Drone",
-    "chords": [
-      [
-        33,
-        40,
-        45
-      ]
-    ]
-  },
-  {
-    "name": "Espacio 03",
-    "layer": "Pad",
-    "chords": [
-      [
-        36,
-        48,
-        55,
-        57,
-        64
-      ]
-    ]
-  },
-  {
-    "name": "Espacio 04",
-    "layer": "Pad",
-    "chords": [
-      [
-        38,
-        45,
-        50,
-        57,
-        61
-      ]
-    ]
-  },
-  {
-    "name": "Espacio 05",
-    "layer": "Pad",
-    "chords": [
-      [
-        41,
-        48,
-        53,
-        57,
-        60,
-        67
-      ]
-    ]
-  },
-  {
-    "name": "Espacio 06",
-    "layer": "Drone",
-    "chords": [
-      [
-        33,
-        40,
-        45,
-        52
       ]
     ]
   },
@@ -1368,28 +1256,6 @@ export const SEN_PROGRESSIONS = [
         54,
         57,
         60
-      ]
-    ]
-  },
-  {
-    "name": "Meditación 03",
-    "layer": "Pad",
-    "chords": [
-      [
-        38,
-        45,
-        50
-      ]
-    ]
-  },
-  {
-    "name": "Meditación 04",
-    "layer": "Pad",
-    "chords": [
-      [
-        43,
-        50,
-        55
       ]
     ]
   },
@@ -2246,19 +2112,6 @@ export const SEN_PROGRESSIONS = [
         60,
         64,
         67
-      ]
-    ]
-  },
-  {
-    "name": "Burbujas 04",
-    "layer": "Pad",
-    "chords": [
-      [
-        46,
-        53,
-        57,
-        60,
-        62
       ]
     ]
   },

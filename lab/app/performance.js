@@ -19,9 +19,8 @@ import { keyboard } from './controls.js';
 import { SEN_PROGRESSIONS } from './sen-progressions.js';
 
 const sameNotes = (a, b) => JSON.stringify(a.map((n) => (typeof n === 'object' ? n.hz : n))) === JSON.stringify(b.map((n) => (typeof n === 'object' ? n.hz : n)));
-const noteId = (n) => (n && typeof n === 'object' ? `hz:${n.hz}` : String(noteToMidi(n) ?? n));
-/** Cómo graba un elemento: cambios con tiempo (`tone`) o conjunto de notas (`cloud`). */
-export const recordKind = (el) => (el?.type === 'tone' ? 'timeline' : el?.type === 'cloud' && Array.isArray(el.pitches) ? 'palette' : null);
+/** Cómo graba un elemento: cambios con tiempo (`tone`) o notas con tiempo (`cloud`). */
+export const recordKind = (el) => (el?.type === 'tone' ? 'timeline' : el?.type === 'cloud' && el.mode === 'mine' ? 'sequence' : null);
 
 /** Progresiones habituales, agrupadas por carácter. */
 const PROGRESSIONS_FULL = [
@@ -248,6 +247,7 @@ function progressionOptions(key, octave, type = 'chords', notation = 'latin') {
     // Se muestran solo los acordes y se descartan las que suenan igual.
     const seen = new Set();
     for (const entry of SEN_PROGRESSIONS) {
+      if (entry.chords.length < 2) continue;
       const items = senItems(entry.chords, octave, notation);
       const label = items.map((c) => c.short).join(' – ');
       if (seen.has(label)) continue;
@@ -274,7 +274,6 @@ export function createPerformance({ store, audio, actions }) {
   let gesture = null;
   let startedPlayback = false;
   let warnedLimit = false;
-  let warnedCloud = false;
   let progType = 'chords';
   // Segundos que suena cada paso de la progresión, por tipo.
   const stepSeconds = { chords: 2, arpeggios: 0.65 };
@@ -1097,9 +1096,10 @@ export function createPerformance({ store, audio, actions }) {
       chips.append(h('span', { class: 'perform__silence' }, 'silencio'));
     }
     if (e && mode === 'record') {
-      if (recordKind(e) === 'palette') {
-        const count = e.pitches?.length || 0;
-        detail.textContent = ` · ${t?.name || ''} · ${count}/${LIMITS.cloudPitches} notas propias`;
+      if (recordKind(e) === 'sequence') {
+        const count = e.events?.length || 0;
+        const rel = clampNum(store.state.playhead - e.start, 0, e.length);
+        detail.textContent = ` · ${t?.name || ''} · ${count} ${count === 1 ? 'nota' : 'notas'} · ${rel.toFixed(1).replace('.', ',')} s de ${e.length.toFixed(1).replace('.', ',')}`;
       } else {
         const rel = clampNum(store.state.playhead - e.start, 0, e.length);
         detail.textContent = ` · ${t?.name || ''} · oct. ${octave}–${octave + 1} · ${rel.toFixed(1).replace('.', ',')} s de ${e.length.toFixed(1).replace('.', ',')}`;
@@ -1116,42 +1116,34 @@ export function createPerformance({ store, audio, actions }) {
     actions.notify(`Máximo ${LIMITS.changesPerTone} cambios de nota por elemento: se descartan los más antiguos.`, true);
   }
 
-  function notifyCloudLimit() {
-    if (warnedCloud) return;
-    warnedCloud = true;
-    actions.notify(`La nube ya tiene el máximo de ${LIMITS.cloudPitches} notas propias.`, true);
-  }
-
-  function record() {
+  function record(midi = null) {
     if (!active || mode !== 'record') return;
     const f = elementId ? findElement(store.state.project, elementId) : null;
     if (!f) return;
     const kind = recordKind(f.el);
-    if (kind === 'palette') {
-      const notes = [...chord].sort((a, b) => a - b).map((m) => midiToNote(m));
-      if (!notes.length) return;
-      const have = new Set(f.el.pitches.map(noteId));
-      const add = notes.filter((n) => !have.has(noteId(n)));
-      if (!add.length) return;
-      const room = Math.max(0, LIMITS.cloudPitches - f.el.pitches.length);
-      const take = add.slice(0, room);
-      if (!take.length) {
-        notifyCloudLimit();
-        return;
-      }
+    if (kind === 'sequence') {
+      // Una tecla pulsada es una nota de la lista, con su tiempo de aparición.
+      if (midi === null) return;
+      const el = f.el;
+      const now = store.state.playing ? audio.currentTime() : store.state.playhead;
+      const rel = now - el.start;
+      if (rel < -0.05 || rel > el.length + 0.05) return;
+      const t = Math.round(clampNum(rel, 0, el.length) * 1000) / 1000;
+      if (t >= el.length - 0.0005) return;
+      const note = midiToNote(midi);
+      let warned = false;
       store.commit((d) => {
         const x = findElement(d, elementId)?.el;
-        if (!x || x.type !== 'cloud' || !Array.isArray(x.pitches)) return false;
-        const current = new Set(x.pitches.map(noteId));
-        const list = [...x.pitches];
-        for (const n of take) {
-          if (current.has(noteId(n))) continue;
-          list.push(n);
-          current.add(noteId(n));
+        if (!x || x.type !== 'cloud' || x.mode !== 'mine') return false;
+        const events = [...(x.events || []), { t, note, v: 0.7 }].sort((a, b) => a.t - b.t);
+        if (events.length > LIMITS.cloudEvents) {
+          events.splice(0, events.length - LIMITS.cloudEvents);
+          warned = true;
         }
-        x.pitches = list.slice(0, LIMITS.cloudPitches);
+        x.events = events;
+        return true;
       }, { gesture, source: 'performance' });
-      if (take.length < add.length || f.el.pitches.length + take.length >= LIMITS.cloudPitches) notifyCloudLimit();
+      if (warned) actions.notify(`Máximo ${LIMITS.cloudEvents} notas por nube: se descartan las más antiguas.`, true);
       return;
     }
     if (kind !== 'timeline') return;
@@ -1213,7 +1205,7 @@ export function createPerformance({ store, audio, actions }) {
     held.set(key, midi);
     chord.add(midi);
     audio.noteOn(midiToNote(midi), t, liveOpts());
-    record();
+    record(midi);
     hud();
     return true;
   }
@@ -1265,10 +1257,12 @@ export function createPerformance({ store, audio, actions }) {
     if (nextMode === 'record') {
       const f = target.elementId ? findElement(store.state.project, target.elementId) : null;
       if (!f || !recordKind(f.el)) {
-        actions.notify('Selecciona un elemento sostenido o una nube con notas propias para grabar.', true);
+        actions.notify('Selecciona un elemento sostenido o una nube de notas para grabar.', true);
         return false;
       }
-      if (recordKind(f.el) === 'timeline' && f.el.changes?.length && !window.confirm('Grabar sustituirá los cambios de nota actuales de este elemento. ¿Continuar?')) return false;
+      const kind = recordKind(f.el);
+      const existing = kind === 'timeline' ? f.el.changes?.length : f.el.events?.length;
+      if (existing && !window.confirm('Grabar sustituirá las notas actuales de este elemento. ¿Continuar?')) return false;
     }
     if (active) stop(false);
     stopPreview();
@@ -1279,7 +1273,6 @@ export function createPerformance({ store, audio, actions }) {
     elementId = mode === 'record' ? target.elementId : null;
     octave = clampNum(Number.isInteger(target.octave) ? target.octave : 3, 0, 7);
     warnedLimit = false;
-    warnedCloud = false;
     held.clear();
     chord.clear();
     clearTaps();
@@ -1292,22 +1285,32 @@ export function createPerformance({ store, audio, actions }) {
     if (mode === 'record') {
       gesture = `perf-${Date.now()}`;
       const f = findElement(store.state.project, elementId);
-      if (recordKind(f?.el) === 'timeline') {
-        if (f.el.changes?.length) {
+      const kind = recordKind(f?.el);
+      if (kind === 'timeline' || kind === 'sequence') {
+        if (kind === 'timeline') {
+          if (f.el.changes?.length) {
+            store.commit((d) => {
+              const x = findElement(d, elementId)?.el;
+              if (!x) return false;
+              delete x.changes;
+            }, { gesture, source: 'performance' });
+          }
+        } else if (f.el.events?.length) {
           store.commit((d) => {
             const x = findElement(d, elementId)?.el;
             if (!x) return false;
-            delete x.changes;
+            x.events = [];
           }, { gesture, source: 'performance' });
         }
         audio.setMonitorMute(trackId);
         startedPlayback = !store.state.playing;
         actions.startPlayback(f ? f.el.start : store.state.playhead);
-        actions.notify('Grabando: toca las letras mientras avanza el cabezal. Esc para salir.');
+        actions.notify(kind === 'timeline'
+          ? 'Grabando: toca las letras mientras avanza el cabezal. Esc para salir.'
+          : 'Grabando notas: cada tecla se añade a la lista con su tiempo. Esc para salir.');
       } else {
         audio.setMonitorMute(null);
         startedPlayback = false;
-        actions.notify('Grabando notas propias: toca las letras para añadirlas a la nube. Esc para salir.');
       }
     }
     actions.performanceChanged?.();

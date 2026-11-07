@@ -6,9 +6,11 @@
 import { h, icon, findTrack, findElement, instrumentLabel, fmtShort, clampNum } from './util.js';
 import {
   AUTOMATION_DEFS, ELEMENT_DEFS, ELEMENT_TYPES, END_MODES, FAMILIES, INSTRUMENTS, LIMITS, MASTER_DEFS, MIX_DEFS, convertElement,
-  getPath, paramDefs, setPath, cloneValue, toneChangePoints,
+  getPath, paramDefs, setPath, cloneValue, repeatToneToEnd,
 } from '../engine/schema.js';
-import { LATIN_NAMES, NOTE_NAMES, SCALE_LABELS, midiToNote, noteLabel, noteToMidi, scaleMidis, transposeNote } from '../engine/music.js';
+import { LATIN_NAMES, NOTE_NAMES, SCALE_LABELS, midiToNote, noteLabel, noteToMidi, transposeNote } from '../engine/music.js';
+import { planStrikeHits } from '../engine/voices/strike.js';
+import { seedFrom } from '../engine/rng.js';
 import {
   automationEditor, boolControl, curveEditor, enumControl, noteSelect, numberControl, pairControl, phraseEditor, textControl,
 } from './controls.js';
@@ -357,15 +359,15 @@ export function createInspector(root, store, actions) {
     const test = h('button', {
       type: 'button', class: 'btn', title: 'Toca las letras sin modificar el tema (Esc para salir)',
       onclick: () => actions.togglePerformance('test', target('test')),
-    }, icon('keys'), 'Teclado');
+    }, 'Teclado');
     const kind = recordKind(el);
     const rec = kind ? h('button', {
-      type: 'button', class: 'btn perf-rec',
-      title: kind === 'palette'
-        ? 'Añade al conjunto de notas propias las teclas que toques (Esc para salir)'
+      type: 'button', class: 'btn perf-rec perf-rec--icon', 'aria-label': 'Grabar',
+      title: kind === 'sequence'
+        ? 'Graba con el teclado las notas y su tiempo (Esc para salir)'
         : 'Graba los cambios de nota mientras avanza el cabezal (Esc para salir)',
       onclick: () => actions.togglePerformance('record', target('record')),
-    }, h('span', { class: 'perf-rec-dot', 'aria-hidden': 'true' }), 'Grabar') : null;
+    }, h('span', { class: 'perf-rec-dot', 'aria-hidden': 'true' })) : null;
     const sync = () => {
       const p = actions.performanceInfo?.() || {};
       test.setAttribute('aria-pressed', String(!!p.active && p.mode === 'test' && p.trackId === track.id));
@@ -571,33 +573,54 @@ export function createInspector(root, store, actions) {
       done,
     }, syncers);
 
-    // Repite el patrón (el elemento entero: sus filas con sus tiempos) hasta
-    // el final del tema, alargando el elemento.
+    // Repite el patrón de notas (sus filas con sus tiempos) hasta el final del
+    // tema, alargando el elemento.
     const repeatBtn = h('button', {
       type: 'button', class: 'btn btn--quiet note-repeat',
       title: 'Repite estas notas, con sus tiempos, una y otra vez hasta el final del tema',
       onclick: () => repeatToEnd(id),
-    }, icon('repeat'), 'Repetir hasta el final');
+    }, 'Repetir');
+    const canRepeat = (e) => {
+      if (!e || e.type !== 'tone') return false;
+      const r = repeatToneToEnd(e, state.project.duration);
+      return r.ok && (r.length > e.length + 0.0005 || r.changes.length > (e.changes?.length || 0));
+    };
     syncers.push(() => {
-      const e = findElement(state.project, id)?.el;
-      repeatBtn.disabled = !e || e.start + e.length >= state.project.duration - 0.0005;
+      repeatBtn.disabled = !canRepeat(findElement(state.project, id)?.el);
     });
-    repeatBtn.disabled = el.start + el.length >= state.project.duration - 0.0005;
+    repeatBtn.disabled = !canRepeat(el);
+
+    const clearBtn = h('button', {
+      type: 'button', class: 'btn btn--quiet btn--danger',
+      title: 'Elimina todas las notas y cambios de este elemento',
+      onclick: () => {
+        commit((d) => {
+          const x = findElement(d, id)?.el;
+          if (!x || x.type !== 'tone') return false;
+          x.notes = [];
+          delete x.changes;
+        });
+        actions.notify('Notas eliminadas.');
+      },
+    }, 'Limpiar');
 
     return section('Notas',
       performanceButtons(track, el, () => state.view.keyboardOctave ?? 3),
       list,
-      h('div', { class: 'ins-actions' }, repeatBtn),
+      h('div', { class: 'ins-actions' }, repeatBtn, clearBtn),
       crossControl);
   }
 
   /**
-   * Lista editable de notas puntuales de una frase: cada fila es una entrada
-   * (tiempo + notas). Es el equivalente de los cambios de un sostenido.
+   * Lista editable de notas puntuales (frase o nube): cada fila es una entrada
+   * con su tiempo y sus notas. Es el equivalente de los cambios de un
+   * sostenido y cada fila se puede escuchar con un golpe.
    */
-  function phraseEventsSection(track, el) {
+  function eventsSection(track, el, { limit, kind }) {
     const id = el.id;
     const list = h('div', { class: 'note-changes' });
+    const maxTime = (e) => Math.max(0.001, limit(e) - 0.001);
+    const isTarget = (x) => x && x.type === el.type && (el.type !== 'cloud' || x.mode === 'mine');
 
     const groupsOf = (e) => {
       const events = (Array.isArray(e?.events) ? e.events : [])
@@ -616,7 +639,7 @@ export function createInspector(root, store, actions) {
       let found = false;
       commit((d) => {
         const x = findElement(d, id)?.el;
-        if (!x?.events) return false;
+        if (!isTarget(x) || !Array.isArray(x.events)) return false;
         const group = x.events.filter((ev) => Math.abs(ev.t - at) < 0.0005);
         if (!group.length) return false;
         x.events = x.events
@@ -633,7 +656,7 @@ export function createInspector(root, store, actions) {
       let found = false;
       commit((d) => {
         const x = findElement(d, id)?.el;
-        if (!x?.events) return false;
+        if (!isTarget(x) || !Array.isArray(x.events)) return false;
         const group = x.events.filter((ev) => Math.abs(ev.t - at) < 0.0005);
         if (!group.length) return false;
         const velocities = new Map(group.map((ev) => [noteToMidi(ev.note), ev.v]));
@@ -650,19 +673,19 @@ export function createInspector(root, store, actions) {
     const addAtEnd = () => {
       const f = findElement(state.project, id);
       if (!f) return;
-      const pattern = Math.max(0.25, f.el.pattern || 4);
+      const maxT = maxTime(f.el);
       const groups = groupsOf(f.el);
       const last = groups[groups.length - 1];
-      const t = last ? Math.min(Math.max(0.001, pattern - 0.0005), last.t + 1) : 0;
+      const t = last ? Math.min(maxT, last.t + 1) : 0;
       if (last && t <= last.t + 0.0005) {
-        actions.notify('No queda espacio en el patrón de la frase.', true);
+        actions.notify(kind === 'phrase' ? 'No queda espacio en el patrón de la frase.' : 'No queda espacio antes del final del elemento.', true);
         return;
       }
       const note = last?.events[0]?.note ?? noteLabel(midiToNote(60), state.view.notation);
       commit((d) => {
         const x = findElement(d, id)?.el;
-        if (!x || x.type !== 'phrase') return false;
-        x.events = [...(x.events || []), { t, note, v: 0.7 }].sort((a, b) => a.t - b.t);
+        if (!isTarget(x)) return false;
+        x.events = [...(x.events || []), { t: Math.round(t * 1000) / 1000, note, v: 0.7 }].sort((a, b) => a.t - b.t);
         return true;
       });
     };
@@ -677,15 +700,20 @@ export function createInspector(root, store, actions) {
       list.textContent = '';
       const e = findElement(state.project, id)?.el;
       const start = e?.start ?? el.start;
-      const pattern = Math.max(0.25, e?.pattern || 4);
-      const maxT = Math.max(0.001, pattern - 0.0005);
-      groupsOf(e).forEach((group) => {
+      const maxT = maxTime(e);
+      const groups = groupsOf(e);
+      if (!groups.length) {
+        list.append(h('div', { class: 'ins-empty' }, kind === 'cloud'
+          ? 'Sin notas todavía. Graba con el teclado o añade una con +.'
+          : 'Sin entradas todavía. Añade una con +.'));
+      }
+      groups.forEach((group) => {
         let groupT = group.t;
         let groupNotes = group.events.map((ev) => ev.note);
         const timeInput = h('input', {
           type: 'number', class: 'note-change__time', min: '0', max: String(maxT), step: '0.01',
           value: String(groupT), inputmode: 'decimal',
-          'aria-label': `Segundo de entrada ${fmtShort(start + groupT)}`,
+          'aria-label': `Segundo de la entrada ${fmtShort(start + groupT)}`,
           title: `Desde el inicio del elemento · en el tema: ${fmtShort(start + groupT)}`,
         });
         const commitTime = () => {
@@ -727,7 +755,7 @@ export function createInspector(root, store, actions) {
           if (!notes.length) {
             commit((d) => {
               const x = findElement(d, id)?.el;
-              if (!x?.events) return false;
+              if (!isTarget(x) || !Array.isArray(x.events)) return false;
               x.events = x.events.filter((ev) => Math.abs(ev.t - groupT) >= 0.0005);
               return true;
             });
@@ -744,18 +772,25 @@ export function createInspector(root, store, actions) {
             notesInput.blur();
           }
         });
+        const play = h('button', {
+          type: 'button', class: 'icon-btn icon-btn--small note-change__play', 'aria-label': `Escuchar ${notesText(groupNotes, state.view.notation)}`,
+          title: 'Escuchar esta entrada con un golpe',
+          onclick: () => actions.auditionTrack(track.id, groupNotes),
+        }, icon('play'));
         list.append(h('div', { class: 'note-change' },
           h('span', { class: 'note-change__timebox' }, timeInput, h('span', { class: 'ctl-unit' }, 's')),
           notesInput,
-          h('button', {
-            type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': `Quitar la entrada de ${fmtShort(start + groupT)}`,
-            onclick: () => commit((d) => {
-              const x = findElement(d, id)?.el;
-              if (!x?.events) return false;
-              x.events = x.events.filter((ev) => Math.abs(ev.t - groupT) >= 0.0005);
-              return true;
-            }),
-          }, icon('close'))));
+          h('span', { class: 'note-change__actions' },
+            play,
+            h('button', {
+              type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': `Quitar la entrada de ${fmtShort(start + groupT)}`,
+              onclick: () => commit((d) => {
+                const x = findElement(d, id)?.el;
+                if (!isTarget(x) || !Array.isArray(x.events)) return false;
+                x.events = x.events.filter((ev) => Math.abs(ev.t - groupT) >= 0.0005);
+                return true;
+              }),
+            }, icon('close')))));
       });
       list.append(h('button', {
         type: 'button', class: 'note-change-add', title: 'Añadir una entrada al final', 'aria-label': 'Añadir una entrada al final',
@@ -773,56 +808,83 @@ export function createInspector(root, store, actions) {
     return list;
   }
 
+  /** Lista de solo lectura de las notas que generará una nube aleatoria. */
+  function plannedCloudSection(track, el) {
+    const id = el.id;
+    const list = h('div', { class: 'note-changes' });
+    const hint = h('span', { class: 'ctl-unit' });
+    let sig = '';
+    const render = () => {
+      const f = findElement(state.project, id);
+      if (!f) return;
+      const e = f.el;
+      const key = JSON.stringify([state.project.seed, track.id, track.instrument, state.project.key, state.project.tuning, e]);
+      if (key === sig) return;
+      sig = key;
+      const a4 = state.project.tuning?.a4 ?? 440;
+      const hits = planStrikeHits(track, e, {
+        a4,
+        key: state.project.key,
+        elementSeed: seedFrom(state.project.seed ?? 'sen', track.id, e.id, e.seed ?? 1),
+        eventBudget: LIMITS.events,
+      });
+      list.textContent = '';
+      const max = 250;
+      for (const hit of hits.slice(0, max)) {
+        const midi = Math.round(69 + 12 * Math.log2(hit.freq / a4));
+        const label = noteLabel(midiToNote(midi), state.view.notation);
+        list.append(h('div', { class: 'note-change note-change--planned' },
+          h('span', { class: 'note-change__timebox' },
+            h('input', {
+              type: 'number', class: 'note-change__time', value: String(Math.round(hit.t * 100) / 100), disabled: true,
+              'aria-label': `Aparición en ${fmtShort(e.start + hit.t)}`,
+              title: `Desde el inicio del elemento · en el tema: ${fmtShort(e.start + hit.t)}`,
+            }),
+            h('span', { class: 'ctl-unit' }, 's')),
+          h('span', { class: 'note-change__notes note-change__notes--static' }, label),
+          h('span', { class: 'note-change__actions' },
+            h('button', {
+              type: 'button', class: 'icon-btn icon-btn--small note-change__play', 'aria-label': `Escuchar ${label}`,
+              title: 'Escuchar esta nota con un golpe',
+              onclick: () => actions.auditionTrack(track.id, [{ hz: Math.round(hit.freq * 100) / 100 }]),
+            }, icon('play')))));
+      }
+      hint.textContent = hits.length
+        ? `${hits.length} ${hits.length === 1 ? 'nota' : 'notas'}${hits.length > max ? ` (se muestran las primeras ${max})` : ''} · pulsa ▶ para oírlas`
+        : 'Aún no hay notas con estos ajustes.';
+    };
+    syncers.push(render);
+    render();
+    return h('div', {}, hint, list);
+  }
+
   /**
-   * Repite las notas de un `tone` hasta el final del tema. El patrón es el
-   * elemento completo: cada fila dura hasta la siguiente y la última hasta el
-   * final del elemento, así que la repetición conserva todos los tiempos.
+   * Repite las notas de un `tone` hasta el final del tema. El patrón termina en
+   * la última fila, que dura lo mismo que el hueco anterior: no arrastra el
+   * silencio que quedaba al final del elemento.
    */
   function repeatToEnd(id) {
     const f = findElement(state.project, id);
     if (!f || f.el.type !== 'tone') return;
     const el = f.el;
-    const ms = (x) => Math.round(x * 1000) / 1000;
-    const pattern = el.length;
-    const end = ms(state.project.duration - el.start);
-    if (end <= pattern + 0.0005) {
+    const r = repeatToneToEnd(el, state.project.duration);
+    const grew = r.ok && r.length > el.length + 0.0005;
+    if (!grew && (!r.ok || r.changes.length <= (el.changes?.length || 0))) {
       actions.notify('El elemento ya llega al final del tema.', true);
       return;
     }
-    const rows = toneChangePoints(el);
-    const copy = (notes) => notes.map((n) => (n && typeof n === 'object' ? { ...n } : n));
-    const changes = (el.changes || []).map((c) => ({ ...c, notes: copy(c.notes) }));
-    let length = end;
-    let reps = 0;
-    let full = true;
-    if (rows.length > 1) {
-      for (let r = 1; r * pattern < end - 0.0005; r++) {
-        // Cada vuelta empieza con la fila base: si no caben todas sus filas,
-        // el elemento se corta al final de la última vuelta completa.
-        if (changes.length + rows.length > LIMITS.changesPerTone) {
-          length = ms(r * pattern);
-          full = false;
-          break;
-        }
-        for (const row of rows) {
-          const t = ms(r * pattern + row.t);
-          if (t < end - 0.0005) changes.push({ t, notes: copy(row.notes) });
-        }
-        reps++;
-      }
-    }
     commit((d) => {
       const x = findElement(d, id)?.el;
-      if (!x) return false;
-      x.length = length;
-      if (changes.length) x.changes = changes;
+      if (!x || x.type !== 'tone') return false;
+      x.length = r.length;
+      if (r.changes.length) x.changes = r.changes;
       else delete x.changes;
-      x.fadeOut = Math.min(x.fadeOut ?? 0, Math.max(0, length - (x.fadeIn ?? 0)));
+      x.fadeOut = Math.min(x.fadeOut ?? 0, Math.max(0, r.length - (x.fadeIn ?? 0)));
     });
     const fmt = (x) => fmtShort(el.start + x);
-    if (rows.length <= 1) actions.notify(`Las notas se alargan hasta el final del tema (${fmt(length)}).`);
-    else if (!full) actions.notify(`Patrón repetido ${reps} veces, hasta ${fmt(length)}: máximo ${LIMITS.changesPerTone} cambios de nota por elemento.`, true);
-    else actions.notify(`Patrón de ${String(ms(pattern)).replace('.', ',')} s repetido hasta el final del tema (${fmt(length)}).`);
+    if (r.rows.length <= 1) actions.notify(`Las notas se alargan hasta el final del tema (${fmt(r.length)}).`);
+    else if (!r.full) actions.notify(`Patrón repetido ${r.reps} veces, hasta ${fmt(r.length)}: máximo ${LIMITS.changesPerTone} cambios de nota por elemento.`, true);
+    else actions.notify(`Patrón de ${String(r.pattern).replace('.', ',')} s repetido hasta el final del tema (${fmt(r.length)}).`);
   }
 
   /* ------------------------------------------------------------ pista */
@@ -945,51 +1007,34 @@ export function createInspector(root, store, actions) {
           },
           syncers, project: p, notation, audition,
         })));
-      blocks.push(section('Notas', phraseEventsSection(track, el)));
+      blocks.push(section('Notas', eventsSection(track, el, {
+        limit: (e) => Math.max(0.25, e?.pattern || 4),
+        kind: 'phrase',
+      })));
     } else if (el.type === 'cloud') {
-      // Mismo diseño que las notas de un sostenido: teclado y grabación arriba,
-      // la fila de notas y, como particularidad, el modo de notas aleatorias.
-      const random = !el.pitches;
-      const cloudNotesFor = (e, key) => {
-        const lo = noteToMidi(e.range?.[0]);
-        const hi = noteToMidi(e.range?.[1]);
-        if (lo === null || hi === null) return [...(e.range || [])];
-        const midis = scaleMidis(key.root, key.scale, Math.min(lo, hi), Math.max(lo, hi));
-        const notes = (midis.length ? midis : [Math.min(lo, hi)]).slice(0, LIMITS.cloudPitches).map(midiToNote);
-        return notes.length ? notes : [...(e.range || [])];
-      };
-      const notesBlock = random
-        ? h('div', { class: 'ctl ctl--pair' }, h('span', { class: 'ctl-label' }, 'Registro'),
-          noteSelect({ get: () => findElement(state.project, id)?.el.range[0], set: (v) => commit((d) => { findElement(d, id).el.range[0] = v; }) }, syncers, notation, 'Nota más grave'),
-          noteSelect({ get: () => findElement(state.project, id)?.el.range[1], set: (v) => commit((d) => { findElement(d, id).el.range[1] = v; }) }, syncers, notation, 'Nota más aguda'))
-        : notesSetRow({
-          get: () => findElement(state.project, id)?.el.pitches || [],
-          set: (v) => commit((d) => {
-            const e = findElement(d, id)?.el;
-            if (!e) return false;
-            e.pitches = v;
-          }),
-          max: LIMITS.cloudPitches,
-          min: 1,
-          label: 'Notas de la nube',
-          placeholder: 'Do4 Mi4 Sol4',
-          count: true,
-        });
+      const random = el.mode === 'random';
+      const list = random
+        ? plannedCloudSection(track, el)
+        : eventsSection(track, el, { limit: (e) => Math.max(0.1, e?.length || el.length), kind: 'cloud' });
       blocks.push(section('Notas',
-        performanceButtons(track, el, () => state.view.keyboardOctave ?? 4),
-        notesBlock,
         boolControl({ label: 'Notas aleatorias' }, {
-          get: () => !findElement(state.project, id)?.el.pitches,
+          get: () => findElement(state.project, id)?.el.mode === 'random',
           set: (v) => commit((d) => {
             const e = findElement(d, id)?.el;
             if (!e) return false;
-            e.pitches = v ? null : cloudNotesFor(e, d.key);
+            e.mode = v ? 'random' : 'mine';
           }),
-        }, syncers)));
-      // Los controles de generación se muestran solo en modo de notas
-      // aleatorias; con notas propias queda únicamente la sección «Notas».
+        }, syncers),
+        performanceButtons(track, el, () => state.view.keyboardOctave ?? 4),
+        h('p', { class: 'help' }, random
+          ? 'Notas generadas con los ajustes de abajo. Pulsa ▶ en una fila para oírla.'
+          : 'Cada fila es una nota con su tiempo. Pulsa ▶ para oírla o graba con el teclado.'),
+        list));
       if (random) {
         blocks.push(section('Nube generativa',
+          h('div', { class: 'ctl ctl--pair' }, h('span', { class: 'ctl-label' }, 'Registro'),
+            noteSelect({ get: () => findElement(state.project, id)?.el.range[0], set: (v) => commit((d) => { findElement(d, id).el.range[0] = v; }) }, syncers, notation, 'Nota más grave'),
+            noteSelect({ get: () => findElement(state.project, id)?.el.range[1], set: (v) => commit((d) => { findElement(d, id).el.range[1] = v; }) }, syncers, notation, 'Nota más aguda')),
           ...ELEMENT_DEFS.cloud.map((def) => (def.type === 'range' ? pairControl(def, eb(def.key), syncers) : numberControl(def, eb(def.key), syncers))),
           seedRow(id)));
       }
@@ -1077,7 +1122,7 @@ export function createInspector(root, store, actions) {
     if (s.kind === 'element') {
       if (s.elementIds.length !== 1) return `m|${s.elementIds.join(',')}`;
       const f = findElement(p, s.elementIds[0]);
-      return `e|${s.elementIds[0]}|${f?.el.type}|${f?.track.instrument}|${!!f?.el.pitches}|${p.duration}|${JSON.stringify(p.key)}|${!!p.tempo}|${v}`;
+      return `e|${s.elementIds[0]}|${f?.el.type}|${f?.el.mode ?? ''}|${f?.track.instrument}|${p.duration}|${JSON.stringify(p.key)}|${!!p.tempo}|${v}`;
     }
     if (s.kind === 'master') return `M|${!!p.tempo}|${p.master.echo.sync}`;
     return `p|${p.end.mode}|${!!p.tempo}|${!!p.region}|${v}|${p.region ? `${p.region.start}-${p.region.end}` : ''}`;

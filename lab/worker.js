@@ -208,7 +208,7 @@ self.onmessage = (e) => {
     } else if (m.type === 'loop') {
       loop = m.loop || null;
     } else if (m.type === 'audition') {
-      const aud = auditionProject(m.project, m.track, { note: m.note, seconds: m.seconds });
+      const aud = auditionProject(m.project, m.track, { note: m.note, notes: m.notes, seconds: m.seconds });
       const p = compile(aud, { sampleRate: ctxRate, mode: 'preview', end: 'tail', audition: true, samples });
       const r = createRenderer(p, { limiter: true });
       const out = r.render(Math.round((m.seconds + (m.track.family === 'strike' ? 1.5 : 0.6)) * ctxRate));

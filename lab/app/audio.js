@@ -238,10 +238,10 @@ export class LabAudio {
   }
 
   /** Escucha un instrumento o una nota unos segundos. */
-  async audition(project, track, { note = null, seconds = 3 } = {}) {
+  async audition(project, track, { note = null, notes = null, seconds = 3 } = {}) {
     await this.ensure();
     const id = ++this.auditionId;
-    this.worker.postMessage({ type: 'audition', id, project: { key: project.key, tuning: project.tuning, master: project.master }, track, note, seconds });
+    this.worker.postMessage({ type: 'audition', id, project: { key: project.key, tuning: project.tuning, master: project.master }, track, note, notes, seconds });
   }
 
   playBuffer(buf) {

@@ -2503,6 +2503,12 @@ body:has(.perform:not([hidden])) .toast {
   gap: 7px;
 }
 
+.perf-rec--icon {
+  width: 36px;
+  justify-content: center;
+  padding: 0;
+}
+
 .perf-rec-dot {
   width: 8px;
   height: 8px;
@@ -2664,9 +2670,32 @@ body:has(.perform:not([hidden])) .toast {
   color: var(--dim);
 }
 
+.note-change__notes--static {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  color: var(--ink);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.note-change__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .note-change .icon-btn {
   width: 20px;
   height: 20px;
+}
+
+.note-change__play:hover {
+  color: var(--accent) !important;
+  background: var(--accent-soft) !important;
 }
 
 .note-change .icon-btn .i {

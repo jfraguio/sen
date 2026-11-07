@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 5.2<br>
+**Versión:** 5.3<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de música ambiental
 
@@ -856,24 +856,24 @@ No objetivos:
 - **`phrase`** (puntuales): un patrón de golpes `{ t, note, v }` de longitud
   propia que se repite hasta llenar el elemento. Se edita en una mini rejilla
   de tipo *piano roll* dentro del inspector.
-- **`cloud`** (puntuales): **nube generativa** de notas. Elige notas de la
-  escala del tema (o de una lista propia) dentro de un registro, con:
-  - `density`: notas por minuto (1–120).
-  - `timing`: 0 regular, 1 completamente aleatorio (Poisson).
-  - `motion`: 0 saltos libres, 1 pasos cercanos (paseo por los grados).
-  - `gravity`: preferencia por tónica y quinta (0–1).
-  - `chord`: probabilidad de que caigan 2–3 notas juntas (0–1).
-  - `velocity`: rango `[min, max]`.
-  - `seed`: semilla propia; “Aleatorizar” la incrementa.
-  - `pitches`: por defecto la nube usa un conjunto de notas propias (hasta 24)
-    que se escribe en la fila de **Notas** (como en un sostenido), se prueba
-    con **Teclado** o se amplía tocando notas (**Grabar**). La casilla **Notas
-    aleatorias** pone `pitches` a `null`: la fila de notas y **Grabar** dejan
-    paso al **registro**, y la nube elige notas de la escala dentro de él. Los
-    controles de generación (densidad, azar, movimiento, gravedad, acordes,
-    velocidad y semilla) se muestran siempre en la sección **Nube generativa**,
-    porque actúan en los dos modos. La nube sigue generando notas en el tiempo;
-    “Grabar” solo amplía su conjunto de notas, no graba ritmo.
+- **`cloud`** (puntuales): **nube de notas**, con dos modos.
+  - `mode: "mine"`: lista propia de notas con su tiempo (`events`:
+    `{ t, note, v }`, `t` desde el inicio del elemento). Es el equivalente
+    puntual de los cambios de un sostenido: cada fila se edita y se puede
+    escuchar con un golpe. Una nube nueva empieza vacía; **Grabar** añade cada
+    tecla tocada con su tiempo mientras avanza el cabezal. No hay bucle: cada
+    nota suena una vez.
+  - `mode: "random"`: nube generativa. Elige notas de la escala del tema
+    dentro de un registro (`range`), con `density` (notas por minuto, 1–120),
+    `timing` (0 regular, 1 aleatorio de Poisson), `motion` (0 saltos libres,
+    1 pasos cercanos), `gravity` (preferencia por tónica y quinta, 0–1),
+    `chord` (probabilidad de 2–3 notas juntas, 0–1), `velocity` (`[min, max]`)
+    y `seed` (la incrementa “Aleatorizar”). La lista de notas generadas se
+    muestra en el inspector, en solo lectura, con su tiempo; se puede escuchar
+    fila a fila.
+  - La casilla **Notas aleatorias** cambia de modo. Los proyectos anteriores
+    con `pitches` se abren en modo aleatorio; `pitches` sigue limitando el
+    conjunto de notas generadas si existe.
 - **`span`** (ruidos y simulaciones): un tramo de actividad. En simulaciones,
   además del nivel, define la **densidad** (0–1) de la actividad.
 - **`clip`** (capas de pistas de sen): un tramo de la capa, que se repite en
@@ -883,8 +883,9 @@ No objetivos:
 Todos los elementos con duración (`tone`, `phrase`, `cloud`, `span`, `clip`) admiten
 una **curva de intensidad**: lista de puntos `[x, y]` con `x` relativo a la
 duración (0–1) e `y` en 0–1. En `tone`, `phrase` y los `span` de ruido escala
-el nivel; en `cloud` y los `span` de simulaciones escala la densidad (y, más
-suavemente, el nivel). Hay curvas
+el nivel; en una nube con notas propias escala el nivel; en una nube aleatoria
+y en los `span` de simulaciones escala la densidad (y, más suavemente, el
+nivel). Hay curvas
 predefinidas: **plana**, **crece**, **decrece**, **respira** (sube y baja una
 vez), **olas** (n ciclos) y **olas suaves** (el mismo patrón con picos más bajos
 y valles más altos); sus ids son `plana`, `crece`, `decrece`, `respira`,
@@ -906,7 +907,7 @@ y valles más altos); sus ids son `plana`, `crece`, `decrece`, `respira`,
   frecuencia libre `{ "hz": 136.1 }` para tonos fuera de la escala. La UI las
   muestra en notación latina (`Re3`) con opción de cambiar a anglosajona.
 - **Cambiar la tonalidad** no mueve las notas escritas, salvo que se elija
-  “Transponer todo”. Las nubes generativas sí siguen la nueva escala.
+  “Transponer todo”. Las nubes aleatorias sí siguen la nueva escala.
 - **Semillas:** el tema tiene una semilla (`seed`, texto) y cada elemento con
   azar su propia semilla entera. La semilla efectiva de un elemento es
   `hash(tema.seed, pista.id, elemento.id, elemento.seed)`, de modo que **editar
@@ -1007,10 +1008,12 @@ lados. Polifonía: 16 golpes simultáneos
 por pista y 64 en total; al superarla se corta el más antiguo con un fundido de
 10 ms.
 
-Un elemento nuevo de una pista de notas puntuales es una **nube**; el selector
-«Tipo» del inspector lo convierte en golpe o frase conservando inicio,
-duración y nivel. Las frases muestran, además del piano roll, una **lista de
-entradas** (tiempo + notas) equivalente a los cambios de un sostenido.
+Un elemento nuevo de una pista de notas puntuales es una **nube de notas**
+vacía; el selector «Tipo» del inspector lo convierte en golpe o frase
+conservando inicio, duración y nivel. Las nubes y las frases muestran una
+**lista de entradas** (tiempo + notas) equivalente a los cambios de un
+sostenido; cada fila se puede escuchar con un golpe sin cambiar el tipo del
+elemento. En una nube aleatoria la lista es la previsión de lo que generará.
 
 #### 7.4.3 Texturas (`noise`)
 
@@ -1150,28 +1153,29 @@ por parámetro.
   escucha. Zoom con −/+ o con Cmd/Ctrl + rueda.
 - **Inspector:** controles de la pista o del elemento seleccionado, del bus
   maestro o del tema (sin selección). La cabecera de un elemento indica su tipo
-  y su posición («Nube generativa · 0:00–0:30»). Sostenidos y puntuales
-  comparten el diseño de la sección **Notas**: arriba **Teclado** (y
-  **Grabar** cuando el elemento lo admite) y debajo las filas de notas, que se
-  escriben como «Do4 Mi4», «C4 E4» o «440Hz». En un golpe es una sola nota; en
-  una nube con notas propias, su conjunto (con el recuento, p. ej. «8/24»),
-  seguido de la casilla **Notas aleatorias**; los controles de generación de la
-  sección **Nube generativa** solo aparecen con esa casilla marcada. En un
-  elemento sostenido,
+  y su posición («Nube de notas · 0:00–0:30»). Sostenidos y puntuales
+  comparten el diseño de la sección **Notas**: arriba **Teclado** (sin icono) y
+  el botón de grabación (solo el punto rojo) cuando el elemento lo admite, y
+  debajo las filas de notas, que se escriben como «Do4 Mi4», «C4 E4» o
+  «440Hz». En un golpe es una sola nota. En una nube propia, cada fila es una
+  nota con su tiempo y **▶** la escucha con un golpe; la casilla **Notas
+  aleatorias** cambia la lista por la previsión generada (también con tiempo y
+  ▶) y muestra los controles de **Nube generativa**. En un elemento sostenido,
   **Notas** es el editor único de las notas: la fila de **0 s**
   contiene las notas base (si no hay más cambios, duran todo el elemento), **+**
-  añade un cambio al final, **×** borra los cambios añadidos, **↻ Repetir
-  hasta el final** repite el patrón y el **fundido entre notas** ajusta el
-  cruce (0–2 s). El patrón es el elemento entero (cada fila dura hasta la
-  siguiente y la última hasta el final del elemento): se copia a continuación,
-  con los mismos tiempos, hasta el final del tema, y el elemento se alarga
-  hasta allí (la última vuelta puede quedar cortada). Si se llega al máximo de
-  cambios, el elemento termina con la última vuelta completa y se avisa. Con
-  una sola fila, simplemente se alarga. El botón se desactiva si el elemento ya
-  llega al final del tema. Desde ahí se toca (**Teclado**) o se
-  graba con el teclado (**Grabar**, con la bolita en rojo). Cada fila se edita
-  con su segundo y sus notas; la octava se cambia desde el piano del popup y se
-  aplica en caliente durante la prueba o grabación.
+  añade un cambio al final, **×** borra los cambios añadidos, **Repetir** repite
+  el patrón, **Limpiar** elimina todas las notas y cambios del elemento y el
+  **fundido entre notas** ajusta el cruce (0–2 s). El patrón
+  dura hasta la última fila, que conserva el hueco con la anterior (así no
+  arrastra el silencio que quedaba al final del elemento); se copia a
+  continuación, con los mismos tiempos, hasta el final del tema, y el elemento
+  se alarga hasta allí (la última vuelta puede quedar cortada). Si el elemento
+  ya ocupa todo el tema, se rellena dentro de su duración. Si se llega al
+  máximo de cambios, el elemento termina con la última vuelta completa y se
+  avisa. Con una sola fila, simplemente se alarga. Desde la lista se toca
+  (**Teclado**) o se graba con el teclado (botón con el punto rojo). Cada fila
+  se edita con su segundo y sus notas; la octava se cambia desde el piano del
+  popup y se aplica en caliente durante la prueba o grabación.
 - **Pie:** medidor maestro (pico y sonoridad a corto plazo), carga del motor,
   tonalidad y tempo.
 
@@ -1242,9 +1246,9 @@ pulsadas y las notas de la progresión que suena, un conmutador
 tema. Los acordes se agrupan por carácter (**Alegres**, **Nostálgicas**,
 **Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**), y el grupo **Sen**
 reúne las progresiones reales de las capas sostenidas de las canciones
-publicadas que tienen pad: 80 de las 84 («Lluvia 01», «Lluvia 02»,
-«Tormenta 01»…). En **Sen** el combo muestra solo los acordes, sin el nombre de
-la plantilla, y descarta las progresiones que suenan igual. Los arpegios se agrupan por
+publicadas que tienen pad («Lluvia 01», «Lluvia 02», «Tormenta 01»…). En
+**Sen** el combo muestra solo los acordes, sin el nombre de la plantilla, y
+descarta las progresiones de un solo acorde y las que suenan igual. Los arpegios se agrupan por
 movimiento (**Ascendentes**, **Descendentes**, **Ondulantes**, **Largos** y
 **Saltos**). Ni el combo ni las tarjetas usan cifrado romano: muestran el nombre
 de cada acorde. Al
@@ -1309,8 +1313,9 @@ la interfaz ya no los ofrece.
 1. Abrir `/lab/` (ya hay un tema vacío) y poner la tonalidad en Re pentatónica mayor.
 2. Arrastrar **Drone** al inicio; en el inspector, notas `D2` y `A2`, fundido
    de entrada de 10 s.
-3. Arrastrar **Campana** a 0:20 (crea una **nube**): 6 notas por minuto,
-   registro `Re4`–`Re6`, pasos cercanos 0,7.
+3. Arrastrar **Campana** a 0:20 (crea una **nube de notas** vacía); marcar
+   **Notas aleatorias** y poner 6 notas por minuto, registro `Re4`–`Re6` y
+   pasos cercanos 0,7.
 4. Arrastrar **Grillos** a 0:30 con curva **crece** y distancia 0,6.
 5. Marcar una región de 0:20 a 1:00 y escucharla en bucle mientras se ajusta.
 6. **Exportar → WAV**, preajuste **Estudio**, final **bucle sin costura**.
@@ -1882,7 +1887,7 @@ opcional (7.4.6).
 | Elementos por tema | 500 |
 | Notas por elemento `tone` | 8 |
 | Cambios por elemento `tone` | 512 |
-| Notas propias de una `cloud` | 24 |
+| Notas (entradas) de una `cloud` | 2048 |
 | Voces sostenidas simultáneas (notas × voces) | 96 |
 | Golpes simultáneos | 16 por pista, 64 en total |
 | Eventos planificados de simulaciones | 200 000 por tema |
@@ -2049,9 +2054,9 @@ Las tres fases previstas están implementadas en la versión 4.0:
 - [x] Editar un elemento no cambia el azar de los demás **(auto)**.
 - [x] Añadir, duplicar, mover o quitar acordes de una progresión mientras suena
       no detiene la reproducción; el bucle sigue con la lista modificada.
-- [x] El grupo **Sen** carga las 80 progresiones de capas sostenidas de las
-      pistas publicadas sin calcular audio en el navegador, muestra solo sus
-      acordes y descarta las duplicadas.
+- [x] El grupo **Sen** carga las progresiones de capas sostenidas de las pistas
+      publicadas sin calcular audio en el navegador, muestra solo sus acordes y
+      descarta las de un solo acorde y las duplicadas.
 - [x] La biblioteca ya no muestra Metales 80, Bajo 80 ni Lead 80; Cinta y
       Bruma suenan y enlazan el bucle sin costura **(auto)**.
 - [x] **Pantalla completa** entra y sale del modo del navegador desde el menú
@@ -2573,6 +2578,14 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **5.3:** las nubes de notas sustituyen al editor de notas propias: una nube
+  nueva empieza vacía, cada fila es una nota con su tiempo y **▶** la escucha
+  con un golpe; **Grabar** añade al vuelo las teclas tocadas y **Notas
+  aleatorias** muestra la previsión generada, también con tiempo y escucha por
+  fila. **Teclado** deja de mostrar icono y **Grabar** se queda solo con el
+  punto rojo. **Repetir** no arrastra el silencio final del elemento: el patrón
+  termina en la última fila con la duración del hueco anterior. El grupo **Sen**
+  descarta las progresiones de un solo acorde y las repetidas.
 - **5.2:** el menú **☰** incluye **Pantalla completa**. El modo teclado deja de
   mostrar cifrados romanos y el grupo **Sen** reúne las progresiones de las
   capas sostenidas de las pistas publicadas que tienen pad, 80 de 84
