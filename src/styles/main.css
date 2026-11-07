@@ -114,6 +114,14 @@ button {
   gap: 8px;
   flex: 0 0 auto;
   padding-top: clamp(4px, 1.2vh, 10px);
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.brand:focus-visible {
+  outline: 2px solid rgba(232, 222, 255, 0.7);
+  outline-offset: 6px;
 }
 
 .brand__sigil {
