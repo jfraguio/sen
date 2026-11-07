@@ -1,7 +1,8 @@
 /**
  * Notas sostenidas: pad, drone, cuerdas, arpa eólica, flauta suave, coro,
  * cuenco tibetano frotado, vidrio, seno, theremin y los sintetizadores
- * analógicos de estética ochentera (pad, metales, bajo y lead).
+ * analógicos (pad, Cinta y Bruma; los antiguos metales, bajo y lead 80 siguen
+ * disponibles para proyectos anteriores).
  *
  * Cada nota de un elemento `tone` es una voz con varias subvoces desafinadas
  * (unísono), timbre por tabla de onda o parciales, filtro de estado variable y

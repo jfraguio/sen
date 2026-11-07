@@ -32,6 +32,8 @@ const { Bus, scatter, gusts, vary } = S;
 const MUSIC_LU = -10;
 /** Señales marcadas como música (las devuelven `play`, `pads` y `tune`). */
 const MUSIC = new WeakSet();
+/** Progresión de acordes de cada capa creada con `pads()` (MIDI por acorde). */
+const PROGRESSIONS = new WeakMap();
 const asMusic = (x) => (MUSIC.add(x), x);
 
 /**
@@ -60,22 +62,29 @@ function mix(layers, rv, post = null, { music = MUSIC_LU } = {}) {
     const [x, d = 0, wet = 0, crest = 20] = named ? layer.slice(0, -1) : layer;
     if (!x) continue;
     const y = normActive(tame(x, crest), 0.1);
-    items.push({ name: named ? layer[layer.length - 1] : null, y, g: db(d), wet, music: MUSIC.has(x) });
+    items.push({
+      name: named ? layer[layer.length - 1] : null,
+      y,
+      g: db(d),
+      wet,
+      music: MUSIC.has(x),
+      progression: PROGRESSIONS.get(x) || null,
+    });
   }
   if (music != null && items.some((it) => it.music) && items.some((it) => !it.music)) {
     const group = (m) => items.reduce((s, it) => (it.music === m ? add(s, it.y, it.g) : s), buf());
     const k = db(music - (loudness(group(true)) - loudness(group(false))));
     for (const it of items) if (it.music) it.g *= k;
   }
-  for (const { name, y, g, wet } of items) {
+  for (const { name, y, g, wet, progression } of items) {
     bus.layer(y, { g, wet });
-    if (capture) parts.push({ name, y, g, wet });
+    if (capture) parts.push({ name, y, g, wet, progression });
   }
   if (capture) {
-    capture.push(parts.map(({ name, y, g, wet }, k) => {
+    capture.push(parts.map(({ name, y, g, wet, progression }, k) => {
       const stem = scale(Float32Array.from(y), g);
       if (rv && wet) add(stem, reverb(scale(Float32Array.from(y), g * wet), rv), rv.gain ?? 1);
-      return { name: name || `Capa ${k + 1}`, samples: post ? post(stem) : stem };
+      return { name: name || `Capa ${k + 1}`, samples: post ? post(stem) : stem, progression };
     }));
   }
   const out = rv ? bus.render(rv) : bus.dry;
@@ -104,6 +113,7 @@ function evolvingPad(notes, { voices = 3, cents = 6, harm = 8, rolloff = 1.5, sw
     mul(note, range(lfo(swellHz, { slope: 1 }), swellLo, 1));
     add(out, note, gains ? gains[k] : 1);
   });
+  PROGRESSIONS.set(out, [notes.map((f) => Math.round(69 + 12 * Math.log2(f / 440)))]);
   return out;
 }
 
@@ -167,7 +177,9 @@ function pads(chords, { wet = 0.5, rv = HALL, fade = 2.5, reps = REPS, ...opts }
   all.forEach((c, k) => {
     b.place(S.padChord(c.map(S.midi), len + fade, { attack: fade, release: fade, ...opts }), k * len - fade / 2, { wet });
   });
-  return asMusic(b.render(rv));
+  const out = asMusic(b.render(rv));
+  PROGRESSIONS.set(out, chords.map((c) => c.slice()));
+  return out;
 }
 
 /** Arpegio: por cada acorde, `pattern` = [pulso, índice de nota, velocidad]. */
@@ -789,6 +801,7 @@ export const SCENES = {
           sequence(b, low, beat, S.musicBox, { g: 0.8, offset });
           for (let k = 0; k < 8; k++) pads.place(S.padChord(chords[k % 4].map(S.midi), beat * 4 + 1.6), offset + k * 4 * beat, { wet: 0.4 });
         }
+        PROGRESSIONS.set(pads.dry, chords);
         return mix([
           [b.dry, 0, 0.35, 'Caja de música'],
           [pads.dry, -16, 0.4, 'Pad'],
@@ -819,6 +832,7 @@ export const SCENES = {
           sequence(b, notes, beat, S.kalimba, { offset });
           prog.forEach((name, bar) => pads.place(S.padChord(chords[name].slice(0, 3).map((m) => S.midi(m - 12)), beat * 3 + 1.4, { harm: 6 }), offset + bar * 3 * beat, { wet: 0.4 }));
         }
+        PROGRESSIONS.set(pads.dry, prog.map((name) => chords[name].slice(0, 3)));
         return mix([
           [b.dry, 0, 0.3, 'Kalimba'],
           [pads.dry, -17, 0.4, 'Pad'],
@@ -846,6 +860,7 @@ export const SCENES = {
           sequence(b, melody, beat, S.celesta, { offset });
           chords.forEach((c, k) => strings.place(S.padChord(c.map(S.midi), beat * 4 + 1.5, { harm: 10, rolloff: 1.1, attack: 1.4, release: 1.8, vib: 0.003 }), offset + k * 4 * beat, { wet: 0.45 }));
         }
+        PROGRESSIONS.set(strings.dry, chords);
         return mix([
           [b.dry, 0, 0.4, 'Celesta'],
           [strings.dry, -9, 0.45, 'Pad de cuerdas'],
@@ -2797,7 +2812,11 @@ export function renderLayers(id, index) {
   // Una sola mezcla por escena; si no, la escena entera como única capa.
   const layers = groups.length === 1 ? groups[0] : [{ name: 'Escena', samples: raw }];
   const lufs = scene.lufs ?? -23;
-  const filtered = layers.map((l) => ({ name: l.name, samples: hp(l.samples, 24, 0.707) }));
+  const filtered = layers.map((l) => ({
+    name: l.name,
+    samples: hp(l.samples, 24, 0.707),
+    progression: l.progression || null,
+  }));
   const sum = new Float32Array(N);
   for (const l of filtered) add(sum, l.samples);
   const g = db(lufs - loudness(sum));

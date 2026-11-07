@@ -16,6 +16,7 @@ import { SCALES, SCALE_LABELS, midiToNote, noteLabel, noteToMidi, rootIndex } fr
 import { LIMITS, createElement, toneNotesAt } from '../engine/schema.js';
 import { PERFORMANCE_KEYS, hintForMidi, offsetForKey } from './keys.js';
 import { keyboard } from './controls.js';
+import { SEN_PROGRESSIONS } from './sen-progressions.js';
 
 const sameNotes = (a, b) => JSON.stringify(a.map((n) => (typeof n === 'object' ? n.hz : n))) === JSON.stringify(b.map((n) => (typeof n === 'object' ? n.hz : n)));
 const noteId = (n) => (n && typeof n === 'object' ? `hz:${n.hz}` : String(noteToMidi(n) ?? n));
@@ -115,7 +116,6 @@ const ARPEGGIOS = [
   { mood: 'Saltos', degrees: [0, 5, 9, 2, 7, 11] },
 ];
 const KEY_BY_OFFSET = new Map(PERFORMANCE_KEYS.map(([key, offset]) => [offset, key]));
-const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 
 /** Acordes que se pueden añadir a mano desde el desplegable «+». */
 const CHORD_QUALITIES = [
@@ -144,7 +144,7 @@ function rootLabel(pc, notation = 'latin') {
 }
 
 /** Ficha de un acorde a partir de sus notas MIDI, para pintar la tarjeta. */
-function chordItem(midis, { notation = 'latin', octave = 3, roman = '', suffix = null, qualityLabel = '' } = {}) {
+function chordItem(midis, { notation = 'latin', octave = 3, suffix = null, qualityLabel = '' } = {}) {
   const third = midis.length > 1 ? midis[1] - midis[0] : 0;
   const fifth = midis.length > 2 ? midis[2] - midis[0] : 0;
   const quality = third === 4 && fifth === 7 ? 'mayor'
@@ -162,14 +162,13 @@ function chordItem(midis, { notation = 'latin', octave = 3, roman = '', suffix =
     short: `${name}${suffix ?? derivedSuffix}`,
     fullName: qualityLabel ? `${name} ${qualityLabel}` : `${name}${quality ? ` ${quality}` : ''}`,
     letters: midis.map((m) => midiToNote(m).replace(/-?\d+$/, '')).join(' '),
-    roman,
     suffix,
     qualityLabel: qualityLabel || null,
   };
 }
 
 /** Ficha de una nota suelta (modo arpegios). */
-function noteItem(midi, { notation = 'latin', octave = 3, roman = '' } = {}) {
+function noteItem(midi, { notation = 'latin', octave = 3 } = {}) {
   const keyBase = (octave + 1) * 12;
   const note = midiToNote(midi);
   const label = noteLabel(note, notation);
@@ -180,28 +179,12 @@ function noteItem(midi, { notation = 'latin', octave = 3, roman = '' } = {}) {
     short: label,
     fullName: label,
     letters: note.replace(/-?\d+$/, ''),
-    roman,
   };
 }
 
 function chordAt(key, degree, octave, notation = 'latin') {
   const midis = [degree, degree + 2, degree + 4].map((d) => noteAt(key, d, octave));
-  const chord = chordItem(midis, { notation, octave });
-  chord.roman = romanFor(degree, chord.quality);
-  return chord;
-}
-
-/** Grado de la escala del tema para una clase de altura, o -1 si no está. */
-function degreeForPc(key, pc) {
-  const steps = SCALES[key?.scale] || SCALES.mayor;
-  const diff = (((pc - rootIndex(key?.root || 'C')) % 12) + 12) % 12;
-  return steps.indexOf(diff);
-}
-
-/** Cifra romana de una ficha propia según la tonalidad actual. */
-function romanForItem(item, key) {
-  const degree = degreeForPc(key, ((item.midis[0] % 12) + 12) % 12);
-  return degree < 0 ? '' : romanFor(degree, item.quality || '');
+  return chordItem(midis, { notation, octave });
 }
 
 /** Copia una ficha para que la progresión no comparta estado con el catálogo. */
@@ -210,20 +193,26 @@ const cloneItem = (c) => ({ ...c, midis: [...c.midis], keys: [...c.keys] });
 /** Transpone una ficha de la progresión propia y recalcula letras y teclas. */
 function transposeItem(item, delta, { notation, octave }) {
   const midis = item.midis.map((m) => m + delta);
-  if (midis.length === 1) return noteItem(midis[0], { notation, octave, roman: item.roman });
+  if (midis.length === 1) return noteItem(midis[0], { notation, octave });
   return chordItem(midis, {
-    notation, octave, roman: item.roman, suffix: item.suffix ?? null, qualityLabel: item.qualityLabel || '',
+    notation, octave, suffix: item.suffix ?? null, qualityLabel: item.qualityLabel || '',
   });
 }
 
-function romanFor(degree, quality) {
-  const base = ROMAN[degree % ROMAN.length] || String(degree + 1);
-  if (quality === 'menor' || quality === 'disminuido') return base.toLowerCase();
-  if (quality === 'aumentado') return `${base}+`;
-  return base;
+/**
+ * Acordes de una progresión de sen, plegados por octavas para que la raíz caiga
+ * en el registro del teclado actual. Los intervalos y la voicing se conservan.
+ */
+function senItems(chords, octave, notation) {
+  const low = (octave + 1) * 12;
+  return chords.map((notes) => {
+    const root = Math.min(...notes);
+    const delta = 12 * Math.round((low - root) / 12);
+    return chordItem(notes.map((m) => m + delta), { notation, octave });
+  });
 }
 
-/** Progresiones de la escala actual, con su cifrado, acordes/notas y teclas. */
+/** Progresiones de la escala actual, con sus acordes/notas y teclas. */
 function progressionOptions(key, octave, type = 'chords', notation = 'latin') {
   const steps = SCALES[key?.scale] || SCALES.mayor;
   const patterns = type === 'arpeggios' ? ARPEGGIOS : steps.length >= 7 ? PROGRESSIONS_FULL : PROGRESSIONS_SHORT;
@@ -242,35 +231,36 @@ function progressionOptions(key, octave, type = 'chords', notation = 'latin') {
           short: noteLabel(note, notation),
           fullName: noteLabel(note, notation),
           letters: note.replace(/-?\d+$/, ''),
-          roman: `${romanFor(degree % ROMAN.length, '')}${degree >= ROMAN.length ? '′' : ''}`,
         };
       }
-      const chord = chordAt(key, degree, octave, notation);
-      chord.roman = romanFor(degree, chord.quality);
-      return chord;
+      return chordAt(key, degree, octave, notation);
     });
-    const roman = items.map((c) => c.roman).join('–');
     out.push({
       index: out.length,
       mood: pattern.mood,
       type,
-      label: `${roman} · ${items.map((c) => c.short).join(' – ')}`,
+      label: items.map((c) => c.short).join(' – '),
       chords: items,
     });
   }
   if (type === 'chords') {
-    // Progresión fija de Lluvia: siempre en Si menor, independiente del tema.
-    const fixedKey = { root: 'B', scale: 'menor' };
-    const items = [0, 5, 2, 6].map((degree) => chordAt(fixedKey, degree, octave, notation));
-    const fixedName = notation === 'latin' ? 'Si menor' : 'B minor';
-    out.push({
-      index: out.length,
-      mood: 'Fijas',
-      type,
-      label: `${fixedName} · ${items.map((c) => c.roman).join('–')} · ${items.map((c) => c.short).join(' – ')}`,
-      chords: items,
-      fixed: true,
-    });
+    // Progresiones reales de las capas sostenidas de las plantillas de sen.
+    // Se muestran solo los acordes y se descartan las que suenan igual.
+    const seen = new Set();
+    for (const entry of SEN_PROGRESSIONS) {
+      const items = senItems(entry.chords, octave, notation);
+      const label = items.map((c) => c.short).join(' – ');
+      if (seen.has(label)) continue;
+      seen.add(label);
+      out.push({
+        index: out.length,
+        mood: 'Sen',
+        type,
+        label,
+        chords: items,
+        fixed: true,
+      });
+    }
   }
   return out;
 }
@@ -380,6 +370,9 @@ export function createPerformance({ store, audio, actions }) {
   let addDefaultsSig = '';
   let previewTimer = 0;
   let previewPlaying = false;
+  let previewProg = null;
+  let previewNext = 0;
+  let previewIndex = -1;
 
   document.addEventListener('pointerdown', (e) => {
     if (addOpen && !addWrap.contains(e.target)) closeAdd();
@@ -416,7 +409,6 @@ export function createPerformance({ store, audio, actions }) {
         class: `perform__prog-card${c.midis.length === 1 ? ' perform__prog-card--note' : ''}${i === active ? ' is-active' : ''}`,
         title: `${c.fullName} (${c.letters})`,
       },
-      c.roman ? h('span', { class: 'perform__prog-cipher' }, c.roman) : null,
       h('button', {
         type: 'button', class: 'perform__prog-remove',
         'aria-label': `Quitar ${c.short} de la progresión`, title: `Quitar ${c.short}`,
@@ -474,31 +466,48 @@ export function createPerformance({ store, audio, actions }) {
     syncSelectValue();
   }
 
+  /**
+   * Las ediciones no interrumpen la escucha: si la progresión está sonando, el
+   * temporizador sigue vivo y toca la lista ya modificada. Solo se detiene al
+   * quedarse sin pasos o al cambiar de progresión u octava.
+   */
   function addToProgression(item) {
     if (!current || current.type !== progType) current = { type: progType, sourceIndex: null, edited: false, chords: [] };
-    stopPreview();
     current.chords.push(cloneItem(item));
     markEdited();
-    renderProgCards(current);
+    renderProgCards(current, previewPlaying ? previewIndex : -1);
   }
 
   function removeFromProgression(index) {
     if (!current) return;
-    stopPreview();
+    const playing = previewPlaying && previewProg === current;
+    if (playing) {
+      if (index < previewNext) previewNext = Math.max(0, previewNext - 1);
+      if (index === previewIndex) previewIndex = -1;
+      else if (index < previewIndex) previewIndex--;
+    }
     current.chords.splice(index, 1);
-    if (!current.chords.length) current = null;
-    else markEdited();
-    renderProgCards(current);
+    if (!current.chords.length) {
+      current = null;
+      stopPreview();
+    } else {
+      markEdited();
+    }
+    renderProgCards(current, previewPlaying ? previewIndex : -1);
     syncSelectValue();
   }
 
   /** Copia un acorde o una nota justo detrás del original. */
   function duplicateInProgression(index) {
     if (!current?.chords[index]) return;
-    stopPreview();
+    const playing = previewPlaying && previewProg === current;
     current.chords.splice(index + 1, 0, cloneItem(current.chords[index]));
+    if (playing && index < previewIndex) {
+      previewIndex++;
+      previewNext++;
+    }
     markEdited();
-    renderProgCards(current);
+    renderProgCards(current, playing ? previewIndex : -1);
   }
 
   /** Mueve un acorde o una nota un paso a la izquierda o a la derecha. */
@@ -506,11 +515,19 @@ export function createPerformance({ store, audio, actions }) {
     if (!current) return;
     const to = index + delta;
     if (to < 0 || to >= current.chords.length) return;
-    stopPreview();
-    const [item] = current.chords.splice(index, 1);
-    current.chords.splice(to, 0, item);
+    const playing = previewPlaying && previewProg === current;
+    const list = current.chords;
+    const nextItem = playing && list.length ? list[previewNext % list.length] : null;
+    const currentItem = playing && previewIndex >= 0 ? list[previewIndex] : null;
+    const [item] = list.splice(index, 1);
+    list.splice(to, 0, item);
+    if (playing) {
+      const nextAt = nextItem ? list.indexOf(nextItem) : -1;
+      previewNext = nextAt >= 0 ? nextAt : Math.min(previewNext, list.length - 1);
+      previewIndex = currentItem ? list.indexOf(currentItem) : -1;
+    }
     markEdited();
-    renderProgCards(current);
+    renderProgCards(current, playing ? previewIndex : -1);
   }
 
   /** Carga una progresión del catálogo en el editor de tarjetas. */
@@ -540,6 +557,9 @@ export function createPerformance({ store, audio, actions }) {
     if (previewTimer) clearTimeout(previewTimer);
     previewTimer = 0;
     previewPlaying = false;
+    previewProg = null;
+    previewNext = 0;
+    previewIndex = -1;
     for (const note of previewNotes) audio.noteOff(note);
     previewNotes.length = 0;
     setActiveCard(-1);
@@ -638,7 +658,6 @@ export function createPerformance({ store, audio, actions }) {
       title: `Añadir ${c.fullName} (${c.letters})`,
       onclick: () => addToProgression(c),
     },
-    h('span', { class: 'perform__add-choice-cipher' }, c.roman || ''),
     h('b', {}, c.short),
     h('span', { class: 'perform__add-choice-notes' }, c.letters),
     h('span', { class: 'perform__add-choice-plus', 'aria-hidden': 'true' }, icon('plus')));
@@ -650,7 +669,7 @@ export function createPerformance({ store, audio, actions }) {
       type: 'button', class: 'perform__add-note',
       title: `Añadir ${n.short}${hint}`,
       onclick: () => addToProgression(n),
-    }, h('b', {}, n.short), h('span', { class: 'perform__add-note-cipher' }, n.roman || ''));
+    }, h('b', {}, n.short));
   }
 
   /** Notas de la escala dentro de las dos octavas del piano. */
@@ -665,8 +684,7 @@ export function createPerformance({ store, audio, actions }) {
       const diff = (((m - root) % 12) + 12) % 12;
       const degree = steps.indexOf(diff);
       if (degree < 0) continue;
-      const roman = `${romanFor(degree, '')}${m >= low + 12 ? '′' : ''}`;
-      items.push(noteItem(m, { notation, octave, roman }));
+      items.push(noteItem(m, { notation, octave }));
     }
     return items;
   }
@@ -817,13 +835,8 @@ export function createPerformance({ store, audio, actions }) {
     if (current && current.type === progType) {
       if (current.edited) {
         const delta = prev && prev.type === progType ? (octave - prev.octave) * 12 : 0;
-        const keyChanged = !!prev && JSON.stringify(prev.key) !== JSON.stringify(next.key);
-        if (delta || keyChanged || (prev && prev.notation !== next.notation)) {
-          current.chords = current.chords.map((item) => {
-            const shifted = transposeItem(item, delta, { notation: next.notation, octave });
-            if (keyChanged && item.roman) shifted.roman = romanForItem(shifted, next.key);
-            return shifted;
-          });
+        if (delta || (prev && prev.notation !== next.notation)) {
+          current.chords = current.chords.map((item) => transposeItem(item, delta, { notation: next.notation, octave }));
         }
         renderProgCards(current);
         syncSelectValue();
@@ -876,18 +889,29 @@ export function createPerformance({ store, audio, actions }) {
     if (!active || mode !== 'test' || !prog || !prog.chords.length) return;
     stopPreview();
     previewPlaying = true;
+    previewProg = prog;
+    previewNext = 0;
     syncPlayButton();
     renderProgCards(prog);
-    let i = 0;
     const advance = () => {
-      if (!active || mode !== 'test') {
+      if (!active || mode !== 'test' || !previewProg) {
         stopPreview();
         return;
       }
-      const at = i % prog.chords.length;
-      setPreviewChord(prog.chords[at].midis);
+      const list = previewProg.chords;
+      if (!list.length) {
+        setPreviewChord([]);
+        setActiveCard(-1);
+        previewIndex = -1;
+        previewNext = 0;
+        previewTimer = setTimeout(advance, stepNow() * 1000);
+        return;
+      }
+      const at = previewNext % list.length;
+      previewIndex = at;
+      setPreviewChord(list[at].midis);
       setActiveCard(at);
-      i++;
+      previewNext = at + 1;
       // El paso se lee en cada vuelta: cambiarlo mientras suena se oye al momento.
       previewTimer = setTimeout(advance, stepNow() * 1000);
     };

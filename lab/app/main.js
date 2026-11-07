@@ -921,6 +921,38 @@ function boot() {
   });
   $('export').addEventListener('click', () => exporter.open());
 
+  const fullscreenItem = $('fullscreen');
+  const fullscreenLabel = $('fullscreen-label');
+  const fullscreenMeta = $('fullscreen-meta');
+  const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+  const fullscreenEnabled = () => document.fullscreenEnabled || document.webkitFullscreenEnabled;
+
+  function updateFullscreenUI() {
+    const active = !!fullscreenElement();
+    fullscreenLabel.textContent = active ? 'Salir de pantalla completa' : 'Pantalla completa';
+    fullscreenMeta.textContent = active ? 'Vuelve a la ventana normal' : 'Oculta la interfaz del navegador';
+    fullscreenItem.title = active ? 'Salir de pantalla completa' : 'Poner la aplicación en pantalla completa';
+    fullscreenItem.disabled = !fullscreenEnabled();
+  }
+
+  async function toggleFullscreen() {
+    try {
+      if (fullscreenElement()) {
+        await (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
+      } else {
+        await (document.documentElement.requestFullscreen?.() || document.documentElement.webkitRequestFullscreen?.());
+      }
+    } catch {
+      notify('No se pudo activar la pantalla completa.', true);
+    }
+    updateFullscreenUI();
+  }
+
+  fullscreenItem.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', updateFullscreenUI);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+  updateFullscreenUI();
+
   async function importMidi(file) {
     try {
       const res = midiToTracks(new Uint8Array(await file.arrayBuffer()), state.project);

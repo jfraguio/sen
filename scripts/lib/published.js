@@ -32,12 +32,12 @@ export async function publishedLayers(ambient, track, readFile) {
     const wav = decodeWav(await readFile(publishedPath(ambient, track)));
     return {
       ambient, track, name, file, sampleRate: wav.sampleRate, duration: wav.samples.length / wav.sampleRate, lufs: -23,
-      layers: [{ name: 'Escena completa', data: wav.samples }],
+      layers: [{ name: 'Escena completa', data: wav.samples, progression: null }],
     };
   }
   const r = renderLayers(ambient, scene - FIRST_SCENE);
   return {
     ambient, track, name, file, sampleRate: r.sampleRate, duration: r.layers[0].samples.length / r.sampleRate, lufs: r.lufs,
-    layers: r.layers.map((l) => ({ name: l.name, data: l.samples })),
+    layers: r.layers.map((l) => ({ name: l.name, data: l.samples, progression: l.progression || null })),
   };
 }

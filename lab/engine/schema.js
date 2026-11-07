@@ -230,8 +230,30 @@ export const INSTRUMENTS = {
       filterEnv: 0.5, filterTime: 1.2, sub: 0.12,
     },
   },
+  cinta: {
+    family: 'sustain', label: 'Cinta', color: '#d8b79d',
+    description: 'Pad cálido de cinta magnética: triángulo redondo, voces anchas, deriva lenta y un fondo oscuro. Profundo y nostálgico.',
+    params: ANALOG_COMMON,
+    defaults: {
+      partials: 26, rolloff: 1.35, voices: 5, detune: 8, drift: 5.5, cutoff: 1300, q: 0.5,
+      sweepDepth: 0.18, sweepRate: 0.045, width: 0.95, wave: 'triangulo', pulseWidth: 0.5,
+      filterEnv: 0.5, filterTime: 1.6, sub: 0.22, tremoloDepth: 0.04, tremoloRate: 0.16,
+    },
+  },
+  bruma: {
+    family: 'sustain', label: 'Bruma', color: '#98a7d9',
+    description: 'Pad profundo y neblinoso: pulso hueco, muchas voces, filtro bajo y movimientos muy lentos que revelan matices al sostenerse.',
+    params: ANALOG_COMMON,
+    defaults: {
+      partials: 32, rolloff: 1.15, voices: 6, detune: 12, drift: 6, cutoff: 1050, q: 0.85,
+      sweepDepth: 0.5, sweepRate: 0.025, width: 1, wave: 'pulso', pulseWidth: 0.18,
+      filterEnv: 0.3, filterTime: 2.4, sub: 0.3, tremoloDepth: 0.05, tremoloRate: 0.11,
+    },
+  },
+  // Los sintes 80 retirados siguen disponibles para abrir proyectos antiguos,
+  // pero no se muestran en la biblioteca.
   brass80: {
-    family: 'sustain', label: 'Metales 80', color: '#ffc966',
+    family: 'sustain', label: 'Metales 80', color: '#ffc966', hidden: true,
     description: 'Metales sintéticos con sierra desafinada y una apertura de filtro rápida al atacar.',
     params: ANALOG_COMMON,
     defaults: {
@@ -241,7 +263,7 @@ export const INSTRUMENTS = {
     },
   },
   bass80: {
-    family: 'sustain', label: 'Bajo 80', color: '#b18cff',
+    family: 'sustain', label: 'Bajo 80', color: '#b18cff', hidden: true,
     description: 'Bajo analógico con pulso, subgrave y filtro resonante que cae rápido.',
     params: ANALOG_COMMON,
     defaults: {
@@ -251,7 +273,7 @@ export const INSTRUMENTS = {
     },
   },
   lead80: {
-    family: 'sustain', label: 'Lead 80', color: '#ff9ad5',
+    family: 'sustain', label: 'Lead 80', color: '#ff9ad5', hidden: true,
     description: 'Lead de sierra con vibrato y filtro abierto, para melodías brillantes.',
     params: ANALOG_COMMON,
     defaults: {
@@ -523,7 +545,7 @@ export const INSTRUMENT_GROUPS = [
   {
     id: 'sostenidos', label: 'Sostenidos',
     subgroups: [
-      { id: 'sintes', label: 'Sintes', instruments: ['pad', 'pad80', 'brass80', 'bass80', 'lead80', 'theremin'] },
+      { id: 'sintes', label: 'Sintes', instruments: ['pad', 'pad80', 'cinta', 'bruma', 'theremin'] },
       { id: 'drone', label: 'Drone', instruments: ['drone'] },
       { id: 'cuerdas', label: 'Cuerdas', instruments: ['cuerdas', 'eolica'] },
       { id: 'vientos', label: 'Vientos', instruments: ['flauta'] },

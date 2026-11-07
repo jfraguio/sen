@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 5.0<br>
+**Versión:** 5.2<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de música ambiental
 
@@ -824,7 +824,7 @@ No objetivos:
 
 | Familia | Etiqueta en la UI | Qué es | Tipos de elemento |
 | --- | --- | --- | --- |
-| `sustain` | Sostenidos | Pads, drones, cuerdas, arpa eólica, flauta, coros, cuenco tibetano frotado, theremin y sintes analógicos 80: tonos que duran lo que dura el elemento. | `tone` |
+| `sustain` | Sostenidos | Pads, drones, cuerdas, arpa eólica, flauta, coros, cuenco tibetano frotado, theremin y sintes analógicos: tonos que duran lo que dura el elemento. | `tone` |
 | `strike` | Puntuales | Campanas, cuencos tibetanos, kalimba, piano, tambores de acero (handpan, lengüeta, steel drum), arpa, guitarras, ukelele, vibráfono, palo de lluvia y FM 80: golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
 | `noise` | Texturas | Ruido de color filtrado y con movimiento (aire, rumor, oleaje abstracto). | `span` |
 | `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, cigarras, pájaros, gotas, lluvia, arroyo, olas, viento, fuego, campanillas. | `span` |
@@ -946,9 +946,12 @@ Rangos entre paréntesis; unidades en 7.10.2.
 | `seno` | Seno | Una sinusoide pura, para graves y tonos de prueba. |
 | `theremin` | Theremin | Tabla casi senoidal (armónicos 1 : 0,32 : 0,14 : 0,07 : 0,035 : 0,015), vibrato que entra en 0,45 s y **portamento** (0–2 s): en un elemento con cambios de nota, cada nota llega deslizándose desde la que sonaba antes en su misma posición del acorde (curva que frena; no tras un silencio); con el teclado, desde la última nota tocada en esa pista. Una voz; su elemento por defecto dura 3 s con ataque 0,2 s y relajación 0,8 s. |
 | `pad80` | Pad 80 | Pad analógico: pulso/sierra desafinado, coro por voces, filtro lento y subgrave. |
-| `brass80` | Metales 80 | Sinte de metales con sierra desafinada y apertura rápida del filtro al atacar. |
-| `bass80` | Bajo 80 | Bajo analógico de pulso, subgrave y filtro resonante con caída rápida. |
-| `lead80` | Lead 80 | Lead de sierra con vibrato y filtro abierto para melodías. |
+| `cinta` | Cinta | Pad cálido de cinta: triángulo redondo, cinco voces anchas, deriva lenta, trémolo muy suave y subgrave. Profundo y nostálgico. |
+| `bruma` | Bruma | Pad profundo y neblinoso: pulso hueco, seis voces muy abiertas, deriva y barrido lentos, filtro bajo y subgrave. Los matices aparecen al sostener. |
+
+Los antiguos `brass80`, `bass80` y `lead80` dejan de mostrarse en la
+biblioteca, pero el motor los conserva (`hidden`) para abrir proyectos
+anteriores sin perder pistas.
 
 Parámetros comunes: parciales (1–32), caída de armónicos (0,5–3), voces (1–7),
 desafinación entre voces (0–30 cents), deriva lenta de afinación (0–20 cents),
@@ -1112,9 +1115,10 @@ por parámetro.
   navegador, enlace **?** a las instrucciones (`lab/guia.html`, en otra
   pestaña), deshacer/rehacer y el menú **☰**. El menú **☰** se despliega con
   **Nuevo** (crea un álbum nuevo con su tema inicial), **Abrir** (un
-  `.sen-album.json`, un tema `.sen.json`, un WAV o un MIDI) y **Guardar**
-  (descarga el álbum completo `.sen-album.json`). Todos los controles y
-  secciones de la interfaz llevan un atributo `title` para poder
+  `.sen-album.json`, un tema `.sen.json`, un WAV o un MIDI), **Guardar**
+  (descarga el álbum completo `.sen-album.json`) y **Pantalla completa**
+  (entra o sale del modo de pantalla completa del navegador). Todos los
+  controles y secciones de la interfaz llevan un atributo `title` para poder
   identificarlos.
 - **Álbum y temas:** un álbum contiene siempre al menos un tema. Cambiar de
   tema detiene la escucha, guarda el estado del anterior y reinicia el
@@ -1236,16 +1240,19 @@ El popup de **Teclado** incluye un piano de dos octavas que ilumina las teclas
 pulsadas y las notas de la progresión que suena, un conmutador
 **Acordes / Arpegios** y un combo de progresiones adaptadas a la tonalidad del
 tema. Los acordes se agrupan por carácter (**Alegres**, **Nostálgicas**,
-**Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**), y hay una progresión
-fija en **Si menor** (**Bm – G – D – A**) dentro del grupo **Fijas**; los
-arpegios, por
+**Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**), y el grupo **Sen**
+reúne las progresiones reales de las capas sostenidas de las canciones
+publicadas que tienen pad: 80 de las 84 («Lluvia 01», «Lluvia 02»,
+«Tormenta 01»…). En **Sen** el combo muestra solo los acordes, sin el nombre de
+la plantilla, y descarta las progresiones que suenan igual. Los arpegios se agrupan por
 movimiento (**Ascendentes**, **Descendentes**, **Ondulantes**, **Largos** y
-**Saltos**). Al
+**Saltos**). Ni el combo ni las tarjetas usan cifrado romano: muestran el nombre
+de cada acorde. Al
 elegir una se escucha en bucle, paso a paso. Cuando hay una progresión elegida
 aparecen el campo de segundos (0,1–60 s; por defecto 2 s los acordes y 0,65 s
 los arpegios; cada tipo recuerda el suyo) y **▶**. Cambiar los segundos mientras
 suena se aplica en el paso siguiente.
-Debajo aparecen tarjetas con el cifrado, las notas en letras y las teclas del
+Debajo aparecen tarjetas con el nombre del acorde, las notas en letras y las teclas del
 ordenador que tocan cada nota. Cada tarjeta se puede mover un paso a la
 izquierda o a la derecha (**‹**, **›**) y duplicar (**⧉**), para probar
 variaciones antes de llevarlas a Notas. A la derecha de la última tarjeta, **+**
@@ -1256,7 +1263,10 @@ permite elegir cualquier raíz y tipo de acorde (o cualquier nota). Si no hay
 tarjetas, **+** queda al principio. El desplegable sigue abierto para encadenar
 varias altas y cada tarjeta se quita con **×**. Al editar, el combo pasa a **Personalizada**; la
 progresión propia se conserva al cambiar de octava (se transporta) y al cambiar
-de notación (se reetiqueta). **▶** se convierte en
+de notación (se reetiqueta). Editar mientras suena —añadir, duplicar, mover o
+quitar tarjetas— **no detiene la escucha**: el temporizador sigue vivo y el
+siguiente paso toca la lista ya modificada. Solo se detiene al quitar el último
+paso, al cambiar de tipo, octava o tonalidad, o al pulsar **■**. **▶** se convierte en
 **■** mientras suena y detiene la reproducción. **→ Notas** lleva la progresión
 elegida o construida a
 Notas **una sola vez**, con esa duración de paso: el paso k empieza en
@@ -1934,7 +1944,8 @@ lab/
     inspector.js            Paneles del tema, pista, elemento y maestro
     controls.js             Deslizadores, teclado, curvas, piano roll, automatización
     keys.js                 Distribución del teclado del ordenador para tocar notas
-    performance.js          Modo teclado: prueba y grabación de cambios de nota
+    performance.js          Modo teclado: prueba, progresiones y grabación de cambios de nota
+    sen-progressions.js     Progresiones de las capas sostenidas de las pistas publicadas (generado)
     library.js              Biblioteca plegable por gesto/timbre y plantillas
     scenes.js               Catálogo y audio de las capas de canciones de sen
     export.js               Diálogo de exportación y progreso
@@ -1952,7 +1963,7 @@ lab/
     master.js               EQ, limitador (pico real), sonoridad BS.1770
     wav.js                  Escritura RIFF por trozos, chunks INFO y senp, lectura
     voices/
-      sustain.js            pad, drone, cuerdas, eolica, flauta, coro, cuencoCanto, vidrio, seno, theremin y sintes analógicos 80
+      sustain.js            pad, drone, cuerdas, eolica, flauta, coro, cuencoCanto, vidrio, seno, theremin y sintes analógicos
       strike.js             campana, cuenco, kalimba, cajaMusica, celesta, marimba, vibrafono, piano, handpan, lengueta, steelpan, arpa, guitarra, ukelele, slide, pulsada, gotaTonal, paloLluvia y FM 80
       layer.js              capa (capas de pistas de sen)
       noise.js              ruido
@@ -1964,6 +1975,7 @@ lab/
   templates/*.sen.json      Proyectos de ejemplo para las pruebas del motor
 scripts/
   render-lab.mjs            Render local de proyectos y WAV con senp
+  generate-sen-progressions.mjs  Regenera las progresiones de las capas sostenidas de sen
   test-lab.mjs              Pruebas del motor (`--full`: plantillas y script autónomo)
 ```
 
@@ -2035,6 +2047,15 @@ Las tres fases previstas están implementadas en la versión 4.0:
       también con el script autónomo) **(auto)**.
 - [x] Exportar dos veces el mismo proyecto da archivos idénticos **(auto)**.
 - [x] Editar un elemento no cambia el azar de los demás **(auto)**.
+- [x] Añadir, duplicar, mover o quitar acordes de una progresión mientras suena
+      no detiene la reproducción; el bucle sigue con la lista modificada.
+- [x] El grupo **Sen** carga las 80 progresiones de capas sostenidas de las
+      pistas publicadas sin calcular audio en el navegador, muestra solo sus
+      acordes y descarta las duplicadas.
+- [x] La biblioteca ya no muestra Metales 80, Bajo 80 ni Lead 80; Cinta y
+      Bruma suenan y enlazan el bucle sin costura **(auto)**.
+- [x] **Pantalla completa** entra y sale del modo del navegador desde el menú
+      **☰**.
 - [ ] Exportar 30 min a 48 kHz/24 bits estéreo termina en Chrome de escritorio
       sin agotar la memoria, y Cancelar no descarga nada. Pendiente de
       verificar en un navegador real con un tema de 30 min.
@@ -2552,6 +2573,16 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **5.2:** el menú **☰** incluye **Pantalla completa**. El modo teclado deja de
+  mostrar cifrados romanos y el grupo **Sen** reúne las progresiones de las
+  capas sostenidas de las pistas publicadas que tienen pad, 80 de 84
+  (generadas en `lab/app/sen-progressions.js`), mostrando solo los acordes y
+  sin repetir las que son iguales. La biblioteca retira Metales 80, Bajo 80 y
+  Lead 80 y añade dos sintes profundos: **Cinta** y **Bruma**. Los sintes
+  retirados siguen disponibles para abrir proyectos antiguos.
+- **5.1:** editar una progresión o un arpegio del modo teclado mientras suena
+  (añadir, duplicar, mover o quitar tarjetas) ya no detiene la reproducción: el
+  temporizador sigue vivo y el siguiente paso toca la lista modificada.
 - **5.0:** el laboratorio trabaja con **álbumes**: un documento
   `sen-lab/album/1` con nombre y uno o más temas. La cabecera separa el nombre
   del álbum y el del tema abierto, añade navegación circular, **+ Nuevo** para
