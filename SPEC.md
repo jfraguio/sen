@@ -1083,7 +1083,7 @@ por parámetro.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ← sen   Estanque al anochecer ✎   ●   ↶  ↷   Abrir   Guardar   Exportar │
+│ ← sen   Estanque al anochecer ✎   ●   ↶  ↷   ☰                        │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ▶  ■   01:12,4 / 03:00   ⟲ región   rejilla 0,5 s   zoom −/+   vol escucha │
 ├────────────┬───────────────────────────────────────────────┬─────────────┤
@@ -1102,9 +1102,11 @@ por parámetro.
 
 - **Cabecera:** volver, nombre editable del tema, un punto mientras se
   autoguarda en el navegador, enlace **?** a las instrucciones
-  (`lab/guia.html`, en otra pestaña), deshacer/rehacer, abrir, **Guardar**
-  (descarga el `.sen.json`) y exportar. Todos los controles y secciones de la
-  interfaz llevan un atributo `title` para poder identificarlos.
+  (`lab/guia.html`, en otra pestaña), deshacer/rehacer y el menú **☰**. El menú
+  se despliega con **Nuevo** (crea un proyecto vacío), **Abrir** (un proyecto
+  `.json` o un WAV), **Guardar** (descarga el `.sen.json`) y **Exportar** (abre
+  el diálogo de exportación). Todos los controles y secciones de la interfaz
+  llevan un atributo `title` para poder identificarlos.
 - **Transporte:** reproducir/pausa, detener (vuelve al inicio), posición y
   duración (`mm:ss,d`), botón **Tema** para abrir los ajustes generales, región
   de escucha en bucle, rejilla, zoom y volumen de escucha (no afecta a la

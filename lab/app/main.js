@@ -646,6 +646,92 @@ function boot() {
   });
   $('undo').addEventListener('click', () => store.undo());
   $('redo').addEventListener('click', () => store.redo());
+
+  const projectMenu = $('project-menu');
+  const menuTrigger = $('menu-trigger');
+  const menuPop = $('menu-pop');
+  const menuItems = () => [...menuPop.querySelectorAll('.menu__item')];
+
+  /** Coloca el menú bajo el botón sin salirse de la pantalla. */
+  function placeMenu() {
+    const trigger = menuTrigger.getBoundingClientRect();
+    const width = menuPop.offsetWidth;
+    const height = menuPop.offsetHeight;
+    const margin = 8;
+    let left = trigger.right - width;
+    if (left < margin) left = trigger.left;
+    left = Math.max(margin, Math.min(left, innerWidth - width - margin));
+    const maxTop = innerHeight - height - margin;
+    const top = maxTop < margin ? margin : Math.min(trigger.bottom + 9, maxTop);
+    menuPop.style.left = `${Math.round(left)}px`;
+    menuPop.style.top = `${Math.round(top)}px`;
+  }
+
+  function openMenu(where = 'first') {
+    menuPop.hidden = false;
+    menuTrigger.setAttribute('aria-expanded', 'true');
+    placeMenu();
+    const items = menuItems();
+    if (where === 'first') items[0]?.focus();
+    else if (where === 'last') items.at(-1)?.focus();
+  }
+
+  function closeMenu({ returnFocus = false } = {}) {
+    if (menuPop.hidden) return;
+    menuPop.hidden = true;
+    menuTrigger.setAttribute('aria-expanded', 'false');
+    if (returnFocus) menuTrigger.focus();
+  }
+
+  menuTrigger.addEventListener('click', () => {
+    if (menuPop.hidden) openMenu();
+    else closeMenu({ returnFocus: true });
+  });
+  menuTrigger.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      openMenu(e.key === 'ArrowDown' ? 'first' : 'last');
+    }
+  });
+  menuPop.addEventListener('keydown', (e) => {
+    const items = menuItems();
+    const index = items.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      items[(index + 1) % items.length]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[(index - 1 + items.length) % items.length]?.focus();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      items[0]?.focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      items.at(-1)?.focus();
+    } else if (e.key === 'Tab') {
+      closeMenu();
+    }
+  });
+  // Cierra el menú antes de ejecutar la acción para devolver el foco al botón
+  // (el diálogo de exportación se lleva el foco después, si se abre).
+  menuPop.addEventListener('click', (e) => {
+    if (e.target.closest('.menu__item')) closeMenu({ returnFocus: true });
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    if (menuPop.hidden) return;
+    if (menuPop.contains(e.target) || menuTrigger.contains(e.target)) return;
+    closeMenu();
+  });
+
+  projectMenu.addEventListener('focusout', (e) => {
+    if (!projectMenu.contains(e.relatedTarget)) closeMenu();
+  });
+
+  window.addEventListener('resize', () => {
+    if (!menuPop.hidden) placeMenu();
+  });
+
   $('new').addEventListener('click', () => {
     if (!confirmDiscard()) return;
     loadProject(createProject({ seed: 'vacio' }));
@@ -740,6 +826,11 @@ function boot() {
 
   window.addEventListener('keydown', (e) => {
     if (performance.handleKeyDown(e)) return;
+    if (!menuPop.hidden && e.key === 'Escape') {
+      e.preventDefault();
+      closeMenu({ returnFocus: true });
+      return;
+    }
     if (document.querySelector('dialog[open]')) return;
     const mod = e.metaKey || e.ctrlKey;
     const typing = typingTarget(e.target);
