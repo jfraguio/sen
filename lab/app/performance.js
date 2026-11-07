@@ -16,6 +16,7 @@ import { SCALES, SCALE_LABELS, midiToNote, noteLabel, noteToMidi, rootIndex } fr
 import { LIMITS, createElement, toneNotesAt } from '../engine/schema.js';
 import { PERFORMANCE_KEYS, hintForMidi, offsetForKey } from './keys.js';
 import { keyboard } from './controls.js';
+import { describeChord, noteToMidiLoose, parseNotesInput } from './chords.js';
 import { SEN_PROGRESSIONS } from './sen-progressions.js';
 
 const sameNotes = (a, b) => JSON.stringify(a.map((n) => (typeof n === 'object' ? n.hz : n))) === JSON.stringify(b.map((n) => (typeof n === 'object' ? n.hz : n)));
@@ -142,24 +143,22 @@ function rootLabel(pc, notation = 'latin') {
   return noteLabel(midiToNote(60 + pc), notation).replace(/-?\d+$/, '');
 }
 
-/** Ficha de un acorde a partir de sus notas MIDI, para pintar la tarjeta. */
-function chordItem(midis, { notation = 'latin', octave = 3, suffix = null, qualityLabel = '' } = {}) {
-  const third = midis.length > 1 ? midis[1] - midis[0] : 0;
-  const fifth = midis.length > 2 ? midis[2] - midis[0] : 0;
-  const quality = third === 4 && fifth === 7 ? 'mayor'
-    : third === 3 && fifth === 7 ? 'menor'
-      : third === 3 && fifth === 6 ? 'disminuido'
-        : third === 4 && fifth === 8 ? 'aumentado' : '';
-  const derivedSuffix = quality === 'menor' ? 'm' : quality === 'disminuido' ? 'º' : quality === 'aumentado' ? '+' : '';
-  // El cifrado del acorde no lleva octava: «Lam», no «La3m».
-  const name = rootLabel(midis[0], notation);
+/**
+ * Ficha de un acorde a partir de sus notas MIDI, para pintar la tarjeta.
+ * El nombre se calcula por clases de altura, así que las inversiones siguen
+ * mostrando el mismo acorde con las notas en otro orden.
+ */
+function chordItem(midis, { notation = 'latin', octave = 3, suffix = null, qualityLabel = '', preferredRootPc = null } = {}) {
+  const desc = describeChord(midis, notation, { preferredRootPc });
   const keyBase = (octave + 1) * 12;
+  const root = desc?.rootLabel || rootLabel(midis[0], notation);
   return {
     midis,
-    quality,
+    rootPc: desc?.rootPc ?? null,
+    quality: desc?.quality || '',
     keys: midis.map((m) => KEY_BY_OFFSET.get(m - keyBase) || ''),
-    short: `${name}${suffix ?? derivedSuffix}`,
-    fullName: qualityLabel ? `${name} ${qualityLabel}` : `${name}${quality ? ` ${quality}` : ''}`,
+    short: `${root}${suffix ?? desc?.suffix ?? ''}`,
+    fullName: qualityLabel ? `${root} ${qualityLabel}` : (desc?.fullName || `${root}${desc?.suffix || ''}`),
     letters: midis.map((m) => midiToNote(m).replace(/-?\d+$/, '')).join(' '),
     suffix,
     qualityLabel: qualityLabel || null,
@@ -194,7 +193,11 @@ function transposeItem(item, delta, { notation, octave }) {
   const midis = item.midis.map((m) => m + delta);
   if (midis.length === 1) return noteItem(midis[0], { notation, octave });
   return chordItem(midis, {
-    notation, octave, suffix: item.suffix ?? null, qualityLabel: item.qualityLabel || '',
+    notation,
+    octave,
+    suffix: item.suffix ?? null,
+    qualityLabel: item.qualityLabel || '',
+    preferredRootPc: item.rootPc == null ? null : item.rootPc + delta,
   });
 }
 
@@ -332,6 +335,41 @@ export function createPerformance({ store, audio, actions }) {
   }, icon('plus'));
   addMenu.id = 'perform-add-menu';
   const addWrap = h('div', { class: 'perform__add-wrap' }, addBtn, addMenu);
+  const editTitle = h('span', { class: 'perform__add-title' });
+  const editInput = h('input', {
+    type: 'text', class: 'perform__edit-input', spellcheck: 'false',
+    'aria-label': 'Notas del acorde', placeholder: 'Do3 Mi3 Sol3',
+  });
+  const editPreview = h('span', { class: 'perform__add-preview' });
+  const editInvert = h('button', {
+    type: 'button', class: 'btn perform__edit-action',
+    title: 'Sube una octava la nota más grave (primera inversión)',
+    onclick: () => invertEdit(1),
+  }, 'Invertir');
+  const editInvertDown = h('button', {
+    type: 'button', class: 'btn btn--quiet perform__edit-action',
+    title: 'Baja una octava la nota más aguda',
+    onclick: () => invertEdit(-1),
+  }, 'Invertir ↓');
+  const editPlay = h('button', {
+    type: 'button', class: 'btn btn--quiet perform__edit-action perform__edit-play',
+    'aria-label': 'Escuchar el acorde', title: 'Escuchar el acorde',
+    onclick: () => {
+      const item = current?.chords[editIndex];
+      if (item) tapMidis(item.midis);
+    },
+  }, icon('play'), 'Escuchar');
+  const editHint = h('span', { class: 'perform__add-hint' });
+  const editMenu = h('div', {
+    class: 'perform__add-menu perform__edit-menu', role: 'dialog',
+    'aria-label': 'Editar las notas del acorde', hidden: true,
+  },
+  editTitle,
+  editInput,
+  h('div', { class: 'perform__edit-actions' }, editInvert, editInvertDown, editPlay),
+  editPreview,
+  editHint);
+  document.body.append(editMenu);
   const progRow = h('div', { class: 'perform__prog-row' }, progCards, addWrap);
   const typeChords = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'true', onclick: () => setProgType('chords') }, 'Acordes');
   const typeArps = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'false', onclick: () => setProgType('arpeggios') }, 'Arpegios');
@@ -372,12 +410,28 @@ export function createPerformance({ store, audio, actions }) {
   let previewProg = null;
   let previewNext = 0;
   let previewIndex = -1;
+  let editOpen = false;
+  let editIndex = -1;
+  let dragFrom = -1;
+  let dropIndex = -1;
 
   document.addEventListener('pointerdown', (e) => {
     if (addOpen && !addWrap.contains(e.target)) closeAdd();
+    if (editOpen && !editMenu.contains(e.target) && !e.target.closest?.('.perform__prog-edit')) closeEdit();
   }, true);
   window.addEventListener('resize', () => {
     if (addOpen) positionAddMenu();
+    if (editOpen) positionEditMenu();
+  });
+  progCards.addEventListener('scroll', () => {
+    if (editOpen) positionEditMenu();
+  });
+  editInput.addEventListener('change', commitEditInput);
+  editInput.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      editInput.blur();
+    }
   });
 
   /** Duración de cada paso (s) del tipo de progresión actual. */
@@ -404,37 +458,137 @@ export function createPerformance({ store, audio, actions }) {
   function renderProgCards(prog, active = -1) {
     progCards.textContent = '';
     if (prog?.chords.length) {
-      prog.chords.forEach((c, i) => progCards.append(h('div', {
-        class: `perform__prog-card${c.midis.length === 1 ? ' perform__prog-card--note' : ''}${i === active ? ' is-active' : ''}`,
-        title: `${c.fullName} (${c.letters})`,
-      },
-      h('button', {
-        type: 'button', class: 'perform__prog-remove',
-        'aria-label': `Quitar ${c.short} de la progresión`, title: `Quitar ${c.short}`,
-        onclick: () => removeFromProgression(i),
-      }, icon('close')),
-      h('b', {}, c.short),
-      h('span', { class: 'perform__prog-notes' }, c.letters),
-      h('span', { class: 'perform__prog-keys' }, ...c.keys.filter(Boolean).map((key) => h('kbd', {}, key.toUpperCase()))),
-      h('div', { class: 'perform__prog-actions' },
-        h('button', {
-          type: 'button', class: 'perform__prog-act',
-          'aria-label': `Mover ${c.short} a la izquierda`, title: 'Mover a la izquierda',
-          disabled: i === 0, onclick: () => moveInProgression(i, -1),
-        }, icon('chev-l')),
-        h('button', {
-          type: 'button', class: 'perform__prog-act',
-          'aria-label': `Mover ${c.short} a la derecha`, title: 'Mover a la derecha',
-          disabled: i === prog.chords.length - 1, onclick: () => moveInProgression(i, 1),
-        }, icon('chev-r')),
-        h('button', {
-          type: 'button', class: 'perform__prog-act',
-          'aria-label': `Duplicar ${c.short} en la progresión`, title: `Duplicar ${c.short}`,
-          onclick: () => duplicateInProgression(i),
-        }, icon('copy'))))));
+      prog.chords.forEach((c, i) => {
+        const isChord = c.midis.length > 1;
+        const card = h('div', {
+          class: `perform__prog-card${isChord ? '' : ' perform__prog-card--note'}${i === active ? ' is-active' : ''}`,
+          dataset: { index: String(i) },
+          draggable: 'true',
+          title: `${c.fullName} (${c.letters}) · arrastra para reordenar`,
+        });
+        card.addEventListener('dragstart', (e) => startCardDrag(e, i, card));
+        card.addEventListener('dragend', () => endCardDrag(card));
+        card.append(
+          h('button', {
+            type: 'button', class: 'perform__prog-remove',
+            'aria-label': `Quitar ${c.short} de la progresión`, title: `Quitar ${c.short}`,
+            onclick: (e) => {
+              e.stopPropagation();
+              removeFromProgression(i);
+            },
+          }, icon('close')),
+          h('button', {
+            type: 'button', class: 'perform__prog-hit',
+            'aria-label': `Escuchar ${c.short}`, title: `Escuchar ${c.fullName} (${c.letters})`,
+            onclick: (e) => {
+              e.stopPropagation();
+              tapMidis(c.midis);
+            },
+          },
+          h('b', {}, c.short),
+          h('span', { class: 'perform__prog-notes' }, c.letters),
+          h('span', { class: 'perform__prog-keys' }, ...c.keys.filter(Boolean).map((key) => h('kbd', {}, key.toUpperCase())))),
+        );
+        if (isChord) {
+          card.append(h('button', {
+            type: 'button', class: 'perform__prog-edit',
+            'aria-label': `Editar las notas de ${c.short}`, title: `Editar las notas de ${c.short}`,
+            onclick: (e) => {
+              e.stopPropagation();
+              openEdit(i);
+            },
+          }, icon('edit')));
+        }
+        progCards.append(card);
+      });
     }
     syncProgressionControls(prog);
+    if (editOpen) {
+      if (!prog?.chords[editIndex]) closeEdit();
+      else {
+        syncEditMenu(prog.chords[editIndex], { force: document.activeElement !== editInput });
+        positionEditMenu();
+      }
+    }
   }
+
+  /* ---------------------------------------------------- reordenar con arrastre */
+
+  function clearDropMarks() {
+    dropIndex = -1;
+    progCards.querySelectorAll('.perform__prog-card').forEach((node) => node.classList.remove('is-drop-before'));
+    progCards.classList.remove('is-drop-end', 'is-dragging-over');
+  }
+
+  function startCardDrag(e, index, card) {
+    if (e.target.closest?.('.perform__prog-remove, .perform__prog-edit')) {
+      e.preventDefault();
+      return;
+    }
+    if (!current?.chords[index]) {
+      e.preventDefault();
+      return;
+    }
+    dragFrom = index;
+    closeAdd();
+    closeEdit();
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(index));
+    } catch {
+      // Algunos navegadores no dejan escribir en dataTransfer durante dragstart.
+    }
+    card.classList.add('is-dragging');
+  }
+
+  function endCardDrag(card) {
+    card.classList.remove('is-dragging');
+    dragFrom = -1;
+    clearDropMarks();
+  }
+
+  function cardsDragOver(e) {
+    if (dragFrom < 0) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const cards = [...progCards.querySelectorAll('.perform__prog-card')];
+    let at = cards.length;
+    for (let k = 0; k < cards.length; k++) {
+      const r = cards[k].getBoundingClientRect();
+      if (e.clientX < r.left + r.width / 2) {
+        at = k;
+        break;
+      }
+    }
+    dropIndex = at;
+    cards.forEach((node, k) => node.classList.toggle('is-drop-before', k === at));
+    progCards.classList.toggle('is-drop-end', at === cards.length);
+    progCards.classList.add('is-dragging-over');
+    const box = progCards.getBoundingClientRect();
+    if (e.clientX < box.left + 24) progCards.scrollLeft -= 10;
+    else if (e.clientX > box.right - 24) progCards.scrollLeft += 10;
+  }
+
+  function cardsDragLeave(e) {
+    if (dragFrom < 0) return;
+    if (e.relatedTarget && progCards.contains(e.relatedTarget)) return;
+    clearDropMarks();
+  }
+
+  function cardsDrop(e) {
+    if (dragFrom < 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const from = dragFrom;
+    const at = dropIndex;
+    dragFrom = -1;
+    clearDropMarks();
+    if (at >= 0) reorderProgression(from, at);
+  }
+
+  progCards.addEventListener('dragover', cardsDragOver);
+  progCards.addEventListener('dragleave', cardsDragLeave);
+  progCards.addEventListener('drop', cardsDrop);
 
   /** El + va pegado a la última tarjeta; los controles de paso solo con progresión. */
   function syncProgressionControls(prog = current) {
@@ -479,6 +633,8 @@ export function createPerformance({ store, audio, actions }) {
 
   function removeFromProgression(index) {
     if (!current) return;
+    if (editOpen && index === editIndex) closeEdit();
+    else if (editOpen && index < editIndex) editIndex--;
     const playing = previewPlaying && previewProg === current;
     if (playing) {
       if (index < previewNext) previewNext = Math.max(0, previewNext - 1);
@@ -496,29 +652,22 @@ export function createPerformance({ store, audio, actions }) {
     syncSelectValue();
   }
 
-  /** Copia un acorde o una nota justo detrás del original. */
-  function duplicateInProgression(index) {
-    if (!current?.chords[index]) return;
-    const playing = previewPlaying && previewProg === current;
-    current.chords.splice(index + 1, 0, cloneItem(current.chords[index]));
-    if (playing && index < previewIndex) {
-      previewIndex++;
-      previewNext++;
-    }
-    markEdited();
-    renderProgCards(current, playing ? previewIndex : -1);
-  }
-
-  /** Mueve un acorde o una nota un paso a la izquierda o a la derecha. */
-  function moveInProgression(index, delta) {
+  /**
+   * Lleva el acorde o la nota de `from` a la posición de inserción `insertAt`
+   * (0…n). Si la progresión está sonando, conserva el paso actual y el
+   * siguiente para que el arrastre no reinicie la escucha.
+   */
+  function reorderProgression(from, insertAt) {
     if (!current) return;
-    const to = index + delta;
-    if (to < 0 || to >= current.chords.length) return;
-    const playing = previewPlaying && previewProg === current;
     const list = current.chords;
+    if (from < 0 || from >= list.length) return;
+    let to = insertAt;
+    if (to > from) to -= 1;
+    if (to < 0 || to >= list.length || to === from) return;
+    const playing = previewPlaying && previewProg === current;
     const nextItem = playing && list.length ? list[previewNext % list.length] : null;
     const currentItem = playing && previewIndex >= 0 ? list[previewIndex] : null;
-    const [item] = list.splice(index, 1);
+    const [item] = list.splice(from, 1);
     list.splice(to, 0, item);
     if (playing) {
       const nextAt = nextItem ? list.indexOf(nextItem) : -1;
@@ -529,10 +678,124 @@ export function createPerformance({ store, audio, actions }) {
     renderProgCards(current, playing ? previewIndex : -1);
   }
 
+  /* ---------------------------------------------------- editar las notas de un acorde */
+
+  function openEdit(index) {
+    const item = current?.chords[index];
+    if (!item || item.midis.length < 2) return;
+    closeAdd();
+    closeEdit();
+    editIndex = index;
+    editOpen = true;
+    editMenu.hidden = false;
+    syncEditMenu(item, { force: true });
+    positionEditMenu();
+    editInput.focus();
+    editInput.select();
+  }
+
+  function closeEdit() {
+    if (!editOpen) return;
+    editOpen = false;
+    editIndex = -1;
+    editMenu.hidden = true;
+  }
+
+  function syncEditMenu(item, { force = false } = {}) {
+    if (!editOpen || !item) return;
+    const notation = store.state.view.notation;
+    const notes = item.midis.map((midi) => noteLabel(midiToNote(midi), notation)).join(' ');
+    editTitle.textContent = `Editar ${item.short}`;
+    if (force || document.activeElement !== editInput) editInput.value = notes;
+    editPreview.textContent = `${item.fullName} · ${item.letters}`;
+    editPreview.title = item.fullName;
+    editHint.textContent = 'Escribe las notas separadas por espacios. Invertir sube una octava la más grave.';
+    editInvert.disabled = item.midis.length < 2;
+    editInvertDown.disabled = item.midis.length < 2;
+  }
+
+  /** Coloca el editor junto a la tarjeta, por encima si cabe. */
+  function positionEditMenu() {
+    if (!editOpen) return;
+    const card = progCards.querySelectorAll('.perform__prog-card')[editIndex];
+    if (!card) {
+      closeEdit();
+      return;
+    }
+    const rect = card.getBoundingClientRect();
+    const width = editMenu.offsetWidth || 340;
+    const height = editMenu.offsetHeight || 170;
+    const margin = 8;
+    const left = clampNum(rect.left + rect.width / 2 - width / 2, margin, Math.max(margin, window.innerWidth - width - margin));
+    let top = rect.top - height - 8;
+    if (top < margin) top = Math.min(window.innerHeight - height - margin, rect.bottom + 8);
+    editMenu.style.left = `${Math.round(left)}px`;
+    editMenu.style.top = `${Math.round(Math.max(margin, top))}px`;
+  }
+
+  /** Aplica una lista de notas MIDI a la tarjeta que se está editando. */
+  function applyEditNotes(midis) {
+    if (!editOpen || !current?.chords[editIndex]) return false;
+    let clean = [...new Set(midis.map((m) => Math.round(Number(m))).filter(Number.isFinite))].sort((a, b) => a - b);
+    if (!clean.length) {
+      actions.notify('Un acorde necesita al menos una nota.', true);
+      return false;
+    }
+    if (clean.length > LIMITS.notesPerTone) {
+      clean = clean.slice(0, LIMITS.notesPerTone);
+      actions.notify(`Máximo ${LIMITS.notesPerTone} notas por acorde.`, true);
+    }
+    const previous = current.chords[editIndex];
+    const pitchClasses = (list) => [...new Set(list.map((m) => ((Math.round(m) % 12) + 12) % 12))].sort((a, b) => a - b).join(',');
+    const sameChord = previous && pitchClasses(previous.midis) === pitchClasses(clean);
+    const notation = store.state.view.notation;
+    const item = clean.length === 1
+      ? noteItem(clean[0], { notation, octave })
+      : chordItem(clean, { notation, octave, preferredRootPc: sameChord ? previous.rootPc : null });
+    current.chords[editIndex] = item;
+    markEdited();
+    const playing = previewPlaying && previewProg === current;
+    if (playing && previewIndex === editIndex) setPreviewChord(item.midis);
+    renderProgCards(current, playing ? previewIndex : -1);
+    syncEditMenu(item, { force: true });
+    positionEditMenu();
+    return true;
+  }
+
+  function commitEditInput() {
+    const item = current?.chords[editIndex];
+    if (!editOpen || !item) return;
+    const parsed = parseNotesInput(editInput.value);
+    if (!parsed.ok) {
+      actions.notify(`No se entiende «${parsed.token}». Usa Do4 Re4 Fa#4, C4 D4 o 440Hz.`, true);
+      syncEditMenu(item, { force: true });
+      return;
+    }
+    const a4 = store.state.project.tuning?.a4 ?? 440;
+    const midis = parsed.notes.map((note) => noteToMidiLoose(note, a4)).filter((midi) => midi !== null);
+    if (!midis.length) {
+      actions.notify('Un acorde necesita al menos una nota.', true);
+      syncEditMenu(item, { force: true });
+      return;
+    }
+    if (!applyEditNotes(midis)) syncEditMenu(item, { force: true });
+  }
+
+  /** Invertir: sube la nota más grave o baja la más aguda una octava. */
+  function invertEdit(direction) {
+    const item = current?.chords[editIndex];
+    if (!item || item.midis.length < 2) return;
+    const midis = [...item.midis].sort((a, b) => a - b);
+    if (direction > 0) midis[0] += 12;
+    else midis[midis.length - 1] -= 12;
+    applyEditNotes(midis);
+  }
+
   /** Carga una progresión del catálogo en el editor de tarjetas. */
   function choosePreset(index, { play = true } = {}) {
     const prog = progList[index];
     if (!prog) return;
+    closeEdit();
     current = { type: progType, sourceIndex: index, edited: false, chords: prog.chords.map(cloneItem) };
     renderProgCards(current);
     syncSelectValue();
@@ -542,6 +805,7 @@ export function createPerformance({ store, audio, actions }) {
   function selectProgression(value) {
     if (value === '__custom') return;
     if (value === '') {
+      closeEdit();
       stopPreview();
       current = null;
       renderProgCards(null);
@@ -578,20 +842,30 @@ export function createPerformance({ store, audio, actions }) {
   /** Pulsación corta al hacer clic en el piano del popup. */
   function tapNote(note) {
     if (!active) return;
-    const t = track();
-    if (!t) return;
     const midi = noteToMidi(note);
     if (midi === null) return;
+    tapMidis([midi]);
+  }
+
+  /** Pulsación corta de un acorde o nota de las tarjetas de progresión. */
+  function tapMidis(midis) {
+    if (!active) return;
+    const t = track();
+    if (!t) return;
     stopPreview();
-    if (tapTimers.has(midi)) clearTimeout(tapTimers.get(midi));
-    tapNotes.add(midi);
-    audio.noteOn(note, t, liveOpts());
-    tapTimers.set(midi, setTimeout(() => {
-      tapTimers.delete(midi);
-      tapNotes.delete(midi);
-      audio.noteOff(note);
-      hud();
-    }, 900));
+    const opts = liveOpts();
+    for (const midi of new Set(midis)) {
+      const note = midiToNote(midi);
+      if (tapTimers.has(midi)) clearTimeout(tapTimers.get(midi));
+      tapNotes.add(midi);
+      audio.noteOn(note, t, opts);
+      tapTimers.set(midi, setTimeout(() => {
+        tapTimers.delete(midi);
+        tapNotes.delete(midi);
+        audio.noteOff(note);
+        hud();
+      }, 900));
+    }
     hud();
   }
 
@@ -826,6 +1100,7 @@ export function createPerformance({ store, audio, actions }) {
     }
     for (const [mood, list] of groups) {
       const group = h('optgroup', { label: mood });
+      list.sort((a, b) => a.label.localeCompare(b.label, 'es'));
       for (const p of list) group.append(h('option', { value: String(p.index) }, p.label));
       progSelect.append(group);
     }
@@ -862,6 +1137,7 @@ export function createPerformance({ store, audio, actions }) {
 
   function setProgType(type) {
     if (progType === type) return;
+    closeEdit();
     progType = type;
     stopPreview();
     syncProgType();
@@ -885,7 +1161,7 @@ export function createPerformance({ store, audio, actions }) {
   }
 
   function playProgression(prog) {
-    if (!active || mode !== 'test' || !prog || !prog.chords.length) return;
+    if (!active || !prog || !prog.chords.length) return;
     stopPreview();
     previewPlaying = true;
     previewProg = prog;
@@ -893,7 +1169,7 @@ export function createPerformance({ store, audio, actions }) {
     syncPlayButton();
     renderProgCards(prog);
     const advance = () => {
-      if (!active || mode !== 'test' || !previewProg) {
+      if (!active || !previewProg) {
         stopPreview();
         return;
       }
@@ -1085,7 +1361,6 @@ export function createPerformance({ store, audio, actions }) {
     const t = track();
     const e = element();
     buildProgressions();
-    progArea.hidden = mode !== 'test';
     title.textContent = mode === 'record' ? 'Grabando' : 'Teclado';
     detail.textContent = t ? ` · ${t.name} · oct. ${octave}–${octave + 1}` : '';
     const notes = [...chord].sort((a, b) => a - b);
@@ -1239,6 +1514,7 @@ export function createPerformance({ store, audio, actions }) {
   function setOctave(value) {
     const next = clampNum(Math.round(Number(value) || 0), 0, 7);
     if (next === octave) return;
+    closeEdit();
     if (active) releaseAll(true);
     stopPreview();
     clearTaps();
@@ -1267,6 +1543,7 @@ export function createPerformance({ store, audio, actions }) {
     if (active) stop(false);
     stopPreview();
     closeAdd();
+    closeEdit();
     active = true;
     mode = nextMode === 'record' ? 'record' : 'test';
     trackId = t.id;
@@ -1322,6 +1599,7 @@ export function createPerformance({ store, audio, actions }) {
     active = false;
     stopPreview();
     closeAdd();
+    closeEdit();
     clearTaps();
     releaseAll(false);
     audio.setMonitorMute(null);
@@ -1347,6 +1625,12 @@ export function createPerformance({ store, audio, actions }) {
   function handleKeyDown(e) {
     if (!active) return false;
     if (e.key === 'Escape') {
+      if (editOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeEdit();
+        return true;
+      }
       if (addOpen) {
         e.preventDefault();
         e.stopPropagation();

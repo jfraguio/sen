@@ -8,10 +8,26 @@
 
 const HISTORY = 200;
 
+/**
+ * La intensidad de una capa ya no se funde en los bordes: empieza y termina
+ * arriba. La forma gradual se define solo con la curva del inspector, así que
+ * los fundidos antiguos se neutralizan al cargar y en cada cambio.
+ */
+function clearElementFades(project) {
+  for (const track of project.tracks) {
+    for (const el of track.elements) {
+      if (el.type === 'hit') continue;
+      el.fadeIn = 0;
+      el.fadeOut = 0;
+    }
+  }
+  return project;
+}
+
 export function createStore(project) {
   const listeners = new Set();
   const state = {
-    project,
+    project: clearElementFades(project),
     selection: { kind: 'project', trackId: null, elementIds: [] },
     view: { pps: 6, grid: 0.5, snap: true, notation: 'latin', keyboardOctave: null },
     playhead: 0,
@@ -52,6 +68,7 @@ export function createStore(project) {
     commit(mutate, { gesture: g = null, source = null } = {}) {
       const draft = structuredClone(state.project);
       if (mutate(draft) === false) return false;
+      clearElementFades(draft);
       if (!(g && g === gesture)) {
         undo.push(state.project);
         if (undo.length > HISTORY) undo.shift();
@@ -68,7 +85,7 @@ export function createStore(project) {
       gesture = null;
     },
     load(project) {
-      state.project = project;
+      state.project = clearElementFades(project);
       undo = [];
       redo = [];
       gesture = null;
@@ -81,7 +98,7 @@ export function createStore(project) {
     undo() {
       if (!undo.length) return;
       redo.push(state.project);
-      state.project = undo.pop();
+      state.project = clearElementFades(undo.pop());
       gesture = null;
       state.revision++;
       validateSelection();
@@ -90,7 +107,7 @@ export function createStore(project) {
     redo() {
       if (!redo.length) return;
       undo.push(state.project);
-      state.project = redo.pop();
+      state.project = clearElementFades(redo.pop());
       gesture = null;
       state.revision++;
       validateSelection();

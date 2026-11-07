@@ -15,6 +15,7 @@ import {
   automationEditor, boolControl, curveEditor, enumControl, noteSelect, numberControl, pairControl, phraseEditor, textControl,
 } from './controls.js';
 import { recordKind } from './performance.js';
+import { describeNotes, parseNotesInput } from './chords.js';
 
 const capitalize = (text) => (text ? text[0].toUpperCase() + text.slice(1) : '');
 
@@ -28,9 +29,6 @@ function sourceLabel(src) {
   return `${src.ambientName || capitalize(src.ambient || '')} ${String(src.track).padStart(2, '0')}`.trim();
 }
 
-const LATIN_INDEX = new Map(LATIN_NAMES.map((name, k) => [name.toLowerCase(), k]));
-const NOTE_INDEX = new Map(NOTE_NAMES.map((name, k) => [name.toLowerCase(), k]));
-
 /** Texto de una nota para los campos editables: «Do4», «Fa#4» o «440Hz». */
 function noteText(note, notation) {
   if (note && typeof note === 'object') return `${Number(note.hz).toFixed(1)}Hz`;
@@ -39,35 +37,6 @@ function noteText(note, notation) {
 
 function notesText(list, notation) {
   return list.map((n) => noteText(n, notation)).join(' ');
-}
-
-/**
- * Lee «Do4 Re4 Fa#4», «C4 D4», «440Hz» o vacío (silencio). Acepta notación
- * latina y anglosajona aunque el tema esté en la otra.
- */
-function parseNotesInput(text) {
-  const raw = String(text || '').trim();
-  if (!raw || /^silencio$/i.test(raw)) return { ok: true, notes: [] };
-  const tokens = raw.split(/[\s,;+]+/).filter(Boolean);
-  const notes = [];
-  for (const token of tokens) {
-    const hzToken = token.replace(/hz$/i, '').replace(',', '.');
-    if (/^[+]?\d+(?:\.\d+)?$/.test(hzToken)) {
-      const hz = Number(hzToken);
-      if (!(hz >= 8 && hz <= 16000)) return { ok: false, token };
-      notes.push({ hz: Math.round(hz * 100) / 100 });
-      continue;
-    }
-    const m = /^([a-záéíóú#]+)(-?\d+)$/i.exec(token);
-    if (!m) return { ok: false, token };
-    const name = m[1].toLowerCase();
-    const idx = LATIN_INDEX.get(name) ?? NOTE_INDEX.get(name);
-    if (idx === undefined) return { ok: false, token };
-    const midi = (Number(m[2]) + 1) * 12 + idx;
-    if (midi < 0 || midi > 127) return { ok: false, token };
-    notes.push(midiToNote(midi));
-  }
-  return { ok: true, notes };
 }
 
 export function createInspector(root, store, actions) {
@@ -140,6 +109,25 @@ export function createInspector(root, store, actions) {
     h('h2', {}, title, sub ? h('small', {}, sub) : null),
     extra,
     h('button', { type: 'button', class: 'icon-btn ins-close', 'aria-label': 'Cerrar el inspector', onclick: () => actions.closeSheet() }, icon('close')));
+
+  /**
+   * Etiqueta del acorde que forman las notas de una fila de Notas. Al pulsarla
+   * se escucha con el instrumento de la pista.
+   */
+  function chordTag(track, notes) {
+    const desc = describeNotes(notes, state.view.notation, state.project.tuning?.a4 ?? 440);
+    const label = desc ? desc.short : (notes.length ? notesText(notes, state.view.notation) : 'silencio');
+    return h('button', {
+      type: 'button',
+      class: 'note-change__chord',
+      disabled: !notes.length,
+      title: desc ? `${desc.fullName} · ${desc.letters}` : 'Sin notas',
+      'aria-label': desc ? `Escuchar ${desc.fullName}` : 'Sin notas',
+      onclick: () => {
+        if (notes.length) actions.auditionTrack(track.id, notes);
+      },
+    }, label);
+  }
 
   /* ------------------------------------------------------------ tema */
 
@@ -469,13 +457,14 @@ export function createInspector(root, store, actions) {
           baseInput.blur();
         }
       });
-      list.append(h('div', { class: 'note-change note-change--base' },
+      list.append(h('div', { class: 'note-change note-change--base note-change--with-chord' },
         h('span', { class: 'note-change__timebox' },
           h('input', {
             type: 'number', class: 'note-change__time', min: '0', max: '0', step: '1', value: '0', disabled: true,
             'aria-label': 'Inicio del elemento',
           }),
           h('span', { class: 'ctl-unit' }, 's')),
+        chordTag(track, baseNotes),
         baseInput,
         h('span', { class: 'note-change__spacer', 'aria-hidden': 'true' })));
       changes.forEach((c, k) => {
@@ -535,8 +524,9 @@ export function createInspector(root, store, actions) {
             notesInput.blur();
           }
         });
-        list.append(h('div', { class: 'note-change' },
+        list.append(h('div', { class: 'note-change note-change--with-chord' },
           h('span', { class: 'note-change__timebox' }, timeInput, h('span', { class: 'ctl-unit' }, 's')),
+          chordTag(track, changeNotes),
           notesInput,
           h('button', {
             type: 'button', class: 'icon-btn icon-btn--small', 'aria-label': `Quitar el cambio de ${fmtShort(start + c.t)}`,
@@ -548,10 +538,6 @@ export function createInspector(root, store, actions) {
             }),
           }, icon('close'))));
       });
-      list.append(h('button', {
-        type: 'button', class: 'note-change-add', title: 'Añadir un cambio al final', 'aria-label': 'Añadir un cambio al final',
-        onclick: addAtEnd,
-      }, icon('plus')));
     };
     syncers.push(render);
     render();
@@ -604,10 +590,16 @@ export function createInspector(root, store, actions) {
       },
     }, 'Limpiar');
 
+    const addBtn = h('button', {
+      type: 'button', class: 'btn btn--quiet note-add',
+      title: 'Añadir un cambio de notas al final', 'aria-label': 'Añadir un cambio de notas al final',
+      onclick: addAtEnd,
+    }, icon('plus'), 'Añadir');
+
     return section('Notas',
       performanceButtons(track, el, () => state.view.keyboardOctave ?? 3),
       list,
-      h('div', { class: 'ins-actions' }, repeatBtn, clearBtn),
+      h('div', { class: 'ins-actions' }, repeatBtn, clearBtn, addBtn),
       crossControl);
   }
 
@@ -777,8 +769,9 @@ export function createInspector(root, store, actions) {
           title: 'Escuchar esta entrada con un golpe',
           onclick: () => actions.auditionTrack(track.id, groupNotes),
         }, icon('play'));
-        list.append(h('div', { class: 'note-change' },
+        list.append(h('div', { class: 'note-change note-change--with-chord' },
           h('span', { class: 'note-change__timebox' }, timeInput, h('span', { class: 'ctl-unit' }, 's')),
+          chordTag(track, groupNotes),
           notesInput,
           h('span', { class: 'note-change__actions' },
             play,

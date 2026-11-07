@@ -1767,27 +1767,6 @@ input[type="range"].tl-vol {
   right: 0;
 }
 
-.el-f {
-  position: absolute;
-  top: 0;
-  width: 9px;
-  height: 9px;
-  margin-left: -4.5px;
-  border-radius: 50%;
-  background: var(--c);
-  border: 1px solid #fff;
-  box-shadow: 0 0 6px var(--c);
-  cursor: ew-resize;
-  z-index: 3;
-  opacity: 0;
-  transition: opacity 0.14s;
-}
-
-.el:hover .el-f,
-.el.is-selected .el-f {
-  opacity: 1;
-}
-
 .el--hit {
   border-radius: var(--r-xs) var(--r-sm) var(--r-sm) var(--r-xs);
   background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--c) 14%, transparent) 0 4px, transparent 4px 8px);
@@ -2631,6 +2610,43 @@ body:has(.perform:not([hidden])) .toast {
   background: rgba(195, 180, 255, 0.05);
 }
 
+/* Una fila de Notas con la etiqueta del acorde delante del campo de notas. */
+.note-change--with-chord {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+}
+
+.note-change__chord {
+  max-width: 82px;
+  height: 24px;
+  padding: 0 7px;
+  overflow: hidden;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--ink-2);
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.note-change__chord:hover,
+.note-change__chord:focus-visible {
+  border-color: var(--accent-line);
+  background: rgba(195, 180, 255, 0.22);
+  color: #f3f0ff;
+  outline: none;
+}
+
+.note-change__chord:disabled {
+  border-style: dashed;
+  background: transparent;
+  color: var(--dim);
+  cursor: default;
+}
+
 .note-change__spacer {
   width: 20px;
   height: 20px;
@@ -3036,7 +3052,54 @@ body:has(.perform:not([hidden])) .toast {
   border: 1px solid var(--line-2);
   border-radius: 10px;
   background: var(--fill);
-  transition: border-color 0.15s, transform 0.15s, background 0.15s, box-shadow 0.15s;
+  cursor: grab;
+  user-select: none;
+  transition: border-color 0.15s, transform 0.15s, background 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+
+.perform__prog-card:hover {
+  border-color: var(--line-3);
+  background: var(--fill-2);
+}
+
+.perform__prog-card.is-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.perform__prog-card.is-drop-before::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.perform__prog-cards.is-drop-end::after {
+  content: "";
+  flex: 0 0 2px;
+  align-self: stretch;
+  margin: 3px 0;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.perform__prog-hit {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .perform__prog-remove {
@@ -3068,6 +3131,38 @@ body:has(.perform:not([hidden])) .toast {
   opacity: 1;
   color: #fff;
   background: rgba(255, 141, 158, 0.2);
+  outline: none;
+}
+
+.perform__prog-edit {
+  position: absolute;
+  top: 20px;
+  right: 3px;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.perform__prog-edit .i {
+  width: 11px;
+  height: 11px;
+  stroke-width: 2;
+}
+
+.perform__prog-edit:hover,
+.perform__prog-edit:focus-visible {
+  opacity: 1;
+  color: #fff;
+  background: var(--accent-soft);
   outline: none;
 }
 
@@ -3109,49 +3204,6 @@ body:has(.perform:not([hidden])) .toast {
   color: var(--ink-2);
   font: 10px/1.3 var(--mono);
   text-align: center;
-}
-
-.perform__prog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1px;
-  margin-top: 3px;
-  margin-left: auto;
-}
-
-.perform__prog-act {
-  display: grid;
-  place-items: center;
-  width: 15px;
-  height: 15px;
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--dim);
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
-}
-
-.perform__prog-act .i {
-  width: 10px;
-  height: 10px;
-  stroke-width: 2;
-}
-
-.perform__prog-act:hover,
-.perform__prog-act:focus-visible {
-  opacity: 1;
-  color: #fff;
-  background: var(--accent-soft);
-  outline: none;
-}
-
-.perform__prog-act:disabled {
-  opacity: 0.25;
-  cursor: default;
-  background: transparent;
 }
 
 /* --------------------------------------------------- añadir a la progresión */
@@ -3443,6 +3495,60 @@ body:has(.perform:not([hidden])) .toast {
   color: var(--muted);
   font-size: 10px;
   letter-spacing: 0.04em;
+}
+
+/* Editor de las notas de una tarjeta de la progresión. */
+.perform__edit-menu {
+  position: fixed;
+  left: 8px;
+  top: 8px;
+  right: auto;
+  bottom: auto;
+  z-index: 70;
+  width: min(330px, calc(100vw - 16px));
+}
+
+.perform__edit-menu::after {
+  display: none;
+}
+
+.perform__edit-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--sink);
+  color: var(--ink);
+}
+
+.perform__edit-input:focus {
+  border-color: var(--accent-line);
+  outline: none;
+}
+
+.perform__edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.perform__edit-action {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.perform__edit-action .i {
+  width: 12px;
+  height: 12px;
+}
+
+.perform__edit-play {
+  margin-left: auto;
+  color: var(--accent);
 }
 
 .perform__keyboard {

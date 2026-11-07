@@ -172,8 +172,6 @@ export function createTimeline(root, store, actions) {
     }
     if (el.type !== 'hit') {
       node.append(h('span', { class: 'el-h el-h--l', dataset: { h: 'l' } }), h('span', { class: 'el-h el-h--r', dataset: { h: 'r' } }));
-      node.append(h('span', { class: 'el-f el-f--in', dataset: { h: 'in' }, title: 'Fundido de entrada', style: { left: `${Math.max(5, (el.fadeIn / el.length) * 100)}%` } }));
-      node.append(h('span', { class: 'el-f el-f--out', dataset: { h: 'out' }, title: 'Fundido de salida', style: { left: `${Math.min(95, 100 - (el.fadeOut / el.length) * 100)}%` } }));
     }
     return node;
   }
@@ -347,7 +345,7 @@ export function createTimeline(root, store, actions) {
         store.select({ kind: 'element', elementIds: ids });
       }
       const handle = e.target.dataset.h || null;
-      const mode = handle === 'l' ? 'resize-l' : handle === 'r' ? 'resize-r' : handle === 'in' ? 'fade-in' : handle === 'out' ? 'fade-out' : 'move';
+      const mode = handle === 'l' ? 'resize-l' : handle === 'r' ? 'resize-r' : 'move';
       const targets = mode === 'move' ? ids : [id];
       const origin = new Map();
       for (const tid of targets) {
@@ -411,10 +409,6 @@ export function createTimeline(root, store, actions) {
       const ns = clampNum(snap(o.start + dt, e, new Set([drag.id])), 0, endT - 0.1);
       const len = round(endT - ns);
       values.set(drag.id, { start: round(ns), length: len, fadeIn: Math.min(o.fadeIn, len), fadeOut: Math.min(o.fadeOut, Math.max(0, len - Math.min(o.fadeIn, len))) });
-    } else if (drag.mode === 'fade-in') {
-      values.set(drag.id, { fadeIn: round(clampNum(o.fadeIn + dt, 0, o.length - o.fadeOut)) });
-    } else if (drag.mode === 'fade-out') {
-      values.set(drag.id, { fadeOut: round(clampNum(o.fadeOut - dt, 0, o.length - o.fadeIn)) });
     }
     drag.values = values;
     // Vista previa sin reconstruir.
@@ -426,10 +420,6 @@ export function createTimeline(root, store, actions) {
       n.classList.add('is-dragging');
       n.style.left = `${lx(merged.start)}px`;
       if (merged.type !== 'hit') n.style.width = `${Math.max(6, merged.length * pps())}px`;
-      const fi = n.querySelector('.el-f--in');
-      const fo = n.querySelector('.el-f--out');
-      if (fi) fi.style.left = `${Math.max(5, (merged.fadeIn / merged.length) * 100)}%`;
-      if (fo) fo.style.left = `${Math.min(95, 100 - (merged.fadeOut / merged.length) * 100)}%`;
       const path = n.querySelector('.el-env path');
       if (path) path.setAttribute('d', envPath(merged));
     }
@@ -570,7 +560,7 @@ export function createTimeline(root, store, actions) {
     if (!inst || !INSTRUMENTS[inst]) return;
     e.preventDefault();
     e.stopPropagation();
-    actions.addTrack(inst, clampNum(snap(tAt(e.clientX), e), 0, state.project.duration - 1));
+    actions.addTrack(inst);
   });
 
   /* ------------------------------------------------------------ zoom */

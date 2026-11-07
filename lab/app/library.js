@@ -44,7 +44,7 @@ export function createLibrary(root, store, actions) {
   const item = (id, inst) => {
     const el = h('div', { class: 'lib-item', draggable: 'true', style: { '--c': inst.color }, title: inst.description },
       h('button', { type: 'button', class: 'lib-play', 'aria-label': `Escuchar ${inst.label}`, title: 'Escuchar 3 s', onclick: () => actions.auditionInstrument(id) }, icon('play')),
-      h('button', { type: 'button', class: 'lib-add', 'aria-label': `Añadir ${inst.label} en el cabezal`, onclick: () => actions.addTrack(id, store.state.playhead) },
+      h('button', { type: 'button', class: 'lib-add', 'aria-label': `Añadir ${inst.label} desde el principio`, onclick: () => actions.addTrack(id) },
         h('span', { class: 'dot', 'aria-hidden': 'true' }), inst.label));
     el.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/x-sen-instrument', id);

@@ -306,12 +306,17 @@ function boot() {
       if (isCompact()) actions.openSheet('library');
       else library.focus();
     },
-    addTrack(inst, time) {
+    addTrack(inst) {
       let elId = null;
       const ok = guarded((d) => {
+        // Una capa nueva empieza siempre en 0 y dura lo que la capa más larga.
+        let longest = 0;
+        for (const track of d.tracks) {
+          for (const el of track.elements) longest = Math.max(longest, el.start + elementSpan(track, el));
+        }
         const t = createTrack(inst, d);
-        const start = clampNum(time ?? 0, 0, Math.max(0, d.duration - 1));
-        const e = createElement(t, d, start);
+        const e = createElement(t, d, 0);
+        if (longest > 0) e.length = Math.round(clampNum(longest, 0.1, d.duration) * 1000) / 1000;
         t.elements.push(e);
         d.tracks.push(t);
         elId = e.id;

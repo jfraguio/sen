@@ -302,6 +302,8 @@ function smallProject(over = {}) {
     a4: 440, key: aud.key, elementSeed: seedFrom(aud.seed, audTrack.id, audTrack.elements[0].id, 1),
   });
   ok(audHits.length === 2, 'la audición de una fila con acorde suena con todas sus notas');
+  const padAud = auditionProject(p, createTrack('pad', p), { notes: ['C3', 'E3', 'G3'], seconds: 2 });
+  ok(padAud.tracks[0].elements[0].notes.length === 3, 'la audición de un acorde sostenido usa todas sus notas');
 }
 
 /* ------------------------------------------------------------ teclado en vivo */

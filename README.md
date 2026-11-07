@@ -128,7 +128,8 @@ cualquier escena sin tocar código.
   hawaiana, cuerda pulsada, gota tonal, palo de lluvia, piano FM y campana FM)
   como golpes, frases o nubes de
   notas, ruidos de color y **simulaciones** (grillos, cigarras, pájaros
-  por especie, gaviotas incluidas, gotas, lluvia, arroyo, olas, viento, fuego, campanillas).
+  por especie, gaviotas incluidas, gotas, lluvia normal/fina/lejana, arroyo,
+  olas, viento, fuego, campanillas).
   Cada pista tiene silencio, solo y volumen en su cabecera.
 - **Biblioteca plegable por gesto y timbre:** Sostenidos, Puntuales, Texturas y
   Naturaleza, con subgrupos como Sintes, Teclados, Láminas, Agua o Animales.
@@ -141,7 +142,8 @@ cualquier escena sin tocar código.
   de 0 s y los cambios posteriores; si solo hay una fila, esa nota dura todo el
   elemento. «Teclado» te deja tocar con las letras sin modificar el tema y
   «Grabar» guarda las notas dentro del mismo elemento mientras avanza el
-  cabezal. Los acordes se cruzan con un fundido entre notas ajustable; la
+  cabezal, con el mismo popup y las mismas tarjetas para usarlas como guía.
+  Los acordes se cruzan con un fundido entre notas ajustable; la
   octava se puede cambiar en caliente y la lista se edita a mano (segundo y
   notas). Las nubes de notas y los golpes usan el mismo diseño de «Notas»:
   «Teclado» y, cuando se puede grabar, el botón de grabación (solo el punto
@@ -151,20 +153,24 @@ cualquier escena sin tocar código.
   y los controles de «Nube generativa». El teclado suena con las mismas
   voces del motor, la mezcla de la pista y la reverb del tema, así que lo que
   tocas suena igual en la pista. El popup incluye un piano de dos octavas, un
-  conmutador de acordes/arpegios y progresiones agrupadas por carácter, con sus
-  notas y las teclas para tocarlas, los segundos que dura cada paso,
+  conmutador de acordes/arpegios y progresiones agrupadas por carácter y
+  ordenadas alfabéticamente dentro de cada grupo, con sus notas y las teclas
+  para tocarlas, los segundos que dura cada paso,
   reproducción en bucle y un botón para llevarlas a Notas una vez, con esos
   tiempos (4 acordes de 5 s quedan en 0, 5, 10 y 15 s y el elemento acaba en
   20 s). En pistas puntuales, el mismo botón crea o sustituye una frase con una
   entrada por paso y nota, editable como lista de tiempos. La progresión se
   puede construir a mano: **+** añade acordes o notas
   desde un desplegable (de la escala de la tonalidad o libres); **×** quita
-  tarjetas, **‹** y **›** las mueven un paso y **⧉** las duplica. Bajo las
+  tarjetas, se reordenan arrastrándolas, se escuchan al pulsarlas y el lápiz
+  de cada acorde abre un editor de notas para invertirlo. Bajo las
   notas, «Repetir» repite el patrón, con sus tiempos, hasta el final del tema.
   El patrón termina en la última fila (que dura lo mismo que el hueco anterior),
   así que no arrastra el silencio que quedaba al final del elemento; si el
   elemento ya ocupa todo el tema, lo repite dentro de él. «Limpiar» elimina
-  todas las notas y cambios del elemento.
+  todas las notas y cambios del elemento. La intensidad de cada elemento
+  empieza y termina al máximo, sin fundidos de entrada ni salida: la forma
+  gradual se define con la curva del inspector.
 - **Exportar → WAV** directamente desde el navegador (48 kHz/24 bits,
   44,1 kHz/16 bits o «Escena para sen»), con final con cola, exacto o en bucle
   sin costura, y sonoridad normalizada. Cada WAV lleva el proyecto dentro y se

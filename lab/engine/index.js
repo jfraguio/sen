@@ -25,7 +25,7 @@ import { compileStrikeElement } from './voices/strike.js';
 import { compileNoiseElement } from './voices/noise.js';
 import { compileCigarra, compileGrillo } from './voices/nature/insects.js';
 import { compilePajaro, compileRana } from './voices/nature/animals.js';
-import { compileArroyo, compileGotas, compileLluvia, compileOlas } from './voices/nature/water.js';
+import { compileArroyo, compileGotas, compileLluvia, compileLluviaFina, compileLluviaLejana, compileOlas } from './voices/nature/water.js';
 import { compileCampanillas, compileFuego, compileViento } from './voices/nature/air.js';
 import { compileLayerElement, layerSample } from './voices/layer.js';
 
@@ -46,6 +46,8 @@ const NATURE_COMPILERS = {
   rana: compileRana,
   gotas: compileGotas,
   lluvia: compileLluvia,
+  lluviaFina: compileLluviaFina,
+  lluviaLejana: compileLluviaLejana,
   arroyo: compileArroyo,
   olas: compileOlas,
   viento: compileViento,
@@ -579,6 +581,7 @@ export function auditionProject(project, track, { note = null, notes = null, sec
     el.fadeIn = 0.25;
     el.fadeOut = 0.9;
     if (note) el.notes = [note];
+    else if (Array.isArray(notes) && notes.length) el.notes = notes;
   } else if (t.family === 'strike') {
     const chord = Array.isArray(notes) && notes.length ? notes : note ? [note] : null;
     if (chord) {

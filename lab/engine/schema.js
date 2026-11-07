@@ -498,6 +498,18 @@ export const INSTRUMENTS = {
     ],
     defaults: { distance: 0.3, spread: 1 },
   },
+  lluviaFina: {
+    family: 'nature', label: 'Lluvia fina', color: '#8fc3ff',
+    description: 'Gotas pequeñas y brillantes sobre hojas, con un siseo continuo.',
+    params: ['intensity', ...NATURE_COMMON],
+    defaults: { distance: 0.25, spread: 1, variation: 0.6, intensity: 900 },
+  },
+  lluviaLejana: {
+    family: 'nature', label: 'Lluvia lejana', color: '#6889b8',
+    description: 'Rumor lejano y difuso, sin gotas cercanas: un fondo de lluvia.',
+    params: [['intensity', { label: 'Intensidad', min: 0.1, max: 1.5, def: 0.7, step: 0.01 }], ...NATURE_COMMON],
+    defaults: { distance: 0.65, spread: 0.9, variation: 0.55, intensity: 0.7 },
+  },
   arroyo: {
     family: 'nature', label: 'Arroyo', color: '#79e8b7',
     description: 'Corriente con fuentes de burbujeo.',
@@ -575,7 +587,7 @@ export const INSTRUMENT_GROUPS = [
   {
     id: 'naturaleza', label: 'Naturaleza',
     subgroups: [
-      { id: 'agua', label: 'Agua', instruments: ['gotas', 'lluvia', 'arroyo', 'olas'] },
+      { id: 'agua', label: 'Agua', instruments: ['gotas', 'lluvia', 'lluviaFina', 'lluviaLejana', 'arroyo', 'olas'] },
       { id: 'aire', label: 'Aire', instruments: ['viento', 'campanillas'] },
       { id: 'animales', label: 'Animales', instruments: ['grillo', 'cigarra', 'pajaro'] },
       { id: 'fuego', label: 'Fuego', instruments: ['fuego'] },

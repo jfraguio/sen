@@ -817,8 +817,9 @@ No objetivos:
   **instrumento** de esa familia y sus **parámetros de timbre**, además de la
   mezcla (volumen, panorama, envíos, silencio y solo).
 - **Elemento** = cuándo y qué suena en una pista. Los elementos tienen inicio,
-  duración, nivel, fundidos y el contenido propio de su tipo (notas, densidad,
-  frase…). Pueden solaparse dentro de una pista: se suman.
+  duración, nivel, curva de intensidad y el contenido propio de su tipo (notas,
+  densidad, frase…). Su intensidad empieza y termina al máximo, sin fundidos en
+  los bordes. Pueden solaparse dentro de una pista: se suman.
 
 #### 7.3.2 Familias
 
@@ -827,14 +828,14 @@ No objetivos:
 | `sustain` | Sostenidos | Pads, drones, cuerdas, arpa eólica, flauta, coros, cuenco tibetano frotado, theremin y sintes analógicos: tonos que duran lo que dura el elemento. | `tone` |
 | `strike` | Puntuales | Campanas, cuencos tibetanos, kalimba, piano, tambores de acero (handpan, lengüeta, steel drum), arpa, guitarras, ukelele, vibráfono, palo de lluvia y FM 80: golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
 | `noise` | Texturas | Ruido de color filtrado y con movimiento (aire, rumor, oleaje abstracto). | `span` |
-| `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, cigarras, pájaros, gotas, lluvia, arroyo, olas, viento, fuego, campanillas. | `span` |
+| `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, cigarras, pájaros, gotas, lluvia normal/fina/lejana, arroyo, olas, viento, fuego, campanillas. | `span` |
 | `layer` | Capas de pistas de sen | Una capa de una pista publicada de la app, en bucle (7.17). No está en la biblioteca. | `clip` |
 
 #### 7.3.3 Tipos de elemento
 
 - **`tone`** (sostenidas): de 1 a 8 notas simultáneas (nota, acorde o
-  cluster). La envolvente del sonido **es** la del elemento: `fadeIn` actúa como
-  ataque y `fadeOut` como relajación, ambos dentro de la duración. Lo que se ve
+  cluster). La envolvente del sonido **es** la del elemento: empieza y termina
+  al máximo y su forma gradual la define la curva de intensidad. Lo que se ve
   es lo que suena. Además, un `tone` puede llevar **cambios de nota** en
   `changes`: lista ordenada de `{ t, notes }`, con `t` en segundos desde el
   inicio del elemento y `notes` con 0–8 notas (`[]` es silencio). Las notas
@@ -844,10 +845,7 @@ No objetivos:
   configurable (`crossfade`, 0–2 s; 0 es sin solape; por defecto 0,15 s): la
   nota anterior se alarga atenuándose y la siguiente se adelanta, repartiendo
   el cruce a ambos lados del cambio. La curva y el nivel del elemento se
-  reparten entre los tramos, y sus fundidos de entrada y salida se miden en el
-  tiempo del elemento completo: un fundido largo atenúa igual el principio
-  aunque abarque varios tramos, sin comerse el primero ni hacer que el segundo
-  entre de golpe.
+  reparten entre los tramos, sin fundidos adicionales en los bordes.
   Los cambios viven **dentro del elemento**: no hace falta dividirlo en
   fragmentos. Al dividir con `S` o al recortar una región, cada parte conserva
   sus cambios y adopta como notas base las que sonaban en el corte.
@@ -1047,6 +1045,8 @@ admiten:
 | `pajaro` | Pájaros | especie: genérico, mirlo, petirrojo, carbonero, pinzón, cuco, tórtola, autillo, cárabo o gaviota (llamada larga «kiaaa, kiau-kiau…, ja-ja» que se acelera, o maullidos sueltos; voz nasal con armónicos fuertes y aspereza); individuos (1–8); frases por minuto. El genérico añade registro, sílabas por frase y forma (silbido, trino, gorjeo). |
 | `gotas` | Gotas | superficie (agua, hoja, cristal, piedra), gotas por segundo (0,1–200), registro. |
 | `lluvia` | Lluvia | intensidad (50–3000 impactos/s), superficie (hojas, tejado, cristal, agua, lona). |
+| `lluviaFina` | Lluvia fina | intensidad (50–3000 impactos/s) y variación. Gotas pequeñas y brillantes sobre hojas, con siseo continuo. |
+| `lluviaLejana` | Lluvia lejana | intensidad (0,1–1,5) y variación. Rumor de fondo de ruido rosa filtrado entre 250 y 3200 Hz, sin gotas cercanas. |
 | `arroyo` | Arroyo | caudal (0–1), fuentes de burbujeo (1–24), registro. |
 | `olas` | Olas | periodo (4–20 s), tamaño, espuma (0–1), guijarros (0–1). |
 | `viento` | Viento | fuerza, racheo, aullido (0–1) y su afinación, hojas (0–1). |
@@ -1145,8 +1145,8 @@ por parámetro.
 - **Línea de tiempo:** una fila por pista, con cabecera (nombre, color,
   silencio, solo, **volumen**, medidor y una «A» si tiene automatización) y sus
   elementos.
-  Cada elemento muestra su envolvente (fundidos y curva), los golpes de las
-  nubes y frases como puntos y una **forma de onda resumida** que calcula en
+  Cada elemento muestra su envolvente (la curva de intensidad), los golpes de
+  las nubes y frases como puntos y una **forma de onda resumida** que calcula en
   segundo plano un Worker de vistas (elementos de hasta 10 min). La
   automatización de la pista se dibuja como una línea discontinua. La regla
   admite clic para mover el cabezal y arrastre para marcar la región de
@@ -1184,13 +1184,13 @@ sin animaciones de fondo que compitan con el trabajo.
 
 #### 7.5.2 Interacciones
 
-- **Añadir:** arrastrar un instrumento desde la biblioteca a la línea de tiempo
-  crea una pista con un elemento por defecto en ese instante. Un clic en el
-  instrumento hace lo mismo en el cabezal. Doble clic en un hueco de una pista
-  existente crea un elemento por defecto de esa pista.
+- **Añadir:** arrastrar un instrumento desde la biblioteca o hacer clic en él
+  crea una capa nueva desde el principio (tiempo 0) con una extensión igual a
+  la de la capa más larga que exista en ese momento. Doble clic en un hueco de
+  una pista existente crea un elemento por defecto de esa pista en ese punto.
 - **Editar elementos:** arrastrar para mover; bordes para cambiar la duración;
-  asas de las esquinas superiores para los fundidos; `Alt` + arrastrar
-  duplica; `S` divide en el cabezal; `Supr` borra. Selección múltiple con
+  la intensidad empieza y termina al máximo y su forma se edita con la curva del
+  inspector; `Alt` + arrastrar duplica; `S` divide en el cabezal; `Supr` borra. Selección múltiple con
   `Mayús` o marco. Copiar, cortar y pegar en el cabezal. Ajuste magnético a la
   rejilla y a los bordes de otros elementos (`Mayús` lo desactiva).
 - **Pistas:** en la cabecera, silencio, solo y volumen (deslizador de −60 a
@@ -1201,8 +1201,10 @@ sin animaciones de fondo que compitan con el trabajo.
 - **Inspector:** deslizadores con valor numérico editable; doble clic devuelve
   el valor por defecto; la rueda con `Mayús` hace ajuste fino. Los generadores
   tienen **Aleatorizar** (nueva semilla). El inspector de un elemento muestra su
-  contenido y su curva; el tiempo, el nivel y los fundidos se ajustan en la
-  propia capa de la línea de tiempo.
+  contenido y su curva de intensidad; el tiempo y la duración se ajustan en la
+  propia capa de la línea de tiempo. Los elementos no tienen fundido de entrada
+  ni de salida: nacen y terminan al máximo y la curva define cualquier
+  gradualidad.
 - **Arrastrar un archivo** `.sen-album.json` sustituye el álbum; un
   `.sen.json`, un WAV exportado por el laboratorio (7.8.1) o una plantilla se
   añaden como tema nuevo. Un archivo **MIDI** (`.mid`) se importa en el tema
@@ -1244,7 +1246,8 @@ El popup de **Teclado** incluye un piano de dos octavas que ilumina las teclas
 pulsadas y las notas de la progresión que suena, un conmutador
 **Acordes / Arpegios** y un combo de progresiones adaptadas a la tonalidad del
 tema. Los acordes se agrupan por carácter (**Alegres**, **Nostálgicas**,
-**Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**), y el grupo **Sen**
+**Soñadoras**, **Tensas**, **Minimalistas** y **Épicas**) y, dentro de cada
+grupo, el combo se ordena alfabéticamente. El grupo **Sen**
 reúne las progresiones reales de las capas sostenidas de las canciones
 publicadas que tienen pad («Lluvia 01», «Lluvia 02», «Tormenta 01»…). En
 **Sen** el combo muestra solo los acordes, sin el nombre de la plantilla, y
@@ -1257,9 +1260,11 @@ aparecen el campo de segundos (0,1–60 s; por defecto 2 s los acordes y 0,65 s
 los arpegios; cada tipo recuerda el suyo) y **▶**. Cambiar los segundos mientras
 suena se aplica en el paso siguiente.
 Debajo aparecen tarjetas con el nombre del acorde, las notas en letras y las teclas del
-ordenador que tocan cada nota. Cada tarjeta se puede mover un paso a la
-izquierda o a la derecha (**‹**, **›**) y duplicar (**⧉**), para probar
-variaciones antes de llevarlas a Notas. A la derecha de la última tarjeta, **+**
+ordenador que tocan cada nota. Pulsar una tarjeta escucha su acorde o nota y
+arrastrarla la reordena dentro de la progresión. En las tarjetas de acorde, el
+lápiz abre un editor de las notas que lo componen (campo de texto e **Invertir**
+para subir una octava la más grave), de modo que las inversiones se prueban
+sobre la propia progresión antes de llevarla a Notas. A la derecha de la última tarjeta, **+**
 abre un
 desplegable para añadir acordes o notas al final de la progresión: **Escala**
 ofrece los acordes o notas de la tonalidad en la octava actual y **Libre**
@@ -1267,7 +1272,7 @@ permite elegir cualquier raíz y tipo de acorde (o cualquier nota). Si no hay
 tarjetas, **+** queda al principio. El desplegable sigue abierto para encadenar
 varias altas y cada tarjeta se quita con **×**. Al editar, el combo pasa a **Personalizada**; la
 progresión propia se conserva al cambiar de octava (se transporta) y al cambiar
-de notación (se reetiqueta). Editar mientras suena —añadir, duplicar, mover o
+de notación (se reetiqueta). Editar mientras suena —añadir, mover, invertir o
 quitar tarjetas— **no detiene la escucha**: el temporizador sigue vivo y el
 siguiente paso toca la lista ya modificada. Solo se detiene al quitar el último
 paso, al cambiar de tipo, octava o tonalidad, o al pulsar **■**. **▶** se convierte en
@@ -1278,16 +1283,16 @@ k × paso (4 acordes de 5 s → 0, 5, 10 y 15 s) y el elemento pasa a durar
 exactamente la progresión (20 s), sin nada después; si no cabe antes del final
 del tema, se recorta y se avisa. El primer paso va a la fila base y la
 progresión sustituye los cambios del elemento (pide confirmación si había).
-Los fundidos se acortan para no comerse el primer ni el último paso: el de
-entrada a un cuarto de paso (máx. 0,5 s) y el de salida a un cuarto de paso
-(máx. 1,5 s). En pistas puntuales, **→ Notas** crea o sustituye una **frase**
+La intensidad no añade fundidos en los bordes: el primer y el último paso
+suenan completos. En pistas puntuales, **→ Notas** crea o sustituye una **frase**
 con una entrada por paso y nota (los acordes comparten tiempo) y selecciona el
 elemento para editar su lista de entradas.
-En **Grabar** el combo se oculta, porque el foco es capturar notas o cambios
-con el teclado. En **Teclado**, el instrumento del piano flotante sigue siempre a
-la pista seleccionada; al cambiar de pista o de elemento, se detienen las notas
-anteriores y las siguientes suenan con el instrumento nuevo. Durante **Grabar**
-se mantiene el instrumento del elemento que se está grabando.
+En **Grabar** el popup mantiene los mismos elementos que en **Teclado**
+(progresiones, tarjetas y piano), para usarlos como guía mientras se capturan
+notas o cambios con el teclado. En **Teclado**, el instrumento del piano flotante
+sigue siempre a la pista seleccionada; al cambiar de pista o de elemento, se
+detienen las notas anteriores y las siguientes suenan con el instrumento nuevo.
+Durante **Grabar** se mantiene el instrumento del elemento que se está grabando.
 
 #### 7.5.4 Plantillas
 
@@ -1975,7 +1980,7 @@ lab/
       nature/kit.js         Planificación, sílabas y partículas
       nature/insects.js     grillo, cigarra
       nature/animals.js     pajaro, rana
-      nature/water.js       gotas, lluvia, arroyo, olas
+      nature/water.js       gotas, lluvia, lluvia fina, lluvia lejana, arroyo, olas
       nature/air.js         viento, fuego, campanillas
   templates/*.sen.json      Proyectos de ejemplo para las pruebas del motor
 scripts/
@@ -2117,8 +2122,8 @@ otra mezcla) y exportarla de nuevo.
 - **Fidelidad:** sin cambios, la exportación coincide con la pista publicada
   (correlación 1,0; la diferencia es el limitador final y el dither, unos
   −32 dB por debajo). Probado en `scripts/test-lab.mjs`.
-- **Edición:** volumen, panorama, silencio, solo, automatización, fundidos y
-  curva por capa; dividir un `clip` avanza el `offset` de la segunda parte. Se
+- **Edición:** volumen, panorama, silencio, solo, automatización y curva por
+  capa; dividir un `clip` avanza el `offset` de la segunda parte. Se
   pueden añadir pistas de instrumentos encima. El timbre de una capa no se
   edita.
 - **Publicar:** Exportar → «Escena para sen» y sustituir a mano el archivo que
@@ -2578,6 +2583,19 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **5.6:** las progresiones del combo se ordenan alfabéticamente dentro de
+  cada grupo. Una capa nueva empieza siempre en 0 y adopta la extensión de la
+  capa más larga. En **Notas**, **Añadir** es un botón normal junto a
+  **Repetir** y **Limpiar**.
+- **5.5:** **Naturaleza → Agua** añade **Lluvia fina** y **Lluvia lejana**,
+  las dos capas de lluvia de la plantilla «Lluvia 01», como instrumentos
+  generativos propios.
+- **5.4:** el modo **Grabar** conserva el mismo popup que **Teclado**. Las
+  tarjetas de progresión suenan al pulsarlas, se reordenan arrastrándolas y los
+  acordes tienen un editor de notas con inversión; desaparecen los botones de
+  mover y duplicar. La intensidad empieza y termina al máximo, sin fundidos en
+  los bordes, y su curva se edita solo en el inspector. En **Notas**, cada fila
+  muestra el acorde de sus notas y lo escucha al pulsarlo.
 - **5.3:** las nubes de notas sustituyen al editor de notas propias: una nube
   nueva empieza vacía, cada fila es una nota con su tiempo y **▶** la escucha
   con un golpe; **Grabar** añade al vuelo las teclas tocadas y **Notas

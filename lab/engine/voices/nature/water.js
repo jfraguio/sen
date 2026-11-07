@@ -90,17 +90,19 @@ const RAIN_SURFACES = {
   cristal: { f: 3400, q: 2.2, hiss: 0.8, ping: 0.03, kind: 'cristal', gain: 0.8 },
   agua: { f: 1800, q: 0.6, hiss: 0.9, ping: 0.05, kind: 'agua', gain: 0.9 },
   lona: { f: 260, q: 2.2, hiss: 0.3, ping: 0, lp: 1200, gain: 2.2 },
+  // Variante interna de «Lluvia fina»: gotas pequeñas y brillantes sobre hoja.
+  fina: { f: 3150, q: 0.8, hiss: 1.15, ping: 0.014, kind: 'hoja', gain: 0.78 },
 };
 
 class RainVoice {
-  constructor(p, el, ctx, sr, period) {
+  constructor(p, el, ctx, sr, period, forcedSurface = null) {
     this.sr = sr;
     this.period = period;
     const env = new BedEnvelope(el, sr, period);
     env.audition = !!ctx.audition;
     const seed = ctx.elementSeed;
     this.s = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((k) => subSeed(seed, k));
-    this.surf = RAIN_SURFACES[p.surface] || RAIN_SURFACES.hojas;
+    this.surf = RAIN_SURFACES[forcedSurface || p.surface] || RAIN_SURFACES.hojas;
     this.hissL = new ColoredNoise(subSeed(seed, 20), 'rosa', period);
     this.hissR = new ColoredNoise(subSeed(seed, 21), 'rosa', period);
     this.hpL = new Svf(1).set(500, 0.7, sr);
@@ -170,6 +172,62 @@ class RainVoice {
 }
 
 export const compileLluvia = bed((p, el, ctx, sr, period) => new RainVoice(p, el, ctx, sr, period));
+
+/** Lluvia fina: el mismo lecho de impactos, con gotas pequeñas y brillantes. */
+export const compileLluviaFina = bed((p, el, ctx, sr, period) => new RainVoice(p, el, ctx, sr, period, 'fina'));
+
+/* ------------------------------------------------------------ lluvia lejana */
+
+/**
+ * Lluvia lejana: un rumor continuo de ruido rosa filtrado entre 250 y 3200 Hz,
+ * con ráfagas lentas. Es la capa de fondo de «Lluvia 01», sin gotas cercanas.
+ */
+class DistantRainVoice {
+  constructor(p, el, ctx, sr, period) {
+    this.sr = sr;
+    this.period = period;
+    const env = new BedEnvelope(el, sr, period);
+    env.audition = !!ctx.audition;
+    const seed = ctx.elementSeed;
+    this.nL = new ColoredNoise(subSeed(seed, 50), 'rosa', period);
+    this.nR = new ColoredNoise(subSeed(seed, 51), 'rosa', period);
+    const lo = 250;
+    const hi = 3200;
+    this.hpL1 = new Svf(1).set(lo, 0.7, sr);
+    this.hpL2 = new Svf(1).set(lo, 0.7, sr);
+    this.hpR1 = new Svf(1).set(lo, 0.7, sr);
+    this.hpR2 = new Svf(1).set(lo, 0.7, sr);
+    this.lpL1 = new Svf(0).set(hi, 0.7, sr);
+    this.lpL2 = new Svf(0).set(hi, 0.7, sr);
+    this.lpR1 = new Svf(0).set(hi, 0.7, sr);
+    this.lpR2 = new Svf(0).set(hi, 0.7, sr);
+    const knots = period ? Math.max(1, Math.round((0.08 * period) / sr)) : 0;
+    const rate = period ? (knots * sr) / period : 0.08;
+    this.mod = smoothRandom(subSeed(seed, 52), knots);
+    this.vari = p.variation ?? 0.5;
+    this.presence = clamp(p.intensity ?? 0.7, 0.05, 2);
+    this.ctl = new Control(1, (i, out) => {
+      const t = env.time(i);
+      const gust = 1 + 0.45 * this.vari * this.mod(t * rate);
+      out[0] = env.levelAt(i) * gust * this.presence * 1.15;
+    });
+  }
+  process(L, R, off, n, i) {
+    segments(this.ctl, off, n, i, (o, seg, ii) => {
+      const g = this.ctl.value(0, ii);
+      for (let q = 0; q < seg; q++) {
+        let l = this.hpL2.tick(this.hpL1.tick(this.nL.at(ii + q)));
+        l = this.lpL2.tick(this.lpL1.tick(l));
+        let r = this.hpR2.tick(this.hpR1.tick(this.nR.at(ii + q)));
+        r = this.lpR2.tick(this.lpR1.tick(r));
+        L[o + q] += l * g;
+        R[o + q] += r * g;
+      }
+    });
+  }
+}
+
+export const compileLluviaLejana = bed((p, el, ctx, sr, period) => new DistantRainVoice(p, el, ctx, sr, period));
 
 /* ------------------------------------------------------------ arroyo */
 
