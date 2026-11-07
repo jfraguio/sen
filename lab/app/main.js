@@ -4,7 +4,7 @@
 
 import { h, fmtTime, toast, announce, findTrack, findElement, elementSpan, typingTarget, isCompact, clampNum, installTitles, setIcon } from './util.js';
 import {
-  INSTRUMENTS, LIMITS, LabFileError, createElement, createProject, createSceneProject, createTrack, layerKey, newId, normalizeProject,
+  INSTRUMENTS, LIMITS, LabFileError, createElement, createSceneProject, createTrack, layerKey, newId, normalizeProject,
   projectCounts, splitToneChanges,
 } from '../engine/schema.js';
 import { sustainVoiceCount } from '../engine/voices/sustain.js';
@@ -18,7 +18,8 @@ import { createLibrary, startTemplates } from './library.js';
 import { createExportDialog } from './export.js';
 import { createCompact } from './compact.js';
 import { createPerformance } from './performance.js';
-import { downloadProject, isDownloaded, loadAutosave, readProjectFile, scheduleAutosave, writeMeta } from './storage.js';
+import { downloadAlbum, isAlbumDownloaded, loadAutosave, readProjectFile, scheduleAutosave, writeMeta } from './storage.js';
+import { createAlbum, createAlbumTheme } from './album.js';
 import { midiToTracks } from './midi.js';
 import { createSceneSource } from './scenes.js';
 
@@ -60,9 +61,19 @@ function boot() {
   installTitles();
   document.getElementById('app').hidden = false;
   const saved = loadAutosave();
-  const store = createStore(saved?.project || createProject({ seed: 'vacio' }));
+  let album = saved?.album || createAlbum();
+  let albumIndex = Math.min(Math.max(0, album.current || 0), album.themes.length - 1);
+  album.current = albumIndex;
+  const store = createStore(album.themes[albumIndex]);
   const { state } = store;
   const $ = (id) => document.getElementById(id);
+
+  /** Vuelca el tema abierto (con sus cambios) en el documento del álbum. */
+  function syncAlbum() {
+    album.themes[albumIndex] = state.project;
+    album.current = albumIndex;
+    return album;
+  }
 
   let meters = null;
   let inspector = null;
@@ -249,17 +260,16 @@ function boot() {
 
   let layersBusy = false;
 
-  /** Abre una canción publicada como proyecto de capas. Devuelve su info o `null`. */
+  /** Añade una canción publicada como tema nuevo de capas. Devuelve su info o `null`. */
   async function loadSceneProject(ambient, track, status = null) {
     if (layersBusy) return null;
-    if (!confirmDiscard()) return null;
     layersBusy = true;
     if (status) status.textContent = 'Preparando las capas… (unos segundos)';
     try {
       const r = await scenes.load(ambient, track);
       const { project } = normalizeProject(createSceneProject({ ...r, layers: r.layers.map((l) => l.name) }));
       shareSamples(await scenes.samplesFor(project));
-      loadProject(project);
+      addTheme(project);
       if (status) status.textContent = '';
       return r;
     } catch (err) {
@@ -272,12 +282,11 @@ function boot() {
     }
   }
 
-  /** Abre una plantilla de la biblioteca: el tema vacío o una canción de sen. */
+  /** Añade una plantilla de la biblioteca como tema nuevo: vacío o canción de sen. */
   async function openTemplate(t) {
     if (layersBusy) return;
     if (t.blank) {
-      if (!confirmDiscard()) return;
-      loadProject(createProject({ seed: 'vacio' }));
+      addTheme(createAlbumTheme(nextThemeName()));
       actions.closeSheet();
       return;
     }
@@ -633,6 +642,8 @@ function boot() {
   /* ------------------------------------------------------------ cabecera */
 
   const nameInput = $('project-name');
+  const albumInput = $('album-name');
+  const themeSelect = $('theme-select');
   let nameGesture = null;
   nameInput.addEventListener('focus', () => {
     nameGesture = `name${Date.now()}`;
@@ -640,104 +651,263 @@ function boot() {
   nameInput.addEventListener('input', () => store.commit((d) => {
     d.name = nameInput.value || 'Tema sin título';
   }, { gesture: nameGesture, source: 'name' }));
-  nameInput.addEventListener('blur', () => store.endGesture());
+  nameInput.addEventListener('blur', () => {
+    store.endGesture();
+    if (!nameInput.value.trim()) nameInput.value = state.project.name;
+  });
   nameInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') nameInput.blur();
+  });
+  albumInput.addEventListener('input', () => {
+    album.name = albumInput.value.trim() || 'Álbum sin título';
+    scheduleAutosave(syncAlbum(), updateSaveState);
+    updateDocumentTitle();
+  });
+  albumInput.addEventListener('blur', () => {
+    if (!albumInput.value.trim()) albumInput.value = album.name;
+  });
+  albumInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') albumInput.blur();
   });
   $('undo').addEventListener('click', () => store.undo());
   $('redo').addEventListener('click', () => store.redo());
 
-  const projectMenu = $('project-menu');
-  const menuTrigger = $('menu-trigger');
-  const menuPop = $('menu-pop');
-  const menuItems = () => [...menuPop.querySelectorAll('.menu__item')];
-
-  /** Coloca el menú bajo el botón sin salirse de la pantalla. */
-  function placeMenu() {
-    const trigger = menuTrigger.getBoundingClientRect();
-    const width = menuPop.offsetWidth;
-    const height = menuPop.offsetHeight;
-    const margin = 8;
-    let left = trigger.right - width;
-    if (left < margin) left = trigger.left;
-    left = Math.max(margin, Math.min(left, innerWidth - width - margin));
-    const maxTop = innerHeight - height - margin;
-    const top = maxTop < margin ? margin : Math.min(trigger.bottom + 9, maxTop);
-    menuPop.style.left = `${Math.round(left)}px`;
-    menuPop.style.top = `${Math.round(top)}px`;
+  function updateDocumentTitle() {
+    document.title = `${state.project.name} · ${album.name} — sen lab`;
   }
 
-  function openMenu(where = 'first') {
-    menuPop.hidden = false;
-    menuTrigger.setAttribute('aria-expanded', 'true');
-    placeMenu();
-    const items = menuItems();
-    if (where === 'first') items[0]?.focus();
-    else if (where === 'last') items.at(-1)?.focus();
+  function themeName(theme, index) {
+    return String(theme?.name || '').trim() || `Tema ${index + 1}`;
   }
 
-  function closeMenu({ returnFocus = false } = {}) {
-    if (menuPop.hidden) return;
-    menuPop.hidden = true;
-    menuTrigger.setAttribute('aria-expanded', 'false');
-    if (returnFocus) menuTrigger.focus();
+  /** Siguiente nombre libre «Tema N» para los temas nuevos. */
+  function nextThemeName() {
+    const used = new Set(album.themes.map((theme, index) => themeName(theme, index)));
+    let n = 1;
+    while (used.has(`Tema ${n}`)) n++;
+    return `Tema ${n}`;
   }
 
-  menuTrigger.addEventListener('click', () => {
-    if (menuPop.hidden) openMenu();
-    else closeMenu({ returnFocus: true });
-  });
-  menuTrigger.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      openMenu(e.key === 'ArrowDown' ? 'first' : 'last');
-    }
-  });
-  menuPop.addEventListener('keydown', (e) => {
-    const items = menuItems();
-    const index = items.indexOf(document.activeElement);
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      items[(index + 1) % items.length]?.focus();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      items[(index - 1 + items.length) % items.length]?.focus();
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      items[0]?.focus();
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      items.at(-1)?.focus();
-    } else if (e.key === 'Tab') {
-      closeMenu();
-    }
-  });
-  // Cierra el menú antes de ejecutar la acción para devolver el foco al botón
-  // (el diálogo de exportación se lleva el foco después, si se abre).
-  menuPop.addEventListener('click', (e) => {
-    if (e.target.closest('.menu__item')) closeMenu({ returnFocus: true });
-  }, true);
+  /** Pinta el selector y los controles que dependen del número de temas. */
+  function updateAlbumUI() {
+    album.themes[albumIndex] = state.project;
+    if (document.activeElement !== albumInput) albumInput.value = album.name;
+    const total = album.themes.length;
+    themeSelect.textContent = '';
+    album.themes.forEach((theme, index) => {
+      themeSelect.append(h('option', { value: String(index) }, `${index + 1}/${total} · ${themeName(theme, index)}`));
+    });
+    themeSelect.value = String(albumIndex);
+    themeSelect.disabled = total < 2;
+    $('theme-prev').disabled = total < 2;
+    $('theme-next').disabled = total < 2;
+    const remove = $('delete-theme');
+    remove.disabled = total < 2;
+    remove.title = total < 2 ? 'El álbum debe tener al menos un tema' : 'Eliminar el tema abierto';
+    updateDocumentTitle();
+  }
 
-  document.addEventListener('click', (e) => {
-    if (menuPop.hidden) return;
-    if (menuPop.contains(e.target) || menuTrigger.contains(e.target)) return;
-    closeMenu();
-  });
+  function setTheme(index) {
+    const total = album.themes.length;
+    if (!total) return;
+    const nextIndex = ((Math.round(Number(index)) % total) + total) % total;
+    if (nextIndex === albumIndex) return;
+    if (state.playing) togglePlay();
+    syncAlbum();
+    albumIndex = nextIndex;
+    album.current = nextIndex;
+    store.load(album.themes[nextIndex]);
+    requestAnimationFrame(() => timeline.fit());
+    announce(`Tema «${themeName(album.themes[nextIndex], nextIndex)}» abierto.`);
+  }
 
-  projectMenu.addEventListener('focusout', (e) => {
-    if (!projectMenu.contains(e.relatedTarget)) closeMenu();
-  });
+  function addTheme(project, warnings = []) {
+    if (state.playing) togglePlay();
+    syncAlbum();
+    album.themes.push(project);
+    albumIndex = album.themes.length - 1;
+    album.current = albumIndex;
+    store.load(project);
+    requestAnimationFrame(() => timeline.fit());
+    if (warnings.length) notify(warnings.join(' '));
+    announce(`Tema «${themeName(project, albumIndex)}» añadido al álbum.`);
+  }
 
-  window.addEventListener('resize', () => {
-    if (!menuPop.hidden) placeMenu();
-  });
+  function newTheme() {
+    addTheme(createAlbumTheme(nextThemeName()));
+  }
 
-  $('new').addEventListener('click', () => {
+  function deleteTheme() {
+    if (album.themes.length < 2) return;
+    const name = themeName(state.project, albumIndex);
+    if (!window.confirm(`¿Eliminar el tema «${name}» del álbum?`)) return;
+    if (state.playing) togglePlay();
+    syncAlbum();
+    album.themes.splice(albumIndex, 1);
+    if (albumIndex >= album.themes.length) albumIndex = album.themes.length - 1;
+    album.current = albumIndex;
+    store.load(album.themes[albumIndex]);
+    requestAnimationFrame(() => timeline.fit());
+    announce(`Tema «${name}» eliminado del álbum.`);
+  }
+
+  function newAlbum() {
     if (!confirmDiscard()) return;
-    loadProject(createProject({ seed: 'vacio' }));
+    if (state.playing) togglePlay();
+    const theme = createAlbumTheme('Tema 1');
+    album = createAlbum({ name: 'Álbum sin título', themes: [theme] });
+    albumIndex = 0;
+    album.current = 0;
+    store.load(theme);
+    writeMeta({ downloadedAlbumRevision: null });
+    requestAnimationFrame(() => timeline.fit());
     actions.closeSheet();
     updateSaveState();
-  });
+    updateAlbumUI();
+    announce('Álbum nuevo.');
+  }
+
+  function loadAlbum(nextAlbum, warnings = []) {
+    if (state.playing) togglePlay();
+    album = nextAlbum;
+    albumIndex = Math.min(Math.max(0, album.current || 0), album.themes.length - 1);
+    album.current = albumIndex;
+    store.load(album.themes[albumIndex]);
+    writeMeta({ downloadedAlbumRevision: null });
+    requestAnimationFrame(() => timeline.fit());
+    updateAlbumUI();
+    if (warnings.length) notify(warnings.join(' '));
+    announce(`Álbum «${album.name}» abierto.`);
+  }
+
+  function confirmDiscard() {
+    const current = syncAlbum();
+    if (isAlbumDownloaded(current)) return true;
+    const untouched = current.themes.length === 1
+      && current.name === 'Álbum sin título'
+      && themeName(current.themes[0], 0) === 'Tema 1'
+      && !current.themes[0].tracks.length;
+    if (untouched) return true;
+    return window.confirm('El álbum actual no se ha descargado. Seguirá en este navegador hasta que lo sustituyas. ¿Continuar?');
+  }
+
+  /* ------------------------------------------------ menús desplegables */
+
+  const openMenus = new Set();
+
+  function createMenu(root, trigger, pop) {
+    const items = () => [...pop.querySelectorAll('.menu__item')].filter((item) => !item.disabled);
+
+    /** Coloca el menú bajo el botón sin salirse de la pantalla. */
+    function placeMenu() {
+      const rect = trigger.getBoundingClientRect();
+      const width = pop.offsetWidth;
+      const height = pop.offsetHeight;
+      const margin = 8;
+      let left = rect.right - width;
+      if (left < margin) left = rect.left;
+      left = Math.max(margin, Math.min(left, innerWidth - width - margin));
+      const maxTop = innerHeight - height - margin;
+      const top = maxTop < margin ? margin : Math.min(rect.bottom + 9, maxTop);
+      pop.style.left = `${Math.round(left)}px`;
+      pop.style.top = `${Math.round(top)}px`;
+    }
+
+    const api = {
+      open(where = 'first') {
+        for (const other of openMenus) if (other !== api) other.close();
+        pop.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+        openMenus.add(api);
+        placeMenu();
+        const enabled = items();
+        if (!enabled.length) return;
+        if (where === 'first') enabled[0].focus();
+        else if (where === 'last') enabled.at(-1).focus();
+      },
+      close({ returnFocus = false } = {}) {
+        if (pop.hidden) return;
+        openMenus.delete(api);
+        pop.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        if (returnFocus) trigger.focus();
+      },
+      contains(node) {
+        return root.contains(node);
+      },
+      focusTrigger() {
+        trigger.focus();
+      },
+    };
+
+    trigger.addEventListener('click', () => {
+      if (pop.hidden) api.open();
+      else api.close({ returnFocus: true });
+    });
+    trigger.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        api.open(e.key === 'ArrowDown' ? 'first' : 'last');
+      }
+    });
+    pop.addEventListener('keydown', (e) => {
+      const enabled = items();
+      const index = enabled.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        enabled[(index + 1) % enabled.length]?.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        enabled[(index - 1 + enabled.length) % enabled.length]?.focus();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        enabled[0]?.focus();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        enabled.at(-1)?.focus();
+      } else if (e.key === 'Tab') {
+        api.close();
+      }
+    });
+    // Cierra el menú antes de ejecutar la acción para devolver el foco al
+    // botón (un diálogo se lleva el foco después, si se abre).
+    pop.addEventListener('click', (e) => {
+      if (e.target.closest('.menu__item')) api.close({ returnFocus: true });
+    }, true);
+
+    document.addEventListener('click', (e) => {
+      if (pop.hidden) return;
+      if (pop.contains(e.target) || trigger.contains(e.target)) return;
+      api.close();
+    });
+    root.addEventListener('focusout', (e) => {
+      if (!root.contains(e.relatedTarget)) api.close();
+    });
+    window.addEventListener('resize', () => {
+      if (!pop.hidden) placeMenu();
+    });
+
+    return api;
+  }
+
+  function closeOpenMenus() {
+    const open = [...openMenus];
+    if (!open.length) return false;
+    const active = open.find((menu) => menu.contains(document.activeElement)) || open.at(-1);
+    for (const menu of open) menu.close();
+    active.focusTrigger();
+    return true;
+  }
+
+  createMenu($('app-menu'), $('menu-trigger'), $('menu-pop'));
+  createMenu($('theme-menu'), $('theme-menu-trigger'), $('theme-menu-pop'));
+
+  $('new').addEventListener('click', newAlbum);
+  $('new-theme').addEventListener('click', newTheme);
+  $('theme-prev').addEventListener('click', () => setTheme(albumIndex - 1));
+  $('theme-next').addEventListener('click', () => setTheme(albumIndex + 1));
+  themeSelect.addEventListener('change', () => setTheme(Number(themeSelect.value)));
+  $('delete-theme').addEventListener('click', deleteTheme);
   $('open').addEventListener('click', () => $('open-file').click());
   $('open-file').addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
@@ -745,25 +915,11 @@ function boot() {
     if (file) await openFile(file);
   });
   $('save-project').addEventListener('click', () => {
-    downloadProject(state.project);
+    downloadAlbum(syncAlbum());
     updateSaveState();
-    announce('Proyecto descargado.');
+    announce('Álbum descargado.');
   });
   $('export').addEventListener('click', () => exporter.open());
-
-  function confirmDiscard() {
-    if (!state.project.tracks.length || isDownloaded(state.project)) return true;
-    return window.confirm('El tema actual no se ha descargado. Seguirá en este navegador hasta que lo sustituyas. ¿Continuar?');
-  }
-
-  function loadProject(project, warnings = []) {
-    if (state.playing) togglePlay();
-    store.load(project);
-    writeMeta({ downloadedRevision: null });
-    requestAnimationFrame(() => timeline.fit());
-    if (warnings.length) notify(warnings.join(' '));
-    announce(`Tema «${project.name}» abierto.`);
-  }
 
   async function importMidi(file) {
     try {
@@ -798,9 +954,12 @@ function boot() {
       notify(err instanceof LabFileError ? err.message : `No se puede abrir este archivo: ${err.message}`, true);
       return;
     }
-    if (!confirmDiscard()) return;
-    loadProject(read.project, read.warnings);
-    writeMeta({ downloadedRevision: null });
+    if (read.kind === 'album') {
+      if (!confirmDiscard()) return;
+      loadAlbum(read.album, read.warnings);
+      return;
+    }
+    addTheme(read.project, read.warnings);
   }
 
   /* ------------------------------------------------------------ arrastrar archivos */
@@ -826,11 +985,11 @@ function boot() {
 
   window.addEventListener('keydown', (e) => {
     if (performance.handleKeyDown(e)) return;
-    if (!menuPop.hidden && e.key === 'Escape') {
+    if (e.key === 'Escape' && closeOpenMenus()) {
       e.preventDefault();
-      closeMenu({ returnFocus: true });
       return;
     }
+    if (openMenus.size) return;
     if (document.querySelector('dialog[open]')) return;
     const mod = e.metaKey || e.ctrlKey;
     const typing = typingTarget(e.target);
@@ -850,9 +1009,9 @@ function boot() {
     }
     if (mod && k.toLowerCase() === 's') {
       e.preventDefault();
-      downloadProject(state.project);
+      downloadAlbum(syncAlbum());
       updateSaveState();
-      announce('Proyecto descargado.');
+      announce('Álbum descargado.');
       return;
     }
     if (mod && k.toLowerCase() === 'e') {
@@ -941,7 +1100,9 @@ function boot() {
     else if (kind === 'project') performance.validate();
     if (kind === 'project' || kind === 'load') {
       audio.setProject(s.project);
-      scheduleAutosave(s.project, updateSaveState);
+      album.themes[albumIndex] = s.project;
+      album.current = albumIndex;
+      scheduleAutosave(album, updateSaveState);
       if (info?.source !== 'name' && document.activeElement !== nameInput) nameInput.value = s.project.name;
       if (!!s.project.tempo !== lastGridTempo) {
         lastGridTempo = !!s.project.tempo;
@@ -958,6 +1119,7 @@ function boot() {
         nameInput.value = s.project.name;
         updateGridOptions();
       }
+      updateAlbumUI();
     }
     if (kind === 'project' || kind === 'load') ensureLayers(s.project);
     if (kind === 'project' || kind === 'load' || kind === 'selection' || kind === 'view') {
@@ -1009,11 +1171,13 @@ function boot() {
   /* ------------------------------------------------------------ inicio */
 
   nameInput.value = state.project.name;
+  albumInput.value = album.name;
   updateGridOptions();
   timeline.render();
   inspector.render(true);
   compact.render();
   updateTransport();
+  updateAlbumUI();
   updateSaveState();
   requestAnimationFrame(() => timeline.fit());
   if (saved?.warnings?.length) notify(saved.warnings.join(' '));

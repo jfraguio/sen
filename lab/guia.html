@@ -248,6 +248,7 @@
           <li><a href="#primeros-pasos">Primeros pasos</a></li>
           <li><a href="#pistas-sen">Canciones de sen por capas</a></li>
           <li><a href="#pantalla">La pantalla</a></li>
+          <li><a href="#albumes">Álbumes y temas</a></li>
           <li><a href="#conceptos">Temas, pistas y elementos</a></li>
           <li><a href="#instrumentos">Instrumentos</a></li>
           <li><a href="#editar">Editar en la línea de tiempo</a></li>
@@ -285,7 +286,7 @@
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="primeros-pasos">Primeros pasos</h2>
-        <p>El laboratorio arranca con un <b>tema vacío</b>. <b>Nuevo</b> crea otro tema vacío sin preguntar nada. Si quieres partir de una canción, abre <b>Plantillas</b> en la biblioteca: están las 84 canciones de sen, nombradas «Ambiente NN» («Bosque 01», «Fuego 02»…) y con el nombre del archivo debajo («01.wav», «02.wav»…), y se abren separadas en capas (ver <a href="#pistas-sen">más abajo</a>). Todo se puede cambiar después.</p>
+        <p>El laboratorio arranca con un <b>álbum vacío</b>, «Álbum sin título», que contiene un único tema, «Tema 1». <b>Nuevo</b> en la cabecera añade un tema al álbum; <b>Nuevo</b> en el menú <b>☰</b> crea un álbum completo nuevo con su tema inicial. Si quieres partir de una canción, abre <b>Plantillas</b> en la biblioteca: están las 84 canciones de sen, nombradas «Ambiente NN» («Bosque 01», «Fuego 02»…) y con el nombre del archivo debajo («01.wav», «02.wav»…), y se añaden como un tema nuevo separado en capas (ver <a href="#pistas-sen">más abajo</a>). Todo se puede cambiar después.</p>
         <div class="cards">
           <div class="card"><b>Vacío</b><span>3 minutos, Do mayor, sin pistas.</span></div>
           <div class="card"><b>Bosque 01</b><span>01.wav</span></div>
@@ -322,7 +323,7 @@
         <!-- ------------------------------------------------------------ -->
         <h2 id="pantalla">La pantalla</h2>
 <pre class="diagram" aria-hidden="true">┌───────────────────────────────────────────────────────────────────┐
-│ ← sen  Nombre del tema   guardado  ?  ↶ ↷  ☰                      │  cabecera
+│ ← sen  Álbum  Tema  ‹ 1/3 ›  + Nuevo  ⋮   guardado  ? ↶ ↷ ☰       │  cabecera
 ├───────────────────────────────────────────────────────────────────┤
 │ ▶ ■  01:12,4 / 03:00   ⟲ región   rejilla   − +   vol             │  transporte
 ├──────────┬─────────────────────────────────────────┬──────────────┤
@@ -335,13 +336,26 @@
 └───────────────────────────────────────────────────────────────────┘</pre>
         <table>
           <tr><th>Zona</th><th>Para qué sirve</th></tr>
-          <tr><td>Cabecera</td><td>Volver a sen, nombre del tema, un punto mientras el tema se autoguarda, estas instrucciones (<b>?</b>), deshacer y rehacer y el menú <b>☰</b>, que reúne <b>Nuevo</b> (proyecto vacío), <b>Abrir</b> (un proyecto <code>.json</code> o un WAV), <b>Guardar</b> (descarga el <code>.sen.json</code>) y <b>Exportar</b>.</td></tr>
+          <tr><td>Cabecera</td><td>Volver a sen, <b>nombre del álbum</b>, <b>nombre del tema abierto</b>, navegación entre temas (‹, selector y ›), <b>+ Nuevo</b> para añadir un tema, el menú <b>⋮</b> del tema (<b>Eliminar</b> y <b>Exportar</b>), un punto mientras se autoguarda, estas instrucciones (<b>?</b>), deshacer y rehacer y el menú <b>☰</b>, que reúne <b>Nuevo</b> (álbum nuevo), <b>Abrir</b> (álbum, tema <code>.json</code>, WAV o MIDI) y <b>Guardar</b> (descarga el álbum <code>.sen-album.json</code>).</td></tr>
           <tr><td>Transporte</td><td>Reproducir/pausa, detener (vuelve al inicio), posición, región en bucle, rejilla de ajuste, zoom y volumen de escucha. El volumen no afecta a lo que exportas.</td></tr>
           <tr><td>Biblioteca</td><td>Instrumentos agrupados por gesto (<b>Sostenidos</b>, <b>Puntuales</b>, <b>Texturas</b> y <b>Naturaleza</b>) y, dentro, por timbre, y <b>Plantillas</b>. Cada sección y subsección se pliega con su título y empieza plegada. El botón <b>▶</b> hace sonar una muestra de 3 s sin añadir nada.</td></tr>
           <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja sus fundidos, su curva y una forma de onda resumida.</td></tr>
           <tr><td>Inspector</td><td>Los controles de lo que tengas seleccionado: el tema (sin selección), una pista, un elemento o el bus maestro.</td></tr>
           <tr><td>Pie</td><td>Medidor de salida, sonoridad a corto plazo (LUFS), pico, carga del motor, tonalidad y tempo. Aquí aparecen también los avisos.</td></tr>
         </table>
+
+        <!-- ------------------------------------------------------------ -->
+        <h2 id="albumes">Álbumes y temas</h2>
+        <p>Un <b>álbum</b> es un conjunto ordenado de temas y tiene nombre propio. Siempre contiene al menos un tema. El álbum se guarda completo en un archivo <code>.sen-album.json</code>; cada tema dentro conserva su propio proyecto <code>sen-lab/3</code>, con sus pistas, mezcla y exportación.</p>
+        <ul>
+          <li><b>Dos nombres en la cabecera:</b> el primero es el título del álbum y el segundo, el nombre del tema abierto. Ambos se editan en el sitio.</li>
+          <li><b>Navegación:</b> las flechas ‹ y › cambian de tema; el selector central muestra «posición/total · nombre» y permite saltar a cualquiera. La navegación es circular.</li>
+          <li><b>+ Nuevo</b> añade un tema vacío al final del álbum y lo abre. El botón está siempre visible en la cabecera.</li>
+          <li><b>⋮</b> abre las acciones del tema: <b>Eliminar</b> (pide confirmación y queda desactivado si es el único tema) y <b>Exportar</b> (abre el diálogo de exportación del tema abierto).</li>
+          <li><b>Guardar</b>, en el menú <b>☰</b>, descarga el álbum completo. <b>Nuevo</b>, también en <b>☰</b>, crea un álbum nuevo con su tema inicial, preguntando antes si el actual no se ha descargado.</li>
+          <li><b>Abrir</b> distingue un álbum de un tema suelto. Un <code>.sen-album.json</code> sustituye el álbum completo; un tema <code>.sen.json</code> o un WAV se añaden como tema nuevo al álbum actual. Las plantillas de la biblioteca también se añaden como tema nuevo.</li>
+          <li><b>Autoguardado:</b> el álbum completo, incluido el tema abierto y su posición, se guarda solo en el navegador un segundo después de cada cambio. El punto de la cabecera indica que está guardando.</li>
+        </ul>
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="conceptos">Temas, pistas y elementos</h2>
@@ -563,7 +577,7 @@
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="exportar">Exportar</h2>
-        <p><b>Exportar</b> (<kbd>Cmd/Ctrl</kbd> + <kbd>E</kbd>) genera el WAV en tu navegador. Elige un preajuste o ajusta las opciones:</p>
+        <p><b>Exportar</b> está en el menú <b>⋮</b> del tema (<kbd>Cmd/Ctrl</kbd> + <kbd>E</kbd>) y genera el WAV del tema abierto en tu navegador. Elige un preajuste o ajusta las opciones:</p>
         <table>
           <tr><th>Preajuste</th><th>Formato</th><th>Para qué</th></tr>
           <tr><td>Estudio</td><td>48 kHz, 24 bits, estéreo, −18 LUFS, techo −1 dB</td><td>Seguir editando o mezclar en otro programa.</td></tr>
@@ -578,14 +592,14 @@
           <li>Al terminar se descarga <code>nombre-AAAAMMDD-HHmm.wav</code> y se muestran la sonoridad, el pico y cuánto ha trabajado el limitador.</li>
         </ul>
         <div class="note">
-          <p><b>El WAV contiene el proyecto.</b> Cada WAV exportado lleva dentro el proyecto completo. Arrástralo al laboratorio y se abrirá para seguir editándolo.</p>
+          <p><b>El WAV contiene el tema.</b> Cada WAV exportado lleva dentro el proyecto completo del tema. Arrástralo al laboratorio y se añadirá como un tema nuevo del álbum para seguir editándolo.</p>
         </div>
         <h3>Usar un tema como pista de sen</h3>
         <p>Exporta con el preajuste <b>Escena para sen</b> y copia el archivo a mano en <code>assets/audio/&lt;ambiente&gt;/</code> con el número de la pista que sustituye (<code>01.wav</code> … <code>06.wav</code>). Si has retocado una pista de sen, el diálogo de exportar te dice qué archivo es. El laboratorio no publica nada por sí solo.</p>
         <h3>Otras descargas</h3>
         <ul>
-          <li><b>Descargar proyecto</b>: el <code>.sen.json</code> para reabrirlo o guardarlo en tu control de versiones.</li>
-          <li><b>Descargar script</b>: un único archivo <code>.render.mjs</code> con el motor y el proyecto. <code>node tema.render.mjs [salida.wav]</code> genera el mismo WAV sin necesitar nada más. No está disponible en temas con capas de pistas de sen (necesitan el generador de la app): usa el render local.</li>
+          <li><b>Descargar tema</b>: el <code>.sen.json</code> del tema abierto para reabrirlo suelto o guardarlo en tu control de versiones.</li>
+          <li><b>Descargar script</b>: un único archivo <code>.render.mjs</code> con el motor y el tema. <code>node tema.render.mjs [salida.wav]</code> genera el mismo WAV sin necesitar nada más. No está disponible en temas con capas de pistas de sen (necesitan el generador de la app): usa el render local.</li>
           <li><b>Render local</b> desde el repositorio:
 <pre>node scripts/render-lab.mjs tema.sen.json
 node scripts/render-lab.mjs tema.sen.json --out tema.wav --rate 44100 --bits 16 \
@@ -597,10 +611,11 @@ node scripts/render-lab.mjs tema.wav     # usa el proyecto guardado dentro del W
         <!-- ------------------------------------------------------------ -->
         <h2 id="archivos">Guardar, abrir y MIDI</h2>
         <ul>
-          <li><b>Autoguardado</b>: el tema se guarda solo en el navegador, un segundo después de cada cambio, y se recupera al volver. Mientras guarda aparece un punto en la cabecera; cuando termina, desaparece. Es una copia local: si borras los datos del navegador se pierde, así que <b>descarga el proyecto</b> (<b>Guardar</b> o <kbd>Cmd/Ctrl</kbd> + <kbd>S</kbd>) para conservarlo.</li>
-          <li><b>Nuevo</b> te pregunta antes de descartar un tema que no has descargado.</li>
-          <li><b>Deshacer</b> hasta 200 pasos. Un arrastre o un gesto de deslizador cuentan como un solo paso.</li>
-          <li><b>Abrir</b> (o arrastrar a la ventana): un <code>.sen.json</code>, un WAV exportado por el laboratorio o un MIDI.</li>
+          <li><b>Autoguardado</b>: el álbum completo se guarda solo en el navegador, un segundo después de cada cambio, y se recupera al volver, incluido el tema que estaba abierto. Mientras guarda aparece un punto en la cabecera; cuando termina, desaparece. Es una copia local: si borras los datos del navegador se pierde, así que <b>descarga el álbum</b> (<b>Guardar</b> o <kbd>Cmd/Ctrl</kbd> + <kbd>S</kbd>) para conservarlo.</li>
+          <li><b>Guardar</b> descarga <code>&lt;nombre-del-álbum&gt;.sen-album.json</code> con todos los temas.</li>
+          <li><b>Nuevo</b> del menú <b>☰</b> te pregunta antes de descartar un álbum que no has descargado.</li>
+          <li><b>Deshacer</b> hasta 200 pasos dentro del tema abierto. Un arrastre o un gesto de deslizador cuentan como un solo paso. Al cambiar de tema, el historial empieza de nuevo.</li>
+          <li><b>Abrir</b> (o arrastrar a la ventana): un <code>.sen-album.json</code> (sustituye el álbum), un <code>.sen.json</code> de un tema o un WAV exportado por el laboratorio (se añaden como tema nuevo) o un MIDI.</li>
           <li><b>MIDI</b> (<code>.mid</code>): se importa en el tema actual como pistas nuevas, y se deshace en un solo paso. Las notas largas se convierten en una pista de <b>Pad</b> con acordes; el resto, en <b>Kalimba</b> con frases. La percusión (canal 10) se ignora. Si hace falta, el tema se alarga.</li>
           <li>Si un archivo trae valores fuera de rango, se recortan y se te avisa una vez.</li>
         </ul>
@@ -620,8 +635,8 @@ node scripts/render-lab.mjs tema.wav     # usa el proyecto guardado dentro del W
           <tr><td><kbd>M</kbd> / <kbd>Mayús</kbd> <kbd>S</kbd></td><td>Silencio / solo de la pista seleccionada</td></tr>
           <tr><td><kbd>L</kbd></td><td>Región de escucha en bucle</td></tr>
           <tr><td><kbd>+</kbd> <kbd>−</kbd></td><td>Zoom</td></tr>
-          <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>S</kbd></td><td>Descargar el proyecto</td></tr>
-          <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>E</kbd></td><td>Exportar</td></tr>
+          <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>S</kbd></td><td>Descargar el álbum completo</td></tr>
+          <tr><td><kbd>Cmd/Ctrl</kbd> <kbd>E</kbd></td><td>Exportar el tema abierto</td></tr>
           <tr><td><kbd>?</kbd></td><td>Abrir estas instrucciones</td></tr>
           <tr><td><kbd>Z S X D C V G B H N J M</kbd> y <kbd>Q 2 W 3 E R 5 T 6 Y 7 U</kbd></td><td>En el modo teclado, tocar la octava grave y la aguda</td></tr>
           <tr><td><kbd>Esc</kbd></td><td>Cerrar diálogo, quitar la selección o salir del modo teclado</td></tr>
@@ -665,7 +680,8 @@ Editor ◀───────────────────────�
           <tr><td>Golpes a la vez</td><td>16 por pista, 64 en total (se apaga el más antiguo)</td></tr>
           <tr><td>Eventos de simulaciones</td><td>200 000 por tema (solo avisa: tarda más)</td></tr>
           <tr><td>Reverb</td><td>decaimiento de hasta 12 s</td></tr>
-          <tr><td>Tamaño del proyecto</td><td>1 MB</td></tr>
+          <tr><td>Tamaño de un tema</td><td>1 MB</td></tr>
+          <tr><td>Tamaño de un álbum</td><td>8 MB</td></tr>
         </table>
         <p class="muted">Si un cambio supera un límite, no se aplica y se te explica por qué.</p>
 

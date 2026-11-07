@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 4.9<br>
+**Versión:** 5.0<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de música ambiental
 
@@ -754,7 +754,8 @@ El modo **lab** es un entorno de trabajo para componer, desde cero, temas de
 música ambiental sintética: notas sostenidas, notas puntuales, ruidos y
 simulaciones de naturaleza (bichos, pájaros, agua…), colocados en una línea de
 tiempo, escuchados en directo y exportados como **WAV generado en el propio
-navegador**.
+navegador**. Los temas se organizan en **álbumes** (7.3.1) y el álbum completo
+se guarda como `<nombre>.sen-album.json`.
 
 Principios:
 
@@ -806,6 +807,9 @@ No objetivos:
 
 #### 7.3.1 Conceptos
 
+- **Álbum**: documento con nombre que reúne **uno o más temas** y recuerda cuál
+  está abierto. Esquema `sen-lab/album/1` (7.10.3). Se guarda como
+  `<nombre>.sen-album.json`.
 - **Tema** (proyecto): nombre, duración, modo de final, tonalidad, afinación,
   tempo opcional, semilla, pistas y bus maestro. Es un documento JSON pequeño
   (KB), esquema `sen-lab/3` (7.10).
@@ -1083,7 +1087,7 @@ por parámetro.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ← sen   Estanque al anochecer ✎   ●   ↶  ↷   ☰                        │
+│ ← sen  Álbum  Tema  ‹ 1/3 ›  + Nuevo  ⋮   ●   ? ↶ ↷ ☰               │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ▶  ■   01:12,4 / 03:00   ⟲ región   rejilla 0,5 s   zoom −/+   vol escucha │
 ├────────────┬───────────────────────────────────────────────┬─────────────┤
@@ -1100,13 +1104,26 @@ por parámetro.
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Cabecera:** volver, nombre editable del tema, un punto mientras se
-  autoguarda en el navegador, enlace **?** a las instrucciones
-  (`lab/guia.html`, en otra pestaña), deshacer/rehacer y el menú **☰**. El menú
-  se despliega con **Nuevo** (crea un proyecto vacío), **Abrir** (un proyecto
-  `.json` o un WAV), **Guardar** (descarga el `.sen.json`) y **Exportar** (abre
-  el diálogo de exportación). Todos los controles y secciones de la interfaz
-  llevan un atributo `title` para poder identificarlos.
+- **Cabecera:** volver, nombre editable del **álbum**, nombre editable del
+  **tema abierto**, navegación circular entre los temas del álbum (‹, selector
+  `posición/total · nombre` y ›), botón **+ Nuevo** siempre visible para añadir
+  un tema, menú **⋮** del tema (**Eliminar**, con confirmación y desactivado si
+  es el único tema, y **Exportar**), un punto mientras se autoguarda en el
+  navegador, enlace **?** a las instrucciones (`lab/guia.html`, en otra
+  pestaña), deshacer/rehacer y el menú **☰**. El menú **☰** se despliega con
+  **Nuevo** (crea un álbum nuevo con su tema inicial), **Abrir** (un
+  `.sen-album.json`, un tema `.sen.json`, un WAV o un MIDI) y **Guardar**
+  (descarga el álbum completo `.sen-album.json`). Todos los controles y
+  secciones de la interfaz llevan un atributo `title` para poder
+  identificarlos.
+- **Álbum y temas:** un álbum contiene siempre al menos un tema. Cambiar de
+  tema detiene la escucha, guarda el estado del anterior y reinicia el
+  historial de deshacer; la selección vuelve al tema. Los temas nuevos son
+  proyectos vacíos llamados «Tema N» (el primer nombre libre). Abrir un tema
+  suelto (JSON o WAV) o una plantilla lo **añade** al álbum como tema nuevo;
+  abrir un `.sen-album.json` sustituye el álbum completo tras confirmar si hay
+  cambios sin descargar. Un álbum con un solo tema mantiene **Eliminar**
+  desactivado.
 - **Transporte:** reproducir/pausa, detener (vuelve al inicio), posición y
   duración (`mm:ss,d`), botón **Tema** para abrir los ajustes generales, región
   de escucha en bucle, rejilla, zoom y volumen de escucha (no afecta a la
@@ -1178,9 +1195,10 @@ sin animaciones de fondo que compitan con el trabajo.
   tienen **Aleatorizar** (nueva semilla). El inspector de un elemento muestra su
   contenido y su curva; el tiempo, el nivel y los fundidos se ajustan en la
   propia capa de la línea de tiempo.
-- **Arrastrar un archivo** `.sen.json` o un WAV exportado por el laboratorio
-  (7.8.1) a la ventana lo abre. Un archivo **MIDI** (`.mid`) se importa en el
-  tema actual (7.8.5).
+- **Arrastrar un archivo** `.sen-album.json` sustituye el álbum; un
+  `.sen.json`, un WAV exportado por el laboratorio (7.8.1) o una plantilla se
+  añaden como tema nuevo. Un archivo **MIDI** (`.mid`) se importa en el tema
+  actual (7.8.5).
 - **Automatización:** en el inspector de la pista, sección «Automatización»:
   se elige el parámetro y se dibujan puntos sobre la duración del tema.
 
@@ -1199,8 +1217,8 @@ sin animaciones de fondo que compitan con el trabajo.
 | `M` / `Mayús` + `S` | Silenciar / solo de la pista seleccionada |
 | `L` | Activar la región de escucha en bucle |
 | `+` / `−` | Zoom |
-| `Cmd/Ctrl` + `S` | Descargar el proyecto `.sen.json` |
-| `Cmd/Ctrl` + `E` | Abrir el diálogo de exportación |
+| `Cmd/Ctrl` + `S` | Descargar el álbum completo `.sen-album.json` |
+| `Cmd/Ctrl` + `E` | Exportar el tema abierto (diálogo de exportación) |
 | `?` | Abrir las instrucciones en otra pestaña |
 | `Escape` | Cerrar diálogo o deseleccionar |
 
@@ -1594,14 +1612,20 @@ Límites: duración del tema 10 s – 30 min (bucle: 10 s – 10 min). Antes de
 exportar se muestra el tamaño estimado; por encima de 300 MB se avisa de que en
 móvil puede fallar.
 
-#### 7.8.2 Proyecto `.sen.json`
+#### 7.8.2 Álbum `.sen-album.json` y tema `.sen.json`
 
-- **Descargar proyecto** (`Cmd/Ctrl` + `S`): `<nombre-del-tema>.sen.json`,
-  formateado con dos espacios, con `savedAt` en ISO 8601.
-- **Abrir** con selector de archivos o arrastrando el archivo (también un WAV
-  con chunk `senp`).
-- Guarda también las últimas opciones de exportación (`export`), para que el
-  render local produzca lo mismo sin repetir opciones.
+- **Guardar** (`Cmd/Ctrl` + `S`): `<nombre-del-álbum>.sen-album.json` con todos
+  los temas, el nombre del álbum y el índice del tema abierto. Formateado con
+  dos espacios y con `savedAt` en ISO 8601.
+- **Abrir** con selector de archivos o arrastrando: un álbum sustituye el
+  actual; un tema `.sen.json` o un WAV con chunk `senp` se añade como tema
+  nuevo. Un álbum con un solo tema se mantiene válido.
+- **Descargar tema** en el diálogo de exportación:
+  `<nombre-del-tema>.sen.json`, también con dos espacios y `savedAt`. Guarda las
+  últimas opciones de exportación (`export`), para que el render local produzca
+  lo mismo sin repetir opciones.
+- Los archivos JSON de tema respetan el límite de 1 MB; el álbum admite hasta
+  8 MB.
 
 #### 7.8.3 Render local con Node
 
@@ -1656,16 +1680,19 @@ pistas nuevas, en un solo paso deshacible:
 
 ### 7.9 Persistencia, deshacer y errores
 
-- **Autoguardado** en `localStorage` (`sen-lab/current`) con 1 s de espera tras
-  el último cambio. Al volver se recupera el tema; **Nuevo** pregunta antes de
-  descartarlo si no se ha descargado. Es la única persistencia de `sen`: la app
-  sigue sin guardar nada.
-- **Deshacer/rehacer** de 200 pasos sobre instantáneas del proyecto. Un arrastre
-  o un gesto de deslizador cuenta como un solo paso.
+- **Autoguardado** en `localStorage` (`sen-lab/album`) con 1 s de espera tras
+  el último cambio. Al volver se recupera el álbum completo, incluido el tema
+  abierto; si no hay álbum se migra la copia antigua `sen-lab/current` como
+  álbum de un tema. **Nuevo** pregunta antes de descartarlo si no se ha
+  descargado. Es la única persistencia de `sen`: la app sigue sin guardar nada.
+- **Deshacer/rehacer** de 200 pasos sobre instantáneas del tema abierto; al
+  cambiar de tema el historial se reinicia. Un arrastre o un gesto de
+  deslizador cuenta como un solo paso.
 - **Archivo no válido:** “No se puede abrir este archivo” con el motivo
   (JSON roto, esquema desconocido…). Un JSON `sen-lab/2` del mezclador anterior
   muestra: “Este archivo es del mezclador anterior y no se puede abrir en el
-  editor”.
+  editor”. Un álbum ignora los temas dañados y avisa; si no queda ninguno crea
+  uno vacío.
 - **Valores fuera de rango:** se recortan al abrir y se avisa una vez. Los
   campos desconocidos se conservan al guardar (compatibilidad hacia delante).
 - **Fallo del motor:** si el Worker cae, se avisa (“El motor se ha detenido”),
@@ -1812,6 +1839,30 @@ opcional (7.4.6).
   de verdad de 7.4: la UI construye el inspector a partir de esas
   definiciones.
 
+#### 7.10.3 Álbum `sen-lab/album/1`
+
+```json
+{
+  "schema": "sen-lab/album/1",
+  "name": "Estanque al anochecer",
+  "createdAt": "2026-11-07T09:00:00.000Z",
+  "savedAt": "2026-11-07T09:20:00.000Z",
+  "current": 1,
+  "themes": [
+    { "schema": "sen-lab/3", "name": "Tema 1", "...": "…" },
+    { "schema": "sen-lab/3", "name": "Tema 2", "...": "…" }
+  ]
+}
+```
+
+- `name`: título del álbum (1–120 caracteres).
+- `current`: índice del tema abierto al guardar; se recorta al rango válido.
+- `themes`: uno o más proyectos `sen-lab/3`. Si un tema no valida se ignora
+  con aviso; si no queda ninguno se crea «Tema 1» vacío.
+- El álbum se normaliza en `lab/app/album.js`; cada tema sigue pasando por
+  `normalizeProject`. Los campos desconocidos se conservan.
+- La copia local antigua `sen-lab/current` se migra como álbum de un tema.
+
 ### 7.11 Límites
 
 | Límite | Valor |
@@ -1826,7 +1877,8 @@ opcional (7.4.6).
 | Golpes simultáneos | 16 por pista, 64 en total |
 | Eventos planificados de simulaciones | 200 000 por tema |
 | Reverb | decaimiento ≤ 12 s |
-| Tamaño de proyecto | ≤ 1 MB |
+| Tamaño de tema | ≤ 1 MB |
+| Tamaño de álbum | ≤ 8 MB |
 
 Al alcanzar un límite la acción (cualquier cambio del proyecto) se impide y se
 explica por qué. El de eventos de simulación solo avisa en la barra de estado:
@@ -1874,8 +1926,9 @@ lab/
   live-worklet.js           AudioWorkletProcessor "lab-live": notas del modo teclado con las voces del motor
   app/
     main.js                 Arranque, requisitos, acciones, transporte, teclado
+    album.js                Documento de álbum, normalización y temas
     store.js                Estado inmutable, deshacer/rehacer, gestos
-    storage.js              Autoguardado, abrir y descargar proyectos
+    storage.js              Autoguardado, abrir y descargar álbumes y temas
     audio.js                AudioContext, worklets, Worker de escucha, audición, teclado
     timeline.js             Línea de tiempo, selección, arrastres, regla
     inspector.js            Paneles del tema, pista, elemento y maestro
@@ -1959,8 +2012,14 @@ Las tres fases previstas están implementadas en la versión 4.0:
       grabación en un navegador real.
 - [x] La región de escucha enlaza sin cortes.
 - [x] Deshacer y rehacer recorren 200 pasos; un arrastre es un paso.
-- [x] El autoguardado recupera el tema tras recargar la página.
-- [x] Descargar y abrir un `.sen.json` devuelve exactamente el mismo proyecto
+- [x] El autoguardado recupera el álbum completo y el tema abierto tras
+      recargar la página.
+- [x] Descargar y abrir un `.sen-album.json` devuelve el mismo álbum con sus
+      temas y el tema abierto.
+- [x] Abrir un `.sen.json` o un WAV añade un tema nuevo; una plantilla también.
+- [x] Un álbum no puede quedarse sin temas: con uno solo, **Eliminar** está
+      desactivado.
+- [x] Descargar y abrir un `.sen.json` devuelve exactamente el mismo tema
       **(auto)**.
 - [x] Un JSON `sen-lab/2` muestra el aviso del mezclador anterior **(auto)**.
 - [x] Exportar WAV en cada preajuste produce un archivo válido que abre en un
@@ -2493,6 +2552,15 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **5.0:** el laboratorio trabaja con **álbumes**: un documento
+  `sen-lab/album/1` con nombre y uno o más temas. La cabecera separa el nombre
+  del álbum y el del tema abierto, añade navegación circular, **+ Nuevo** para
+  crear temas y un menú **⋮** con **Eliminar** y **Exportar** del tema. El menú
+  **☰** pasa a crear un álbum nuevo, abrir álbumes/temas/WAV/MIDI y guardar el
+  álbum completo (`<nombre>.sen-album.json`); **Exportar** sale de ese menú.
+  Abrir un tema suelto, un WAV o una plantilla lo añade como tema nuevo. El
+  autoguardado guarda el álbum completo y migra `sen-lab/current` como álbum de
+  un tema.
 - **4.9:** seis escenas por ambiente (`01.wav` … `06.wav`, 84 pistas): dos
   paisajes nuevos con melodía por ambiente (escenas 09–10). Todas las pistas
   publicadas llevan una melodía baja: el paisaje manda y la música se nivela

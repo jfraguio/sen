@@ -1,34 +1,51 @@
 /**
- * Persistencia local y archivos: autoguardado en `localStorage`, abrir
- * `.sen.json` o WAV con chunk `senp`, y descargas.
+ * Persistencia local y archivos: autoguardado del álbum en `localStorage`,
+ * abrir `.sen-album.json`, `.sen.json` o WAV con chunk `senp`, y descargas.
  */
 
 import { LabFileError, normalizeProject } from '../engine/schema.js';
 import { readSenpProject } from '../engine/wav.js';
+import { albumFromProject, isAlbum, normalizeAlbum } from './album.js';
 import { fileBase } from './util.js';
 
-const KEY = 'sen-lab/current';
+const KEY = 'sen-lab/album';
+const LEGACY_KEY = 'sen-lab/current';
 const META = 'sen-lab/meta';
 
 export function loadAutosave() {
+  let rawAlbum = null;
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const { project, warnings } = normalizeProject(JSON.parse(raw));
-    return { project, warnings };
+    rawAlbum = localStorage.getItem(KEY);
+  } catch {
+    return null;
+  }
+  if (rawAlbum) {
+    try {
+      const { album, warnings } = normalizeAlbum(JSON.parse(rawAlbum));
+      return { album, warnings };
+    } catch {
+      /* si el álbum guardado está dañado, se intenta la copia anterior */
+    }
+  }
+  try {
+    const rawTheme = localStorage.getItem(LEGACY_KEY);
+    if (!rawTheme) return null;
+    const { project, warnings } = normalizeProject(JSON.parse(rawTheme));
+    return { album: albumFromProject(project, project.name), warnings };
   } catch {
     return null;
   }
 }
 
 let timer = 0;
-/** Guarda tras 1 s sin cambios. `onState('guardando…' | 'guardado' | 'sin guardar')`. */
-export function scheduleAutosave(project, onState) {
+/** Guarda el álbum tras 1 s sin cambios. `onState('guardando…' | 'guardado' | 'sin guardar')`. */
+export function scheduleAutosave(album, onState) {
   clearTimeout(timer);
   onState?.('guardando…');
   timer = setTimeout(() => {
     try {
-      localStorage.setItem(KEY, JSON.stringify(project));
+      localStorage.setItem(KEY, JSON.stringify(album));
+      localStorage.removeItem(LEGACY_KEY);
       onState?.('guardado');
     } catch {
       onState?.('sin guardar (almacenamiento lleno)');
@@ -67,16 +84,37 @@ export function projectFileName(project) {
   return `${fileBase(project.name)}.sen.json`;
 }
 
-/** Descarga el proyecto y lo marca como descargado. */
+/** Descarga un tema suelto (desde el diálogo de exportación). */
 export function downloadProject(project) {
   const data = { ...project, savedAt: new Date().toISOString() };
   downloadBlob(new Blob([`${JSON.stringify(data, null, 2)}\n`], { type: 'application/json' }), projectFileName(project));
-  writeMeta({ downloadedRevision: JSON.stringify(project).length + ':' + hashText(JSON.stringify(project)) });
+  writeMeta({ downloadedThemeRevision: revisionKey(project) });
 }
 
-/** ¿Hay cambios sin descargar? */
+/** ¿Está descargado este tema suelto? */
 export function isDownloaded(project) {
-  return readMeta().downloadedRevision === JSON.stringify(project).length + ':' + hashText(JSON.stringify(project));
+  return readMeta().downloadedThemeRevision === revisionKey(project);
+}
+
+export function albumFileName(album) {
+  return `${fileBase(album.name, 'album')}.sen-album.json`;
+}
+
+/** Descarga el álbum completo con todos sus temas. */
+export function downloadAlbum(album) {
+  const data = { ...album, savedAt: new Date().toISOString() };
+  downloadBlob(new Blob([`${JSON.stringify(data, null, 2)}\n`], { type: 'application/json' }), albumFileName(album));
+  writeMeta({ downloadedAlbumRevision: revisionKey(album) });
+}
+
+/** ¿Hay cambios del álbum sin descargar? */
+export function isAlbumDownloaded(album) {
+  return readMeta().downloadedAlbumRevision === revisionKey(album);
+}
+
+function revisionKey(data) {
+  const text = JSON.stringify(data);
+  return `${text.length}:${hashText(text)}`;
 }
 
 function hashText(text) {
@@ -88,10 +126,14 @@ function hashText(text) {
   return h.toString(36);
 }
 
-/** Lee un archivo (JSON o WAV con `senp`) y devuelve `{ project, warnings }`. */
+/**
+ * Lee un archivo (álbum JSON, tema JSON o WAV con `senp`) y devuelve
+ * `{ kind: 'album' | 'theme', album?, project?, warnings }`.
+ */
 export async function readProjectFile(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const isWav = bytes.length > 12 && String.fromCharCode(...bytes.subarray(0, 4)) === 'RIFF';
+  if (!isWav && bytes.length > 8_000_000) throw new LabFileError('El archivo supera 8 MB.');
   let raw;
   if (isWav) {
     try {
@@ -107,6 +149,7 @@ export async function readProjectFile(file) {
       throw new LabFileError('El archivo no es un JSON válido.');
     }
   }
-  if (bytes.length > 1_000_000 && !isWav) throw new LabFileError('El proyecto supera 1 MB.');
-  return normalizeProject(raw);
+  if (isAlbum(raw)) return { kind: 'album', ...normalizeAlbum(raw) };
+  if (bytes.length > 1_000_000 && !isWav) throw new LabFileError('El tema supera 1 MB.');
+  return { kind: 'theme', ...normalizeProject(raw) };
 }

@@ -20,6 +20,7 @@
       <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 4.5-4.5L15 5"/><path d="M19.5 9.5H9a4.5 4.5 0 0 0 0 9h3"/></symbol>
       <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.4a2.4 2.4 0 0 1 4.6 1c0 1.6-2.3 2-2.3 3.6"/><circle cx="12" cy="16.9" r=".9" fill="currentColor" stroke="none"/></symbol>
       <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
       <symbol id="i-loop" viewBox="0 0 24 24"><path d="M4.5 11.5V10a4 4 0 0 1 4-4h11"/><path d="m16.5 3 3 3-3 3"/><path d="M19.5 12.5V14a4 4 0 0 1-4 4h-11"/><path d="m7.5 21-3-3 3-3"/></symbol>
       <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></symbol>
       <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3.5 7h3c2 0 3.1 1 4 2.6l3 5.3c.9 1.6 2 2.6 4 2.6h3"/><path d="m17.5 14.5 3 3-3 3"/><path d="M3.5 17h3c1.3 0 2.2-.4 2.9-1.2"/><path d="M14.6 8.2C15.3 7.4 16.2 7 17.5 7h3"/><path d="m17.5 4 3 3-3 3"/></symbol>
@@ -46,35 +47,61 @@
     <div class="lab" id="app" title="Editor del laboratorio" hidden>
       <header class="topbar" title="Cabecera del laboratorio">
         <a class="back" href="../" aria-label="Volver a sen"><svg class="i i--back" aria-hidden="true" focusable="false"><use href="#i-back"/></svg><span>sen</span></a>
-        <label class="title">
-          <span class="sr-only">Nombre del tema</span>
-          <input id="project-name" type="text" autocomplete="off" spellcheck="false" maxlength="120" />
+        <label class="title title--album">
+          <span class="sr-only">Nombre del álbum</span>
+          <input id="album-name" type="text" autocomplete="off" spellcheck="false" maxlength="120" placeholder="Álbum sin título" />
         </label>
+        <label class="title title--theme">
+          <span class="sr-only">Nombre del tema abierto</span>
+          <input id="project-name" type="text" autocomplete="off" spellcheck="false" maxlength="120" placeholder="Tema sin título" />
+        </label>
+        <div class="theme-nav" role="group" aria-label="Temas del álbum">
+          <button class="icon-btn icon-btn--small" id="theme-prev" type="button" aria-label="Tema anterior" title="Tema anterior"><svg class="i i--chev-l" aria-hidden="true" focusable="false"><use href="#i-chev-l"/></svg></button>
+          <label class="theme-select">
+            <span class="sr-only">Tema abierto</span>
+            <select id="theme-select" title="Elegir un tema del álbum"></select>
+          </label>
+          <button class="icon-btn icon-btn--small" id="theme-next" type="button" aria-label="Tema siguiente" title="Tema siguiente"><svg class="i i--chev-r" aria-hidden="true" focusable="false"><use href="#i-chev-r"/></svg></button>
+          <button class="btn btn--quiet theme-new" id="new-theme" type="button" title="Crear un tema nuevo en el álbum">
+            <svg class="i i--plus" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Nuevo
+          </button>
+          <div class="menu" id="theme-menu">
+            <button class="icon-btn menu__trigger" id="theme-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="theme-menu-pop" aria-label="Más acciones del tema" title="Más acciones del tema">
+              <svg class="i i--more" aria-hidden="true" focusable="false"><use href="#i-more"/></svg>
+            </button>
+            <div class="menu__pop" id="theme-menu-pop" role="menu" aria-labelledby="theme-menu-trigger" hidden>
+              <button class="menu__item menu__item--danger" id="delete-theme" type="button" role="menuitem" title="Eliminar el tema abierto">
+                <span class="menu__label">Eliminar</span>
+                <span class="menu__meta">Elimina este tema del álbum</span>
+              </button>
+              <button class="menu__item menu__item--primary" id="export" type="button" role="menuitem" title="Exportar el tema abierto · Cmd/Ctrl+E">
+                <span class="menu__label">Exportar</span>
+                <span class="menu__meta">Exporta el tema abierto · Cmd/Ctrl+E</span>
+              </button>
+            </div>
+          </div>
+        </div>
         <span class="save-state" id="save-state" role="status" aria-live="polite" hidden></span>
         <div class="topbar__actions">
           <a class="icon-btn help-link" id="help" href="guia.html" target="_blank" rel="noopener" aria-label="Instrucciones (se abre en otra pestaña)" title="Instrucciones (?)"><svg class="i i--help" aria-hidden="true" focusable="false"><use href="#i-help"/></svg></a>
           <button class="icon-btn" id="undo" type="button" aria-label="Deshacer" title="Deshacer (Cmd/Ctrl+Z)"><svg class="i i--undo" aria-hidden="true" focusable="false"><use href="#i-undo"/></svg></button>
           <button class="icon-btn" id="redo" type="button" aria-label="Rehacer" title="Rehacer (Mayús+Cmd/Ctrl+Z)"><svg class="i i--redo" aria-hidden="true" focusable="false"><use href="#i-redo"/></svg></button>
-          <div class="menu" id="project-menu">
-            <button class="icon-btn menu__trigger" id="menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-pop" aria-label="Menú del proyecto" title="Menú del proyecto">
+          <div class="menu" id="app-menu">
+            <button class="icon-btn menu__trigger" id="menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-pop" aria-label="Menú del álbum" title="Menú del álbum">
               <svg class="i i--menu" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg>
             </button>
             <div class="menu__pop" id="menu-pop" role="menu" aria-labelledby="menu-trigger" hidden>
-              <button class="menu__item" id="new" type="button" role="menuitem" title="Crear un proyecto vacío">
+              <button class="menu__item" id="new" type="button" role="menuitem" title="Crear un álbum nuevo">
                 <span class="menu__label">Nuevo</span>
-                <span class="menu__meta">Crea un proyecto vacío</span>
+                <span class="menu__meta">Crea un álbum nuevo</span>
               </button>
-              <button class="menu__item" id="open" type="button" role="menuitem" title="Abrir un proyecto (.json) o un WAV">
+              <button class="menu__item" id="open" type="button" role="menuitem" title="Abrir un álbum, un tema (.json), un WAV o un MIDI">
                 <span class="menu__label">Abrir</span>
-                <span class="menu__meta">Proyecto .json o WAV</span>
+                <span class="menu__meta">Álbum, tema, WAV o MIDI</span>
               </button>
-              <button class="menu__item" id="save-project" type="button" role="menuitem" title="Guardar el proyecto actual (.json) · Cmd/Ctrl+S">
+              <button class="menu__item menu__item--primary" id="save-project" type="button" role="menuitem" title="Guardar el álbum completo (.sen-album.json) · Cmd/Ctrl+S">
                 <span class="menu__label">Guardar</span>
-                <span class="menu__meta">Proyecto actual · Cmd/Ctrl+S</span>
-              </button>
-              <button class="menu__item menu__item--primary" id="export" type="button" role="menuitem" title="Exportar el tema · Cmd/Ctrl+E">
-                <span class="menu__label">Exportar</span>
-                <span class="menu__meta">Exporta el tema · Cmd/Ctrl+E</span>
+                <span class="menu__meta">Álbum completo · Cmd/Ctrl+S</span>
               </button>
             </div>
           </div>
@@ -127,7 +154,7 @@
 
     <dialog class="dialog dialog--export" id="export-dialog" aria-labelledby="export-title">
       <form method="dialog" id="export-form">
-        <h2 id="export-title">Exportar</h2>
+        <h2 id="export-title">Exportar tema</h2>
         <fieldset class="presets" id="export-presets">
           <legend>Preajuste</legend>
         </fieldset>
@@ -191,15 +218,15 @@
         <div class="export-result" id="export-result" hidden></div>
         <div class="dialog__actions">
           <button class="btn btn--quiet" id="export-close" type="button">Cerrar</button>
-          <button class="btn btn--quiet" id="export-script" type="button" title="Un único archivo .mjs con el motor y el proyecto">Descargar script</button>
-          <button class="btn btn--quiet" id="export-project" type="button">Descargar proyecto</button>
+          <button class="btn btn--quiet" id="export-script" type="button" title="Un único archivo .mjs con el motor y el tema">Descargar script</button>
+          <button class="btn btn--quiet" id="export-project" type="button">Descargar tema</button>
           <button class="btn btn--quiet" id="export-cancel" type="button" hidden>Cancelar</button>
           <button class="btn btn--primary" id="export-wav" type="button">Exportar WAV</button>
         </div>
       </form>
     </dialog>
 
-    <div class="drop-hint" id="drop-hint" hidden>Suelta un proyecto <code>.sen.json</code>, un WAV del laboratorio o un MIDI para importarlo</div>
+    <div class="drop-hint" id="drop-hint" hidden>Suelta un álbum <code>.sen-album.json</code>, un tema <code>.sen.json</code>, un WAV del laboratorio o un MIDI para importarlo</div>
     <div class="toast" id="toast" role="status" hidden></div>
     <p class="sr-only" id="live" aria-live="polite"></p>
 

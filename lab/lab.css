@@ -482,8 +482,41 @@ a.icon-btn:hover {
 }
 
 .title {
-  flex: 0 1 380px;
+  flex: 0 1 260px;
   min-width: 120px;
+}
+
+.title--album input {
+  font-weight: 600;
+}
+
+.title--theme input {
+  color: var(--muted);
+}
+
+.theme-nav {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.theme-select {
+  display: flex;
+  min-width: 0;
+}
+
+.theme-select select {
+  width: 174px;
+  min-width: 96px;
+  max-width: 22vw;
+  text-overflow: ellipsis;
+}
+
+.theme-new {
+  margin-left: 4px;
+  white-space: nowrap;
 }
 
 .title input {
@@ -621,6 +654,15 @@ a.icon-btn:hover {
 
 .menu__item--primary .menu__label {
   color: var(--accent);
+}
+
+.menu__item--danger .menu__label {
+  color: var(--danger);
+}
+
+.menu__item:disabled {
+  opacity: 0.38;
+  cursor: default;
 }
 
 .transport {
@@ -2113,6 +2155,16 @@ input[type="range"].tl-vol {
   padding: 6px 8px 10px;
 }
 
+@media (max-width: 1200px) {
+  .title {
+    flex-basis: 200px;
+  }
+
+  .theme-select select {
+    width: 150px;
+  }
+}
+
 @media (max-width: 899px) {
   :root {
     --head-w: 140px;
@@ -2180,6 +2232,29 @@ input[type="range"].tl-vol {
 
   .topbar__actions .btn {
     padding: 0 8px;
+  }
+
+  .title--album,
+  .title--theme {
+    flex: 1 1 130px;
+    min-width: 100px;
+  }
+
+  .theme-nav {
+    flex: 1 1 100%;
+  }
+
+  .theme-select {
+    flex: 1 1 120px;
+  }
+
+  .theme-select select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .theme-new {
+    margin-left: 0;
   }
 
   .volume,
