@@ -125,11 +125,11 @@ cualquier escena sin tocar código.
   seno, theremin, pad 80, metales 80, bajo 80 y lead 80), notas puntuales
   (campana, cuenco tibetano, kalimba, caja de música, celesta, marimba,
   vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa, guitarra de nailon, ukelele, slide
-  hawaiana, cuerda pulsada, gota tonal, palo de lluvia, piano FM y campana FM)
-  como golpes, frases o nubes de
-  notas, ruidos de color y **simulaciones** (grillos, cigarras, pájaros
-  por especie, gaviotas incluidas, gotas, lluvia normal/fina/lejana, arroyo,
-  olas, viento, fuego, campanillas).
+  hawaiana, cuerda pulsada, piano FM, campana FM, piano de cinta, cristal y
+  metal) como golpes, frases o nubes de
+  notas, ruidos de color, la textura granular de **palo de agua** y
+  **simulaciones** (grillos, cigarras, pájaros por especie, gaviotas incluidas,
+  gotas, lluvia normal o lejana, arroyo, olas, viento, fuego, campanillas).
   Cada pista tiene silencio, solo y volumen en su cabecera.
 - **Biblioteca plegable por gesto y timbre:** Sostenidos, Puntuales, Texturas y
   Naturaleza, con subgrupos como Sintes, Teclados, Láminas, Agua o Animales.
@@ -137,7 +137,9 @@ cualquier escena sin tocar código.
 - **Escucha en directo** mientras editas; región de escucha en bucle.
 - Tonalidad, tempo opcional, reverb y eco maestros, automatización por pista,
   deshacer, autoguardado, plantillas (Vacío y las canciones de sen), modo
-  compacto en móvil e importación MIDI.
+  compacto en móvil e importación MIDI. La línea de duración de la fila
+  **Maestro** estira o encoge el tema entero en el tiempo: alarga los
+  sostenidos y separa los puntuales sin cambiar la afinación.
 - **Notas con el teclado:** en una capa sostenida, «Notas» reúne la fila base
   de 0 s y los cambios posteriores; si solo hay una fila, esa nota dura todo el
   elemento. «Teclado» te deja tocar con las letras sin modificar el tema y
@@ -163,7 +165,7 @@ cualquier escena sin tocar código.
   puede construir a mano: **+** añade acordes o notas
   desde un desplegable (de la escala de la tonalidad o libres); **×** quita
   tarjetas, se reordenan arrastrándolas, se escuchan al pulsarlas y el lápiz
-  de cada acorde abre un editor de notas para invertirlo. Bajo las
+  de cada acorde abre un editor de sus notas. Bajo las
   notas, «Repetir» repite el patrón, con sus tiempos, hasta el final del tema.
   El patrón termina en la última fila (que dura lo mismo que el hueco anterior),
   así que no arrastra el silencio que quedaba al final del elemento; si el

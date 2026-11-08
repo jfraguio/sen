@@ -90,6 +90,9 @@ export const PARAMS = {
   fmRatio: num('Relación FM', 0.25, 12, 2, { step: 0.01, log: true }),
   fmIndex: num('Profundidad FM', 0, 12, 3, { step: 0.01 }),
   fmTime: num('Caída FM', 0.02, 10, 1.2, { log: true, unit: 's' }),
+  detune: num('Desafinación', 0, 30, 0, { step: 0.1, unit: 'cents' }),
+  wow: num('Ondulación de cinta', 0, 40, 0, { step: 0.1, unit: 'cents' }),
+  wowRate: num('Velocidad de la ondulación', 0.05, 2, 0.28, { log: true, unit: 'Hz' }),
   slide: num('Deslizamiento', 0, 12, 2, { step: 0.1, unit: 'semitonos' }),
   slideTime: num('Tiempo del deslizamiento', 0.01, 2, 0.2, { log: true, unit: 's' }),
   // Ruido
@@ -147,6 +150,7 @@ const SUSTAIN_COMMON = ['partials', 'rolloff', 'voices', 'detune', 'drift', 'fil
 const ANALOG_COMMON = [...SUSTAIN_COMMON, 'wave', 'pulseWidth', 'filterEnv', 'filterTime', 'sub'];
 const STRIKE_COMMON = ['decay', 'brightness', 'hardness', 'inharmonic', 'beat', 'velocityCurve', 'width'];
 const FM_COMMON = ['decay', 'brightness', 'hardness', 'velocityCurve', 'width', 'fmRatio', 'fmIndex', 'fmTime'];
+const VINTAGE_FM_COMMON = [...FM_COMMON, 'detune', 'wow', 'wowRate'];
 const NATURE_COMMON = ['distance', 'pan', 'spread', 'variation'];
 const NOISE_COMMON = ['color', 'filterType', 'cutoff', 'q', 'movement', 'moveRate', 'moveDepth', 'moveTarget', 'wavePeriod', 'waveShape', 'stereo'];
 
@@ -356,13 +360,15 @@ export const INSTRUMENTS = {
     defaults: { decay: 3.5, brightness: 0.45, hardness: 0.4 },
   },
   gotaTonal: {
-    family: 'strike', label: 'Gota tonal', color: '#8fbdff',
+    family: 'strike', label: 'Gota tonal', color: '#8fbdff', hidden: true,
     description: 'Burbuja de Minnaert afinada (el tono sube al final).',
     params: ['decay', 'brightness', 'velocityCurve', 'width'],
     defaults: { decay: 0.6, brightness: 0.5 },
   },
+  // Palo de lluvia antiguo, solo para abrir proyectos ya guardados. La versión
+  // nueva es la textura «Palo de agua» de la familia de ruidos.
   paloLluvia: {
-    family: 'strike', label: 'Palo de lluvia', color: '#c8b48a',
+    family: 'strike', label: 'Palo de lluvia', color: '#c8b48a', hidden: true,
     description: 'Semillas que caen por un tubo: cada golpe es un vuelco del palo, un chaparrón que crece y se apaga. La nota fija el color del grano.',
     params: [['decay', { label: 'Duración del vuelco', def: 4 }], 'brightness', ['hardness', { label: 'Dureza del grano' }], 'velocityCurve', 'width'],
     defaults: { brightness: 0.5, hardness: 0.4, width: 0.7 },
@@ -393,6 +399,33 @@ export const INSTRUMENTS = {
     description: 'Campana digital de FM con parciales metálicos y cola larga.',
     params: FM_COMMON,
     defaults: { decay: 13, brightness: 0.6, hardness: 0.3, fmRatio: 3.5, fmIndex: 4.8, fmTime: 2.8 },
+  },
+  pianoCinta: {
+    family: 'strike', label: 'Piano de cinta', color: '#e8c49a',
+    description: 'Piano eléctrico de cinta: ataque suave, cuerpo cálido y una ondulación lenta, como una grabación de los ochenta.',
+    params: VINTAGE_FM_COMMON,
+    defaults: {
+      decay: 8.5, brightness: 0.42, hardness: 0.18, fmRatio: 1, fmIndex: 2.6, fmTime: 1.8,
+      detune: 4.5, wow: 7, wowRate: 0.23, width: 0.45,
+    },
+  },
+  cristal80: {
+    family: 'strike', label: 'Cristal', color: '#a9d9ff',
+    description: 'Cristal digital de FM: brillo de campana, cola de cristal y un coro tenue que se abre en estéreo.',
+    params: VINTAGE_FM_COMMON,
+    defaults: {
+      decay: 14, brightness: 0.7, hardness: 0.22, fmRatio: 3.01, fmIndex: 5.2, fmTime: 2.6,
+      detune: 3, wow: 2.5, wowRate: 0.17, width: 0.72,
+    },
+  },
+  metal80: {
+    family: 'strike', label: 'Metal', color: '#c9b8e8',
+    description: 'Golpe metálico de sintetizador: armónicos duros, caída media y una desafinación ancha con carácter de cinta.',
+    params: VINTAGE_FM_COMMON,
+    defaults: {
+      decay: 6.5, brightness: 0.52, hardness: 0.34, fmRatio: 2.414, fmIndex: 4.2, fmTime: 0.9,
+      detune: 7, wow: 10, wowRate: 0.31, width: 0.55,
+    },
   },
   // Ruidos
   ruido: {
@@ -445,6 +478,18 @@ export const INSTRUMENTS = {
       color: 'rosa', filterType: 'lp', cutoff: 900, q: 0.5, movement: 'oleaje',
       moveRate: 0.05, moveDepth: 0.35, moveTarget: 'ambos', wavePeriod: 9, waveShape: 0.5, stereo: 0.95,
     },
+  },
+  paloAgua: {
+    family: 'noise', label: 'Palo de agua', color: '#c8b48a',
+    description: 'Textura de semillas que caen por un tubo: un susurro granular, cálido y continuo.',
+    params: [
+      ['rate', { label: 'Semillas por segundo', min: 20, max: 500, def: 200, log: true }],
+      'brightness',
+      ['hardness', { label: 'Dureza del grano' }],
+      'variation',
+      'width',
+    ],
+    defaults: { rate: 200, brightness: 0.55, hardness: 0.4, variation: 0.5, width: 0.7 },
   },
   // Simulaciones
   grillo: {
@@ -499,7 +544,7 @@ export const INSTRUMENTS = {
     defaults: { distance: 0.3, spread: 1 },
   },
   lluviaFina: {
-    family: 'nature', label: 'Lluvia fina', color: '#8fc3ff',
+    family: 'nature', label: 'Lluvia fina', color: '#8fc3ff', hidden: true,
     description: 'Gotas pequeñas y brillantes sobre hojas, con un siseo continuo.',
     params: ['intensity', ...NATURE_COMMON],
     defaults: { distance: 0.25, spread: 1, variation: 0.6, intensity: 900 },
@@ -575,19 +620,19 @@ export const INSTRUMENT_GROUPS = [
       { id: 'tambores', label: 'Tambores de acero', instruments: ['handpan', 'lengueta', 'steelpan'] },
       { id: 'pulsadas', label: 'Cuerdas pulsadas', instruments: ['arpa', 'guitarra', 'ukelele', 'slide', 'pulsada'] },
       { id: 'campanas', label: 'Campanas y cuencos', instruments: ['campana', 'fmBell', 'cuenco'] },
-      { id: 'gotas', label: 'Gotas y lluvia', instruments: ['gotaTonal', 'paloLluvia'] },
+      { id: 'sintes80', label: 'Sintes', instruments: ['pianoCinta', 'cristal80', 'metal80'] },
     ],
   },
   {
     id: 'texturas', label: 'Texturas',
     subgroups: [
-      { id: 'ruido', label: 'Ruido', instruments: ['ruido', 'ruidoBrisa', 'ruidoMarea', 'ruidoSiseo', 'ruidoCalor', 'ruidoTerciopelo'] },
+      { id: 'ruido', label: 'Ruido', instruments: ['ruido', 'ruidoBrisa', 'ruidoMarea', 'ruidoSiseo', 'ruidoCalor', 'ruidoTerciopelo', 'paloAgua'] },
     ],
   },
   {
     id: 'naturaleza', label: 'Naturaleza',
     subgroups: [
-      { id: 'agua', label: 'Agua', instruments: ['gotas', 'lluvia', 'lluviaFina', 'lluviaLejana', 'arroyo', 'olas'] },
+      { id: 'agua', label: 'Agua', instruments: ['gotas', 'lluvia', 'lluviaLejana', 'arroyo', 'olas'] },
       { id: 'aire', label: 'Aire', instruments: ['viento', 'campanillas'] },
       { id: 'animales', label: 'Animales', instruments: ['grillo', 'cigarra', 'pajaro'] },
       { id: 'fuego', label: 'Fuego', instruments: ['fuego'] },
@@ -841,7 +886,7 @@ export function createProject(over = {}) {
     createdAt: new Date().toISOString(),
     savedAt: null,
     seed: `sen-${Math.floor(Math.random() * 1e6)}`,
-    duration: 180,
+    duration: 60,
     end: { mode: 'tail', fadeOut: 4 },
     tuning: { a4: 440 },
     key: { root: 'C', scale: 'mayor' },
@@ -950,7 +995,7 @@ export function createElement(track, project, start = 0, type = null) {
   const family = FAMILIES.find((f) => f.id === track.family);
   const t = type && family.types.includes(type) ? type : family.types[family.id === 'strike' ? 2 : 0];
   const key = project?.key || { root: 'C', scale: 'mayor' };
-  const duration = project?.duration || 180;
+  const duration = project?.duration || 60;
   const base = { id: newId('e'), type: t, start: Math.max(0, Math.round(start * 1000) / 1000) };
   const len = Math.max(1, Math.min(30, duration - base.start || 30));
   if (t === 'tone') {
@@ -1199,7 +1244,7 @@ export function normalizeProject(raw) {
   } else delete out.scene;
 
   const dur = Number(p.duration);
-  out.duration = Number.isFinite(dur) ? clampNum(dur, LIMITS.minDuration, LIMITS.maxDuration) : 180;
+  out.duration = Number.isFinite(dur) ? clampNum(dur, LIMITS.minDuration, LIMITS.maxDuration) : 60;
   if (out.duration !== dur) bad('Duración del tema fuera de rango.');
   const mode = ['tail', 'cut', 'loop'].includes(p.end?.mode) ? p.end.mode : 'tail';
   out.end = { ...(p.end || {}), mode, fadeOut: clampNum(Number.isFinite(p.end?.fadeOut) ? p.end.fadeOut : 4, 0, 30) };

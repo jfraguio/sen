@@ -826,7 +826,7 @@ No objetivos:
 | Familia | Etiqueta en la UI | Qué es | Tipos de elemento |
 | --- | --- | --- | --- |
 | `sustain` | Sostenidos | Pads, drones, cuerdas, arpa eólica, flauta, coros, cuenco tibetano frotado, theremin y sintes analógicos: tonos que duran lo que dura el elemento. | `tone` |
-| `strike` | Puntuales | Campanas, cuencos tibetanos, kalimba, piano, tambores de acero (handpan, lengüeta, steel drum), arpa, guitarras, ukelele, vibráfono, palo de lluvia y FM 80: golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
+| `strike` | Puntuales | Campanas, cuencos tibetanos, kalimba, piano, tambores de acero (handpan, lengüeta, steel drum), arpa, guitarras, ukelele, vibráfono, FM 80 y tres sintes nostálgicos (piano de cinta, cristal y metal): golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
 | `noise` | Texturas | Ruido de color filtrado y con movimiento (aire, rumor, oleaje abstracto). | `span` |
 | `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, cigarras, pájaros, gotas, lluvia normal/fina/lejana, arroyo, olas, viento, fuego, campanillas. | `span` |
 | `layer` | Capas de pistas de sen | Una capa de una pista publicada de la app, en bucle (7.17). No está en la biblioteca. | `clip` |
@@ -990,10 +990,15 @@ ancho.
 | `ukelele` | Ukelele | Cuerda de nailon corta pulsada en p = 0,22, decaimiento breve y caja pequeña (285, 540 y 910 Hz). |
 | `slide` | Slide hawaiana | Cuerdas de acero (p = 0,18) tocadas con barra: cada golpe entra desde «deslizamiento» semitonos por debajo (0–12) y llega a la nota en «tiempo del deslizamiento» (0,01–2 s, curva que frena); después, vibrato de barra (0–50 cents, 0,05–8 Hz) que crece en 0,6 s. Los resonadores se reafinan a ritmo de control sin perder fase. |
 | `pulsada` | Cuerda pulsada | Karplus-Strong, entre arpa y guitarra suave. La excitación es ruido filtrado dos veces, sin media, con el peine del punto de pulsación y nivel normalizado, y entra en 0,7 ms: no chasca. |
-| `gotaTonal` | Gota tonal | Burbuja de Minnaert afinada (el tono sube al final). |
-| `paloLluvia` | Palo de lluvia | Cada golpe es un vuelco: un flujo de granos (proceso de Poisson, 70–300 por segundo según la velocidad) que crece en el primer 7 % y se apaga; cada grano excita uno de cuatro resonadores en banda (3 : 4,7 : 6,9 : 10,3 × nota) normalizados por su ancho de banda, con su propio panorama. Decaimiento = duración del vuelco. |
 | `fmPiano` | Piano FM | FM de dos operadores: campana metálica y cuerpo cálido de piano eléctrico. |
 | `fmBell` | Campana FM | FM de dos operadores con parciales metálicos y cola larga. |
+| `pianoCinta` | Piano de cinta | FM de dos operadores con cuerpo cálido y ondulación de cinta: ligera desafinación, wow lento y estereo suave. |
+| `cristal80` | Cristal | FM brillante de relación no entera, cola larga y coro tenue por desafinación. |
+| `metal80` | Metal | FM metálico de relación inarmónica, ataque duro y desafinación ancha con carácter de cinta. |
+
+Los instrumentos antiguos `gotaTonal` y `paloLluvia` siguen cargando en proyectos
+guardados pero ya no aparecen en la biblioteca. El palo de agua vive ahora como
+textura en 7.4.3.
 
 Parámetros comunes: decaimiento (0,2–30 s), brillo (0–1), dureza del golpe
 (0–1), inarmonicidad (0–1), batido (0–3 Hz), curva de velocidad (0–1) y ancho
@@ -1001,7 +1006,9 @@ estéreo (0–1); el vibráfono cambia inarmonicidad y batido por trémolo (0–
 0,05–8 Hz). Los FM sustituyen inarmonicidad y batido por relación FM (0,25–12),
 profundidad FM (0–12, índice de modulación en radianes; baja en las notas
 agudas y nunca lleva bandas laterales por encima de Nyquist) y caída FM
-(0,02–10 s). Los modales con ancho estéreo reparten sus modos superiores a los
+(0,02–10 s). Los tres sintes nostálgicos añaden desafinación (0–30 cents),
+ondulación de cinta (0–40 cents) y velocidad de la ondulación (0,05–2 Hz).
+Los modales con ancho estéreo reparten sus modos superiores a los
 lados. Polifonía: 16 golpes simultáneos
 por pista y 64 en total; al superarla se corta el más antiguo con un fundido de
 10 ms.
@@ -1016,7 +1023,8 @@ elemento. En una nube aleatoria la lista es la previsión de lo que generará.
 #### 7.4.3 Texturas (`noise`)
 
 Seis instrumentos comparten el motor de ruido filtrado. Todos son suaves y
-admiten:
+admiten las opciones de color, filtro, movimiento y estéreo que siguen. Además,
+**Palo de agua** usa un motor granular propio:
 
 - Color: blanco, rosa o marrón.
 - Filtro: paso bajo, paso alto o banda; corte y Q.
@@ -1035,6 +1043,7 @@ admiten:
 | `ruidoSiseo` | Siseo | Ruido rosa muy filtrado en agudos, con un vaivén casi imperceptible. |
 | `ruidoCalor` | Calor | Ruido marrón grave y redondo, como un zumbido lejano y cálido. |
 | `ruidoTerciopelo` | Terciopelo | Ruido rosa suave y ancho, con respiración lenta y sin aristas. |
+| `paloAgua` | Palo de agua | Textura granular de semillas: cada grano excita cuatro resonadores; semillas por segundo (20–500), brillo, dureza, variación y ancho estéreo. |
 
 #### 7.4.4 Naturaleza (`nature`)
 
@@ -1045,7 +1054,6 @@ admiten:
 | `pajaro` | Pájaros | especie: genérico, mirlo, petirrojo, carbonero, pinzón, cuco, tórtola, autillo, cárabo o gaviota (llamada larga «kiaaa, kiau-kiau…, ja-ja» que se acelera, o maullidos sueltos; voz nasal con armónicos fuertes y aspereza); individuos (1–8); frases por minuto. El genérico añade registro, sílabas por frase y forma (silbido, trino, gorjeo). |
 | `gotas` | Gotas | superficie (agua, hoja, cristal, piedra), gotas por segundo (0,1–200), registro. |
 | `lluvia` | Lluvia | intensidad (50–3000 impactos/s), superficie (hojas, tejado, cristal, agua, lona). |
-| `lluviaFina` | Lluvia fina | intensidad (50–3000 impactos/s) y variación. Gotas pequeñas y brillantes sobre hojas, con siseo continuo. |
 | `lluviaLejana` | Lluvia lejana | intensidad (0,1–1,5) y variación. Rumor de fondo de ruido rosa filtrado entre 250 y 3200 Hz, sin gotas cercanas. |
 | `arroyo` | Arroyo | caudal (0–1), fuentes de burbujeo (1–24), registro. |
 | `olas` | Olas | periodo (4–20 s), tamaño, espuma (0–1), guijarros (0–1). |
@@ -1185,9 +1193,9 @@ sin animaciones de fondo que compitan con el trabajo.
 #### 7.5.2 Interacciones
 
 - **Añadir:** arrastrar un instrumento desde la biblioteca o hacer clic en él
-  crea una capa nueva desde el principio (tiempo 0) con una extensión igual a
-  la de la capa más larga que exista en ese momento. Doble clic en un hueco de
-  una pista existente crea un elemento por defecto de esa pista en ese punto.
+  crea una capa nueva desde el principio (tiempo 0) con la duración completa
+  del tema. Doble clic en un hueco de una pista existente crea un elemento por
+  defecto de esa pista en ese punto.
 - **Editar elementos:** arrastrar para mover; bordes para cambiar la duración;
   la intensidad empieza y termina al máximo y su forma se edita con la curva del
   inspector; `Alt` + arrastrar duplica; `S` divide en el cabezal; `Supr` borra. Selección múltiple con
@@ -1198,6 +1206,12 @@ sin animaciones de fondo que compitan con el trabajo.
   automatiza el volumen, el deslizador se desactiva). En el inspector,
   renombrar, cambiar color, duplicar y borrar. Máximo 32. El orden de las
   pistas es el de creación (no se reordenan ni se pliegan).
+- **Estirar el tema:** en la fila **Maestro**, el extremo de la **línea de
+  duración** se arrastra para cambiar la duración total. Todo el contenido se
+  escala en tiempo: posiciones, sostenidos, cambios de nota, eventos de frases
+  y nubes, automatización y región. No cambia la afinación. Las flechas del
+  tirador ajustan 1 s (10 s con `Mayús`) y el ajuste a la rejilla se desactiva
+  con `Mayús` al arrastrar.
 - **Inspector:** deslizadores con valor numérico editable; doble clic devuelve
   el valor por defecto; la rueda con `Mayús` hace ajuste fino. Los generadores
   tienen **Aleatorizar** (nueva semilla). El inspector de un elemento muestra su
@@ -1262,9 +1276,8 @@ suena se aplica en el paso siguiente.
 Debajo aparecen tarjetas con el nombre del acorde, las notas en letras y las teclas del
 ordenador que tocan cada nota. Pulsar una tarjeta escucha su acorde o nota y
 arrastrarla la reordena dentro de la progresión. En las tarjetas de acorde, el
-lápiz abre un editor de las notas que lo componen (campo de texto e **Invertir**
-para subir una octava la más grave), de modo que las inversiones se prueban
-sobre la propia progresión antes de llevarla a Notas. A la derecha de la última tarjeta, **+**
+lápiz abre un editor de las notas que lo componen con un campo de texto y un
+botón de escucha con solo el icono. A la derecha de la última tarjeta, **+**
 abre un
 desplegable para añadir acordes o notas al final de la progresión: **Escala**
 ofrece los acordes o notas de la tonalidad en la octava actual y **Libre**
@@ -1272,8 +1285,8 @@ permite elegir cualquier raíz y tipo de acorde (o cualquier nota). Si no hay
 tarjetas, **+** queda al principio. El desplegable sigue abierto para encadenar
 varias altas y cada tarjeta se quita con **×**. Al editar, el combo pasa a **Personalizada**; la
 progresión propia se conserva al cambiar de octava (se transporta) y al cambiar
-de notación (se reetiqueta). Editar mientras suena —añadir, mover, invertir o
-quitar tarjetas— **no detiene la escucha**: el temporizador sigue vivo y el
+de notación (se reetiqueta). Editar mientras suena —añadir, mover, cambiar
+notas o quitar tarjetas— **no detiene la escucha**: el temporizador sigue vivo y el
 siguiente paso toca la lista ya modificada. Solo se detiene al quitar el último
 paso, al cambiar de tipo, octava o tonalidad, o al pulsar **■**. **▶** se convierte en
 **■** mientras suena y detiene la reproducción. **→ Notas** lleva la progresión
@@ -1296,13 +1309,13 @@ Durante **Grabar** se mantiene el instrumento del elemento que se está grabando
 
 #### 7.5.4 Plantillas
 
-El laboratorio arranca siempre con un tema vacío (3 min, Do mayor, sin pistas).
+El laboratorio arranca siempre con un tema vacío (1 min, Do mayor, sin pistas).
 No hay diálogo de inicio: **Nuevo** crea otro tema vacío sin ofrecer canciones
 ni importaciones.
 
 Las plantillas están en la biblioteca, en **Plantillas**:
 
-- **Vacío:** 3 min, Do mayor, sin pistas.
+- **Vacío:** 1 min, Do mayor, sin pistas.
 - Una de las **84 canciones de sen** ya publicadas (`assets/audio/<id>/01–06.wav`),
   nombradas «Ambiente NN»: «Bosque 01» … «Bosque 06», «Fuego 01»…
   Debajo aparece el nombre del archivo («01.wav» … «06.wav»). No se usan los
@@ -1954,7 +1967,9 @@ lab/
     inspector.js            Paneles del tema, pista, elemento y maestro
     controls.js             Deslizadores, teclado, curvas, piano roll, automatización
     keys.js                 Distribución del teclado del ordenador para tocar notas
+    chords.js               Nombres de acordes, inversiones y lectura de notas escritas
     performance.js          Modo teclado: prueba, progresiones y grabación de cambios de nota
+    stretch.js              Estiramiento temporal del tema desde la fila Maestro
     sen-progressions.js     Progresiones de las capas sostenidas de las pistas publicadas (generado)
     library.js              Biblioteca plegable por gesto/timbre y plantillas
     scenes.js               Catálogo y audio de las capas de canciones de sen
@@ -1974,13 +1989,13 @@ lab/
     wav.js                  Escritura RIFF por trozos, chunks INFO y senp, lectura
     voices/
       sustain.js            pad, drone, cuerdas, eolica, flauta, coro, cuencoCanto, vidrio, seno, theremin y sintes analógicos
-      strike.js             campana, cuenco, kalimba, cajaMusica, celesta, marimba, vibrafono, piano, handpan, lengueta, steelpan, arpa, guitarra, ukelele, slide, pulsada, gotaTonal, paloLluvia y FM 80
+      strike.js             campana, cuenco, kalimba, cajaMusica, celesta, marimba, vibrafono, piano, handpan, lengueta, steelpan, arpa, guitarra, ukelele, slide, pulsada, FM 80 y sintes nostálgicos; gotaTonal y paloLluvia antiguos
       layer.js              capa (capas de pistas de sen)
-      noise.js              ruido
+      noise.js              ruido y textura de palo de agua
       nature/kit.js         Planificación, sílabas y partículas
       nature/insects.js     grillo, cigarra
       nature/animals.js     pajaro, rana
-      nature/water.js       gotas, lluvia, lluvia fina, lluvia lejana, arroyo, olas
+      nature/water.js       gotas, lluvia, lluvia lejana, arroyo, olas
       nature/air.js         viento, fuego, campanillas
   templates/*.sen.json      Proyectos de ejemplo para las pruebas del motor
 scripts/
@@ -2583,6 +2598,15 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **5.9:** **Puntuales** estrena el grupo **Sintes** con piano de cinta,
+  cristal y metal. Desaparece **Gotas y lluvia**; el palo de agua pasa a
+  **Texturas → Ruido** como textura granular. **Lluvia fina** sale de
+  **Naturaleza → Agua**.
+- **5.8:** el tema nuevo dura **1 minuto** por defecto y cada capa nueva empieza
+  en 0 con la duración completa del tema, también después de estirarlo.
+- **5.7:** la fila **Maestro** incluye una línea de duración con tirador.
+  Arrastrarla estira o encoge el tema completo en el tiempo, sin cambiar la
+  afinación.
 - **5.6:** las progresiones del combo se ordenan alfabéticamente dentro de
   cada grupo. Una capa nueva empieza siempre en 0 y adopta la extensión de la
   capa más larga. En **Notas**, **Añadir** es un botón normal junto a

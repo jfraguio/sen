@@ -1651,6 +1651,65 @@ input[type="range"].tl-vol {
   color: var(--ink);
 }
 
+/* Línea de duración del maestro: el extremo se arrastra para estirar el tema. */
+.tl-stretch {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 1px;
+  min-width: 6px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, rgba(195, 180, 255, 0.12), var(--accent-line) 65%, var(--accent));
+}
+
+.tl-stretch::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 1px;
+  height: 7px;
+  background: var(--accent-line);
+}
+
+.tl-stretch-label {
+  position: absolute;
+  right: 18px;
+  top: -17px;
+  padding: 1px 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--dim);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tl-stretch-handle {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(195, 180, 255, 0.8);
+  cursor: ew-resize;
+  z-index: 5;
+}
+
+.tl-stretch-handle:hover,
+.tl-stretch-handle:focus-visible {
+  background: #fff;
+  outline: none;
+}
+
 /* Elementos */
 
 .el {

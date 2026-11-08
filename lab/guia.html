@@ -286,9 +286,9 @@
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="primeros-pasos">Primeros pasos</h2>
-        <p>El laboratorio arranca con un <b>álbum vacío</b>, «Álbum sin título», que contiene un único tema, «Tema 1». <b>Nuevo</b> en la cabecera añade un tema al álbum; <b>Nuevo</b> en el menú <b>☰</b> crea un álbum completo nuevo con su tema inicial. Si quieres partir de una canción, abre <b>Plantillas</b> en la biblioteca: están las 84 canciones de sen, nombradas «Ambiente NN» («Bosque 01», «Fuego 02»…) y con el nombre del archivo debajo («01.wav», «02.wav»…), y se añaden como un tema nuevo separado en capas (ver <a href="#pistas-sen">más abajo</a>). Todo se puede cambiar después.</p>
+        <p>El laboratorio arranca con un <b>álbum vacío</b>, «Álbum sin título», que contiene un único tema de <b>1 minuto</b>, «Tema 1». <b>Nuevo</b> en la cabecera añade un tema al álbum; <b>Nuevo</b> en el menú <b>☰</b> crea un álbum completo nuevo con su tema inicial. Si quieres partir de una canción, abre <b>Plantillas</b> en la biblioteca: están las 84 canciones de sen, nombradas «Ambiente NN» («Bosque 01», «Fuego 02»…) y con el nombre del archivo debajo («01.wav», «02.wav»…), y se añaden como un tema nuevo separado en capas (ver <a href="#pistas-sen">más abajo</a>). Todo se puede cambiar después.</p>
         <div class="cards">
-          <div class="card"><b>Vacío</b><span>3 minutos, Do mayor, sin pistas.</span></div>
+          <div class="card"><b>Vacío</b><span>1 minuto, Do mayor, sin pistas.</span></div>
           <div class="card"><b>Bosque 01</b><span>01.wav</span></div>
           <div class="card"><b>Fuego 02</b><span>02.wav</span></div>
           <div class="card"><b>Noche 02</b><span>02.wav</span></div>
@@ -299,9 +299,9 @@
         <h3>Un tema en seis pasos</h3>
         <ol class="steps">
           <li>El tema ya empieza vacío. Sin nada seleccionado, el inspector (derecha) muestra el tema: pon la tonalidad en <b>Re</b>, escala <b>pentatónica mayor</b>.</li>
-          <li>Arrastra <b>Drone</b> desde la biblioteca (izquierda) al principio de la línea de tiempo. En el inspector, deja las notas <code>Re2</code> y <code>La2</code> y dibuja en la curva de intensidad una entrada lenta.</li>
-          <li>Arrastra <b>Campana</b> a 0:20. Se crea una <b>nube de notas</b> vacía; marca <b>Notas aleatorias</b> y ponle 6 notas por minuto, registro <code>Re4</code>–<code>Re6</code> y «pasos cercanos» en 0,7.</li>
-          <li>Arrastra <b>Grillos</b> a 0:30, elige la curva <b>crece</b> y sube la <b>distancia</b> a 0,6.</li>
+          <li>Añade <b>Drone</b> desde la biblioteca: ocupa el tema entero, de 0:00 a 1:00. En el inspector, deja las notas <code>Re2</code> y <code>La2</code> y dibuja en la curva de intensidad una entrada lenta.</li>
+          <li>Añade <b>Campana</b>: se crea una <b>nube de notas</b> vacía de 1 minuto. Marca <b>Notas aleatorias</b> y ponle 6 notas por minuto, registro <code>Re4</code>–<code>Re6</code> y «pasos cercanos» en 0,7.</li>
+          <li>Añade <b>Grillos</b>, elige la curva <b>crece</b> y sube la <b>distancia</b> a 0,6.</li>
           <li>Arrastra sobre la regla de 0:20 a 1:00 para marcar una región, pulsa <kbd>L</kbd> y ajusta mientras se repite.</li>
           <li><b>Exportar</b> → preajuste <b>Estudio</b>, final <b>bucle sin costura</b> → <b>Exportar WAV</b>.</li>
         </ol>
@@ -311,7 +311,7 @@
         <p>Cualquiera de las pistas que suenan en la app (las seis de cada ambiente, bucles de 60 s) se puede abrir en el laboratorio <b>separada en sus capas</b>: lluvia, pájaros, pad, melodía… Cada capa es una pista del laboratorio a 0 dB, así que, sin tocar nada, el tema suena exactamente como en la app.</p>
         <ol class="steps">
           <li>En la biblioteca, abre <b>Plantillas</b> y elige una canción de sen. Tarda unos segundos en calcular las capas.</li>
-          <li>Ajusta el <b>volumen de cada capa con el deslizador de su cabecera</b> (doble clic lo devuelve a 0 dB). Por ejemplo, baja el «Pad» 6 dB. También puedes silenciar (<b>M</b>), escuchar una sola (<b>S</b>), moverla en el estéreo, darle fundidos, automatizarla o añadir instrumentos nuevos encima.</li>
+          <li>Ajusta el <b>volumen de cada capa con el deslizador de su cabecera</b> (doble clic lo devuelve a 0 dB). Por ejemplo, baja el «Pad» 6 dB. También puedes silenciar (<b>M</b>), escuchar una sola (<b>S</b>), moverla en el estéreo, ajustar su curva de intensidad, automatizarla o añadir instrumentos nuevos encima.</li>
           <li><b>Exportar</b> ya trae el preajuste <b>Escena para sen</b> y la sonoridad de la pista. Descarga el WAV y sustituye con él el archivo que indica el diálogo (por ejemplo <code>assets/audio/bosque/03.wav</code>).</li>
         </ol>
         <ul>
@@ -325,12 +325,12 @@
 <pre class="diagram" aria-hidden="true">┌───────────────────────────────────────────────────────────────────┐
 │ ← sen  Álbum  Tema  ‹ 1/3 ›  + Nuevo  ⋮   guardado  ? ↶ ↷ ☰       │  cabecera
 ├───────────────────────────────────────────────────────────────────┤
-│ ▶ ■  01:12,4 / 03:00   ⟲ región   rejilla   − +   vol             │  transporte
+│ ▶ ■  00:12,4 / 01:00   ⟲ región   rejilla   − +   vol             │  transporte
 ├──────────┬─────────────────────────────────────────┬──────────────┤
-│Biblioteca│ 0:00    0:30    1:00    1:30            │  Inspector   │
-│          │ Pad     ████ Re3 La3 ██████             │  (tema,      │
-│          │ Campana   · · ░ nube ░ ·  ·             │   pista o    │
-│          │ Grillos       ▒▒▒ crece ▒▒▒▒            │   elemento)  │
+│Biblioteca│ 0:00          0:30          1:00        │  Inspector   │
+│          │ Pad     █████ Re3 La3 █████████         │  (tema,      │
+│          │ Campana   · · ░░ nube ░░ ·  ·           │   pista o    │
+│          │ Grillos       ▒▒▒ crece ▒▒▒▒▒▒          │   elemento)  │
 ├──────────┴─────────────────────────────────────────┴──────────────┤
 │ nivel ▮▮▮▯  −18 LUFS · pico −2,1 · motor 18 % · Re pentatónica    │  pie
 └───────────────────────────────────────────────────────────────────┘</pre>
@@ -339,7 +339,7 @@
           <tr><td>Cabecera</td><td>Volver a sen, <b>nombre del álbum</b>, <b>nombre del tema abierto</b>, navegación entre temas (‹, selector y ›), <b>+ Nuevo</b> para añadir un tema, el menú <b>⋮</b> del tema (<b>Eliminar</b> y <b>Exportar</b>), un punto mientras se autoguarda, estas instrucciones (<b>?</b>), deshacer y rehacer y el menú <b>☰</b>, que reúne <b>Nuevo</b> (álbum nuevo), <b>Abrir</b> (álbum, tema <code>.json</code>, WAV o MIDI), <b>Guardar</b> (descarga el álbum <code>.sen-album.json</code>) y <b>Pantalla completa</b>.</td></tr>
           <tr><td>Transporte</td><td>Reproducir/pausa, detener (vuelve al inicio), posición, región en bucle, rejilla de ajuste, zoom y volumen de escucha. El volumen no afecta a lo que exportas.</td></tr>
           <tr><td>Biblioteca</td><td>Instrumentos agrupados por gesto (<b>Sostenidos</b>, <b>Puntuales</b>, <b>Texturas</b> y <b>Naturaleza</b>) y, dentro, por timbre, y <b>Plantillas</b>. Cada sección y subsección se pliega con su título y empieza plegada. El botón <b>▶</b> hace sonar una muestra de 3 s sin añadir nada.</td></tr>
-          <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja sus fundidos, su curva y una forma de onda resumida.</td></tr>
+          <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja su curva de intensidad y una forma de onda resumida. La fila <b>Maestro</b> incluye la línea para estirar la duración del tema.</td></tr>
           <tr><td>Inspector</td><td>Los controles de lo que tengas seleccionado: el tema (sin selección), una pista, un elemento o el bus maestro.</td></tr>
           <tr><td>Pie</td><td>Medidor de salida, sonoridad a corto plazo (LUFS), pico, carga del motor, tonalidad y tempo. Aquí aparecen también los avisos.</td></tr>
         </table>
@@ -362,18 +362,18 @@
         <h2 id="conceptos">Temas, pistas y elementos</h2>
         <p>Hay tres niveles:</p>
         <ul>
-          <li><b>Tema</b>: el proyecto completo. Tiene nombre, duración, forma de terminar, tonalidad, afinación, tempo opcional, una semilla de azar, las pistas y el bus maestro.</li>
+          <li><b>Tema</b>: el proyecto completo. Tiene nombre, duración (1 minuto por defecto), forma de terminar, tonalidad, afinación, tempo opcional, una semilla de azar, las pistas y el bus maestro.</li>
           <li><b>Pista = instrumento.</b> Cada pista es un único instrumento con su timbre (sus parámetros) y su mezcla (volumen, panorama, envíos a reverb y eco, silencio y solo). El timbre se ajusta una vez por pista.</li>
-          <li><b>Elemento</b>: un bloque en la pista que dice <i>cuándo</i> y <i>qué</i> suena. Tiene inicio, duración, nivel, fundidos y su contenido (notas, densidad…). Los elementos pueden solaparse: se suman.</li>
+          <li><b>Elemento</b>: un bloque en la pista que dice <i>cuándo</i> y <i>qué</i> suena. Tiene inicio, duración, nivel, curva de intensidad y su contenido (notas, densidad…). Los elementos pueden solaparse: se suman.</li>
         </ul>
 
         <h3>Familias y tipos de elemento</h3>
         <table>
           <tr><th>Familia</th><th>Qué es</th><th>Elementos</th></tr>
           <tr><td>Sostenidos</td><td>Pad, drone, cuerdas, arpa eólica, flauta suave, coro, cuenco tibetano frotado, vidrio, seno, theremin, pad 80, cinta y bruma: tonos que duran lo que dura el elemento.</td><td><b>Tono</b></td></tr>
-          <tr><td>Puntuales</td><td>Campana, cuenco tibetano, kalimba, caja de música, celesta, marimba, vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa, guitarra de nailon, ukelele, slide hawaiana, cuerda pulsada, gota tonal, palo de lluvia, piano FM y campana FM: golpes que decaen solos.</td><td><b>Nube</b>, <b>golpe</b>, <b>frase</b></td></tr>
-          <tr><td>Texturas</td><td>Ruido de color filtrado y con movimiento: aire, rumor, oleaje abstracto.</td><td><b>Tramo</b></td></tr>
-          <tr><td>Naturaleza</td><td>Naturaleza generada al azar: grillos, cigarras, pájaros, gotas, lluvia (normal, fina o lejana), arroyo, olas, viento, fuego, campanillas.</td><td><b>Tramo</b></td></tr>
+          <tr><td>Puntuales</td><td>Campana, cuenco tibetano, kalimba, caja de música, celesta, marimba, vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa, guitarra de nailon, ukelele, slide hawaiana, cuerda pulsada, piano FM, campana FM, piano de cinta, cristal y metal: golpes que decaen solos.</td><td><b>Nube</b>, <b>golpe</b>, <b>frase</b></td></tr>
+          <tr><td>Texturas</td><td>Ruido de color filtrado y con movimiento, más la textura granular de palo de agua: aire, rumor, oleaje abstracto.</td><td><b>Tramo</b></td></tr>
+          <tr><td>Naturaleza</td><td>Naturaleza generada al azar: grillos, cigarras, pájaros, gotas, lluvia (normal o lejana), arroyo, olas, viento, fuego, campanillas.</td><td><b>Tramo</b></td></tr>
           <tr><td>Capas de pistas de sen</td><td>Una capa de una canción de la app, tal como suena allí. Solo aparecen al abrir una canción de sen desde las <a href="#pistas-sen">plantillas</a>.</td><td><b>Capa de audio</b></td></tr>
         </table>
         <ul>
@@ -392,11 +392,11 @@
             Con el selector <b>Tipo</b> puedes convertirla en golpe o frase.
           </li>
           <li><b>Tramo</b> (ruidos y simulaciones): un periodo de actividad. En las simulaciones también define la <b>densidad</b> de la actividad (0–1).</li>
-          <li><b>Capa de audio</b>: un trozo de una capa de pista de sen, que se repite en bucle. Tiene inicio, duración, nivel, fundidos, curva y el punto de la capa en el que empieza.</li>
+          <li><b>Capa de audio</b>: un trozo de una capa de pista de sen, que se repite en bucle. Tiene inicio, duración, nivel, curva y el punto de la capa en el que empieza.</li>
         </ul>
 
         <h3>Curvas de intensidad</h3>
-        <p>Todo elemento con duración tiene una curva que modula su intensidad a lo largo del tiempo: <b>plana</b>, <b>crece</b>, <b>decrece</b>, <b>respira</b> (sube y baja una vez), <b>olas</b> (varios ciclos), <b>olas suaves</b> (el mismo patrón con picos más bajos y valles más altos) o una curva propia dibujada a mano. En tonos, frases y ruidos cambia el nivel; en nubes y simulaciones cambia sobre todo la densidad (cuántas cosas pasan).</p>
+        <p>Todo elemento con duración tiene una curva que modula su intensidad a lo largo del tiempo: <b>plana</b>, <b>crece</b>, <b>decrece</b>, <b>respira</b> (sube y baja una vez), <b>olas</b> (varios ciclos), <b>olas suaves</b> (el mismo patrón con picos más bajos y valles más altos) o una curva propia dibujada a mano. En tonos, frases y ruidos cambia el nivel; en nubes y simulaciones cambia sobre todo la densidad (cuántas cosas pasan). La intensidad no lleva fundidos de entrada ni salida aparte: si quieres que aparezca o desaparezca poco a poco, dibuja la curva.</p>
 
         <!-- ------------------------------------------------------------ -->
         <h2 id="instrumentos">Instrumentos</h2>
@@ -408,7 +408,7 @@
           <tr><td>Drone</td><td>Pocas parciales graves con batidos lentos y subgrave opcional.</td></tr>
           <tr><td>Cuerdas</td><td>Sección de cuerdas con filtro lento y vibrato suave.</td></tr>
           <tr><td>Arpa eólica</td><td>Cuerdas que toca el viento: sus armónicos aparecen y se apagan solos, lentos y etéreos. <b>Actividad del viento</b> decide lo rápido que cambian; <b>Aire</b> añade el soplo. Muy buena para playas, noches y espacio.</td></tr>
-          <tr><td>Flauta suave</td><td>Voz casi senoidal con un poco de soplo y vibrato, como una flauta de madera lejana. Pensada para melodías: cada elemento es una nota (por defecto, 2 s con ataque y relajación cortos).</td></tr>
+          <tr><td>Flauta suave</td><td>Voz casi senoidal con un poco de soplo y vibrato, como una flauta de madera lejana. Pensada para melodías: cada elemento es una nota (por defecto, 2 s).</td></tr>
           <tr><td>Coro</td><td>Voces con formantes que van de «a» a «o» y «u». Suena parecido de fuerte en todos los registros.</td></tr>
           <tr><td>Cuenco tibetano</td><td>El cuenco frotado con la maza: el canto crece despacio, bate y gira a tu alrededor. <b>Batido</b>, <b>Giro de la maza</b> y <b>Roce</b> ajustan el carácter. Dibuja una curva de entrada larga si quieres que aparezca poco a poco.</td></tr>
           <tr><td>Vidrio</td><td>Parciales inarmónicos sostenidos, brillo frío.</td></tr>
@@ -438,15 +438,16 @@
           <tr><td>Ukelele</td><td>Cuerdas cortas y caja pequeña: pulsación clara y alegre. Prueba una nube con probabilidad de acorde alta para rasgueos.</td></tr>
           <tr><td>Slide hawaiana</td><td>Guitarra de acero tocada con barra: cada nota entra deslizándose desde abajo y canta con vibrato. <b>Deslizamiento</b> (semitonos) y <b>Tiempo del deslizamiento</b> controlan la entrada; <b>Vibrato</b> y su velocidad, el final.</td></tr>
           <tr><td>Cuerda pulsada</td><td>Entre arpa y guitarra suave (otro modelo, más sencillo).</td></tr>
-          <tr><td>Gota tonal</td><td>Gota de agua afinada cuyo tono sube al final.</td></tr>
-          <tr><td>Palo de lluvia</td><td>Semillas que caen por un tubo: cada golpe es un vuelco, un chaparrón que crece y se apaga. <b>Duración del vuelco</b> marca cuánto dura; la nota y el brillo, el color del grano.</td></tr>
           <tr><td>Piano FM</td><td>FM de dos operadores: campana metálica y cuerpo cálido de piano eléctrico.</td></tr>
           <tr><td>Campana FM</td><td>FM de dos operadores con parciales metálicos y cola larga.</td></tr>
+          <tr><td>Piano de cinta</td><td>Piano eléctrico de los ochenta: ataque suave, cuerpo cálido y una ondulación de cinta lenta. Añade <b>desafinación</b>, <b>ondulación</b> y su velocidad.</td></tr>
+          <tr><td>Cristal</td><td>Cristal digital de FM: brillo de campana, cola larga y un coro tenue que se abre en estéreo.</td></tr>
+          <tr><td>Metal</td><td>Golpe metálico con armónicos duros, caída media y desafinación ancha: un sintetizador con carácter de cinta.</td></tr>
         </table>
-        <p class="muted">Controles comunes: decaimiento, brillo, dureza del golpe, inarmonicidad, batido, respuesta a la velocidad y ancho estéreo. Los FM cambian inarmonicidad y batido por relación FM, profundidad FM y caída FM. La slide añade deslizamiento y vibrato.</p>
+        <p class="muted">Controles comunes: decaimiento, brillo, dureza del golpe, inarmonicidad, batido, respuesta a la velocidad y ancho estéreo. Los FM cambian inarmonicidad y batido por relación FM, profundidad FM y caída FM; los tres sintes nostálgicos añaden desafinación, ondulación de cinta y velocidad de la ondulación. La slide añade deslizamiento y vibrato.</p>
 
         <h3>Texturas</h3>
-        <p><b>Ruido</b>, <b>Brisa</b>, <b>Marea</b>, <b>Siseo</b>, <b>Calor</b> y <b>Terciopelo</b> comparten el mismo motor suave: color (blanco, rosa o marrón), filtro y movimiento. Hay dos tipos de movimiento: <b>ráfagas</b> (cambios aleatorios suaves del nivel, del filtro o de ambos) y <b>oleaje</b> (ciclos regulares de 3–20 s que suben y bajan).</p>
+        <p><b>Ruido</b>, <b>Brisa</b>, <b>Marea</b>, <b>Siseo</b>, <b>Calor</b> y <b>Terciopelo</b> comparten el mismo motor suave: color (blanco, rosa o marrón), filtro y movimiento. Hay dos tipos de movimiento: <b>ráfagas</b> (cambios aleatorios suaves del nivel, del filtro o de ambos) y <b>oleaje</b> (ciclos regulares de 3–20 s que suben y bajan). <b>Palo de agua</b> es una textura granular de semillas que caen por un tubo: <b>semillas por segundo</b>, brillo, dureza, variación y ancho.</p>
 
         <h3>Naturaleza</h3>
         <table>
@@ -455,7 +456,6 @@
           <tr><td>Pájaros</td><td>Especie (mirlo, petirrojo, carbonero, pinzón, cuco, tórtola, autillo, cárabo, gaviota o genérico), individuos y frases por minuto.</td></tr>
           <tr><td>Gotas</td><td>Superficie (agua, hoja, cristal, piedra), gotas por segundo y registro.</td></tr>
           <tr><td>Lluvia</td><td>Intensidad y superficie (hojas, tejado, cristal, agua, lona).</td></tr>
-          <tr><td>Lluvia fina</td><td>Gotas pequeñas y brillantes sobre hojas, con siseo continuo. Intensidad y variación.</td></tr>
           <tr><td>Lluvia lejana</td><td>Rumor de fondo grave y difuso, sin gotas cercanas. Intensidad y variación.</td></tr>
           <tr><td>Arroyo</td><td>Caudal, fuentes de burbujeo y registro.</td></tr>
           <tr><td>Olas</td><td>Periodo, tamaño, espuma y guijarros.</td></tr>
@@ -474,8 +474,8 @@
         <h2 id="editar">Editar en la línea de tiempo</h2>
         <h3>Añadir</h3>
         <ul>
-          <li><b>Arrastra</b> un instrumento de la biblioteca a la línea de tiempo: crea una capa desde el principio, con la extensión de la capa más larga que ya exista.</li>
-          <li><b>Clic</b> en un instrumento: lo mismo, siempre desde el principio.</li>
+          <li><b>Arrastra</b> un instrumento de la biblioteca a la línea de tiempo: crea una capa desde el principio y con la duración completa del tema.</li>
+          <li><b>Clic</b> en un instrumento: lo mismo, desde el principio y con la duración completa.</li>
           <li><b>Doble clic</b> en un hueco de una pista: añade otro elemento a esa pista.</li>
         </ul>
         <h3>Modificar elementos</h3>
@@ -486,6 +486,7 @@
           <li>Selección múltiple con <kbd>Mayús</kbd> + clic o dibujando un marco.</li>
           <li>Todo se ajusta a la rejilla y a los bordes de otros elementos; mantén <kbd>Mayús</kbd> mientras arrastras para moverlo libremente.</li>
           <li>Con un elemento enfocado, <kbd>←</kbd>/<kbd>→</kbd> lo mueven 0,1 s (1 s con <kbd>Mayús</kbd>) y <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd> cambian su duración.</li>
+          <li>En la fila <b>Maestro</b>, arrastra el extremo de la <b>línea de duración</b> para estirar o encoger el tema entero: los sostenidos se alargan y los puntuales se separan. Las flechas ajustan 1 s (10 s con <kbd>Mayús</kbd>).</li>
         </ul>
         <h3>Pistas</h3>
         <p>En la cabecera de cada pista: silencio (<b>M</b>), solo (<b>S</b>) y <b>volumen</b> (arrastra el deslizador; doble clic lo devuelve a su valor por defecto). Clic en el nombre selecciona la pista; en el inspector se renombra, se cambia de color, se duplica o se borra. Hasta 32 pistas.</p>
@@ -540,7 +541,15 @@
           <li>Antes del campo de notas, cada fila muestra el <b>acorde</b> que forman. Pulsa esa etiqueta para escucharlo con el instrumento de la pista.</li>
         </ul>
         <p>Las letras forman dos octavas a partir de la octava que muestre el piano del popup: <kbd>Z</kbd> <kbd>S</kbd> <kbd>X</kbd> <kbd>D</kbd> <kbd>C</kbd> <kbd>V</kbd> <kbd>G</kbd> <kbd>B</kbd> <kbd>H</kbd> <kbd>N</kbd> <kbd>J</kbd> <kbd>M</kbd> para la grave y <kbd>Q</kbd> <kbd>2</kbd> <kbd>W</kbd> <kbd>3</kbd> <kbd>E</kbd> <kbd>R</kbd> <kbd>5</kbd> <kbd>T</kbd> <kbd>6</kbd> <kbd>Y</kbd> <kbd>7</kbd> <kbd>U</kbd> para la aguda. Si cambias de octava con <kbd>‹</kbd> <kbd>›</kbd> mientras pruebas o grabas, el cambio se aplica en caliente a las siguientes notas. Mantén varias teclas para formar un acorde; al soltarlas todas se graba un silencio. <kbd>Espacio</kbd> reproduce o pausa y <kbd>Esc</kbd> sale del modo.</p>
-        <p>El popup de <b>Teclado</b> incluye un conmutador <b>Acordes / Arpegios</b> y un combo de <b>progresiones</b> agrupadas por carácter y ordenadas alfabéticamente dentro de cada grupo: <b>Alegres</b>, <b>Nostálgicas</b>, <b>Soñadoras</b>, <b>Tensas</b>, <b>Minimalistas</b> y <b>Épicas</b> para los acordes, y <b>Ascendentes</b>, <b>Descendentes</b>, <b>Ondulantes</b>, <b>Largos</b> y <b>Saltos</b> para los arpegios. Cada una se adapta a la tonalidad del tema. El grupo <b>Sen</b> reúne las progresiones reales de las capas sostenidas de las canciones de sen que tienen pad («Lluvia 01», «Lluvia 02», «Tormenta 01»…). En este grupo el combo muestra solo los acordes, sin el nombre de la plantilla; se omiten las progresiones de un solo acorde y las que coinciden aparecen una sola vez. Las tarjetas tampoco usan cifrado romano. Al elegir una progresión suenan sus acordes o notas <b>en bucle</b>. Cuando hay una progresión elegida aparecen el campo de segundos (2 s por defecto para acordes y 0,65 s para arpegios, de 0,1 a 60 s) y el botón <b>▶</b>; si cambias los segundos mientras suena, se aplica en el paso siguiente. Debajo aparecen tarjetas con el nombre del acorde, sus notas y <b>las teclas que hay que pulsar</b>. A la derecha de la última tarjeta, <b>+</b> abre un desplegable para añadir acordes o notas: en <b>Escala</b> eliges los acordes de la tonalidad en la octava actual (o sus notas) y en <b>Libre</b> cualquier raíz y tipo de acorde (o cualquier nota). Si no hay tarjetas, <b>+</b> queda al principio. Se añaden al final y el desplegable sigue abierto para encadenar varios. Pulsa una tarjeta para escuchar su acorde o nota; <b>×</b> la quita y puedes reordenarlas arrastrándolas. En las tarjetas de acorde, el lápiz abre un editor para cambiar sus notas: escribe las notas separadas por espacios o usa <b>Invertir</b> para subir una octava la nota más grave. Al editar, el combo pasa a <b>Personalizada</b> y la progresión propia se conserva al cambiar de octava. Editar mientras suena (añadir, mover, invertir o quitar tarjetas) no interrumpe la escucha: el bucle sigue avanzando y toca la progresión ya modificada; solo se detiene si quitas el último paso. <b>▶</b> se convierte en <b>■</b> mientras suena y lo detiene. El botón <b>→ Notas</b> lleva la progresión (elegida o construida) a <b>Notas</b> una sola vez, con esos segundos: con 4 acordes de 5 s, el primero suena en el segundo 0, el segundo en el 5, el tercero en el 10 y el cuarto en el 15, y el elemento termina en el 20, sin nada después. En pistas puntuales crea o sustituye una <b>frase</b> con una entrada por paso y nota, y selecciona el elemento para editar su lista de entradas. Sustituye los cambios que hubiera (te lo pregunta antes) y acorta los fundidos del elemento si son largos, para que el primer y el último acorde se oigan enteros. Para que se repita, usa <b>Repetir</b>. El popup muestra un <b>piano de dos octavas</b> que ilumina la tecla de cada letra que pulsas o la nota que suena. El teclado toca siempre el instrumento de la <b>pista seleccionada</b>: si cambias de pista o de elemento, el sonido cambia en caliente. Suena con las <b>mismas voces del motor</b>, el volumen, el panorama y los envíos de la pista y la reverb y el eco del tema: lo que tocas es lo que se oirá en la pista.</p>
+        <p>El popup de <b>Teclado</b> incluye un piano de dos octavas, un conmutador <b>Acordes / Arpegios</b> y un combo de progresiones agrupadas por carácter y ordenadas alfabéticamente dentro de cada grupo. Cada progresión se adapta a la tonalidad del tema; el grupo <b>Sen</b> reúne las progresiones reales de las capas sostenidas de las canciones de sen con pad («Lluvia 01», «Lluvia 02», «Tormenta 01»…).</p>
+        <ul>
+          <li><b>Escuchar:</b> al elegir una progresión suena en bucle. Ajusta los segundos de cada paso y pulsa <b>▶</b> (se convierte en <b>■</b>). Los valores por defecto son 2 s para acordes y 0,65 s para arpegios; cambiarlos se aplica en el paso siguiente.</li>
+          <li><b>Tarjetas:</b> muestran el acorde, sus notas y las teclas del ordenador. Pulsa una tarjeta para oírla, arrástrala para reordenarla y usa <b>×</b> para quitarla. En los acordes, el lápiz abre un editor de notas con su botón de escucha.</li>
+          <li><b>Añadir:</b> <b>+</b> abre un desplegable para añadir acordes o notas de la escala o libres al final de la progresión; se queda abierto para encadenar varios.</li>
+          <li><b>Editar mientras suena:</b> añadir, mover, cambiar notas o quitar tarjetas no detiene el bucle. El combo pasa a <b>Personalizada</b> y la progresión se conserva al cambiar de octava.</li>
+          <li><b>→ Notas:</b> lleva la progresión elegida o construida a <b>Notas</b> una sola vez, con la duración de paso indicada. En pistas puntuales crea o sustituye una <b>frase</b> con una entrada por paso y nota. Después puedes usar <b>Repetir</b>.</li>
+        </ul>
+        <p>El piano ilumina las teclas que pulsas o la nota que suena. El teclado toca siempre el instrumento de la <b>pista seleccionada</b>: si cambias de pista o de elemento, el sonido cambia en caliente. Usa las <b>mismas voces del motor</b>, el volumen, el panorama y los envíos de la pista y la reverb y el eco del tema: lo que tocas es lo que se oirá en la pista.</p>
         <p>En las <b>nubes de notas</b>, <b>Notas</b> es una lista de notas con su tiempo de aparición. Una nube nueva empieza vacía: <b>Grabar</b> añade cada tecla tocada a la lista con su tiempo, <b>+</b> añade una entrada a mano y <b>▶</b> en cada fila la escucha con un golpe. La casilla <b>Notas aleatorias</b> cambia la lista editable por la <b>previsión</b> de la nube generativa, también con tiempo y <b>▶</b> en cada fila; el <b>registro</b> y los controles de generación (notas por minuto, azar, pasos cercanos, gravedad, probabilidad de acorde, velocidad y semilla) están en <b>Nube generativa</b> y solo se muestran con esa casilla marcada.</p>
         <p>El fundido entre notas reparte el cruce a ambos lados del cambio: la nota anterior se alarga atenuándose y la siguiente se adelanta. La envolvente del elemento es su curva de intensidad, sin fundidos de entrada ni salida en los bordes. Si divides el elemento con <kbd>S</kbd> o exportas una región, cada parte se queda con los cambios que le corresponden.</p>
 

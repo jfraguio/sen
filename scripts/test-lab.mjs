@@ -28,6 +28,7 @@ import { planStrikeHits } from '../lab/engine/voices/strike.js';
 import { seedFrom } from '../lab/engine/rng.js';
 import { buildStandalone } from '../lab/app/standalone.js';
 import { midiToTracks, parseMidi } from '../lab/app/midi.js';
+import { stretchProjectTime } from '../lab/app/stretch.js';
 
 /** MIDI de prueba: pista 1 con notas cortas; pista 2 con acordes largos (120 BPM). */
 function makeMidi() {
@@ -94,6 +95,7 @@ function smallProject(over = {}) {
 /* ------------------------------------------------------------ esquema */
 
 {
+  ok(createProject().duration === 60, 'el tema nuevo dura 1 minuto por defecto');
   for (const name of ['vacio', 'drone-y-campanas', 'noche-en-el-estanque', 'amanecer', 'espacio-profundo']) {
     const raw = JSON.parse(fs.readFileSync(path.join(root, 'lab/templates', `${name}.sen.json`), 'utf8'));
     const { project, warnings } = normalizeProject(raw);
@@ -125,6 +127,35 @@ function smallProject(over = {}) {
   p.tracks[0].elements[0].notes = ['D3'];
   const after = JSON.stringify(planStrikeHits(strike, cloud, ctx));
   ok(before === after, 'editar un elemento no cambia el azar de los demás');
+}
+
+/* ------------------------------------------------------------ estirar el tema */
+
+{
+  const p = createProject({ seed: 'estirar', duration: 30 });
+  const pad = createTrack('pad', p);
+  const tone = createElement(pad, p, 5, 'tone');
+  tone.length = 10;
+  tone.changes = [{ t: 2, notes: ['E3'] }];
+  tone.crossfade = 0.5;
+  pad.elements.push(tone);
+  pad.automation = { gain: [[0, 0], [10, -12]] };
+  const kal = createTrack('kalimba', p);
+  const phrase = createElement(kal, p, 20, 'phrase');
+  phrase.length = 4;
+  phrase.pattern = 4;
+  phrase.events = [{ t: 1, note: 'C4', v: 0.7 }, { t: 3, note: 'E4', v: 0.7 }];
+  kal.elements.push(phrase);
+  p.tracks.push(pad, kal);
+  p.region = { start: 2, end: 20 };
+  stretchProjectTime(p, 120);
+  ok(p.duration === 120
+    && tone.start === 20 && tone.length === 40 && tone.changes[0].t === 8 && tone.crossfade === 2
+    && pad.automation.gain[1][0] === 40
+    && phrase.start === 80 && phrase.length === 16 && phrase.pattern === 16
+    && phrase.events[0].t === 4 && phrase.events[1].t === 12
+    && p.region.start === 8 && p.region.end === 80,
+    'estirar el tema escala posiciones, sostenidos, cambios, frases, automatización y región');
 }
 
 /* ------------------------------------------------------------ cambios de nota */

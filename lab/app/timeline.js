@@ -51,7 +51,15 @@ export function createTimeline(root, store, actions) {
   const addRow = h('div', { class: 'tl-addrow' }, h('div', { class: 'tl-head' },
     h('button', { type: 'button', class: 'btn btn--quiet', onclick: () => actions.focusLibrary() }, icon('plus'), 'pista')), h('div', { class: 'tl-lane' }));
   const masterBtn = h('button', { type: 'button', class: 'tl-name', onclick: () => store.select({ kind: 'master' }) }, 'Maestro');
-  const masterRow = h('div', { class: 'tl-masterrow' }, h('div', { class: 'tl-head' }, masterBtn), h('div', { class: 'tl-lane' }));
+  const stretchLabel = h('span', { class: 'tl-stretch-label' });
+  const stretchHandle = h('span', {
+    class: 'tl-stretch-handle', role: 'slider', tabindex: '0',
+    'aria-label': 'Estirar la duración del tema',
+    title: 'Arrastra para estirar la duración. Flechas: 1 s; Mayús: 10 s.',
+  });
+  const stretch = h('div', { class: 'tl-stretch' }, stretchLabel, stretchHandle);
+  const masterLane = h('div', { class: 'tl-lane tl-master-lane' }, stretch);
+  const masterRow = h('div', { class: 'tl-masterrow' }, h('div', { class: 'tl-head' }, masterBtn), masterLane);
   const playhead = h('div', { class: 'tl-playhead', 'aria-hidden': 'true' });
   const endMark = h('div', { class: 'tl-end', 'aria-hidden': 'true', title: 'Fin del tema' });
   const after = h('div', { class: 'tl-after', 'aria-hidden': 'true' });
@@ -194,6 +202,23 @@ export function createTimeline(root, store, actions) {
     return svg;
   }
 
+  const maxProjectDuration = () => (state.project.end.mode === 'loop' ? LIMITS.maxLoop : LIMITS.maxDuration);
+  const stretchDurationAt = (clientX, e = null) => {
+    const lane = masterLane.getBoundingClientRect();
+    let duration = clampNum((clientX - lane.left) / pps(), LIMITS.minDuration, maxProjectDuration());
+    if (state.view.snap && !(e?.shiftKey)) duration = snap(duration, e);
+    return Math.round(clampNum(duration, LIMITS.minDuration, maxProjectDuration()) * 100) / 100;
+  };
+
+  function syncStretch(duration) {
+    stretch.style.width = `${Math.max(6, lx(duration))}px`;
+    stretchLabel.textContent = `Estirar · ${fmtShort(duration)}`;
+    stretchHandle.setAttribute('aria-valuemin', String(LIMITS.minDuration));
+    stretchHandle.setAttribute('aria-valuemax', String(maxProjectDuration()));
+    stretchHandle.setAttribute('aria-valuenow', String(Math.round(duration * 1000) / 1000));
+    stretchHandle.setAttribute('aria-valuetext', fmtShort(duration));
+  }
+
   function render() {
     const p = state.project;
     const width = HEAD_W() + (p.duration + 25) * pps();
@@ -227,9 +252,93 @@ export function createTimeline(root, store, actions) {
     masterBtn.closest('.tl-masterrow').classList.toggle('is-selected', state.selection.kind === 'master');
     endMark.style.left = `${x(p.duration)}px`;
     after.style.left = `${x(p.duration)}px`;
+    syncStretch(p.duration);
     renderRegion();
     updatePlayhead(state.playhead);
   }
+
+  /* ------------------------------------------------------------ estirar el tema */
+
+  let stretchDrag = null;
+
+  function previewStretch(duration) {
+    stretchDrag.target = duration;
+    content.style.width = `${HEAD_W() + (duration + 25) * pps()}px`;
+    endMark.style.left = `${x(duration)}px`;
+    after.style.left = `${x(duration)}px`;
+    syncStretch(duration);
+  }
+
+  /** Desplaza la línea de tiempo mientras el puntero está en un borde. */
+  function stretchAutoScroll() {
+    if (!stretchDrag) return;
+    const view = scroll.getBoundingClientRect();
+    const edge = 36;
+    let delta = 0;
+    if (stretchDrag.clientX > view.right - edge) {
+      delta = 6 + (stretchDrag.clientX - (view.right - edge)) * 0.2;
+    } else if (stretchDrag.clientX < view.left + edge) {
+      delta = -(6 + (view.left + edge - stretchDrag.clientX) * 0.2);
+    }
+    if (delta) {
+      const before = scroll.scrollLeft;
+      scroll.scrollLeft += delta;
+      if (scroll.scrollLeft !== before) previewStretch(stretchDurationAt(stretchDrag.clientX, stretchDrag.event));
+    }
+    stretchDrag.raf = requestAnimationFrame(stretchAutoScroll);
+  }
+
+  function stretchPointerDown(e) {
+    if (e.button !== 0) return;
+    stretchDrag = {
+      id: e.pointerId,
+      target: state.project.duration,
+      clientX: e.clientX,
+      event: e,
+      raf: 0,
+    };
+    stretchHandle.setPointerCapture(e.pointerId);
+    stretchDrag.raf = requestAnimationFrame(stretchAutoScroll);
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function stretchPointerMove(e) {
+    if (!stretchDrag || e.pointerId !== stretchDrag.id) return;
+    stretchDrag.clientX = e.clientX;
+    stretchDrag.event = e;
+    previewStretch(stretchDurationAt(e.clientX, e));
+  }
+
+  function stretchPointerUp(e) {
+    if (!stretchDrag || e.pointerId !== stretchDrag.id) return;
+    const target = stretchDrag.target;
+    if (stretchDrag.raf) cancelAnimationFrame(stretchDrag.raf);
+    stretchDrag = null;
+    try {
+      stretchHandle.releasePointerCapture(e.pointerId);
+    } catch {
+      /* el puntero ya se había liberado */
+    }
+    if (Math.abs(target - state.project.duration) < 0.01) render();
+    else actions.stretchDuration(target);
+  }
+
+  stretchHandle.addEventListener('pointerdown', stretchPointerDown);
+  stretchHandle.addEventListener('pointermove', stretchPointerMove);
+  stretchHandle.addEventListener('pointerup', stretchPointerUp);
+  stretchHandle.addEventListener('pointercancel', () => {
+    if (stretchDrag?.raf) cancelAnimationFrame(stretchDrag.raf);
+    stretchDrag = null;
+    render();
+  });
+  stretchHandle.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = (e.shiftKey ? 10 : 1) * (e.key === 'ArrowRight' ? 1 : -1);
+    actions.stretchDuration(clampNum(state.project.duration + delta, LIMITS.minDuration, maxProjectDuration()));
+  });
 
   /** Volumen de la pista en la cabecera: arrastrar cambia, doble clic vuelve al valor por defecto. */
   function volumeControl(track) {

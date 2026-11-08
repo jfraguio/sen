@@ -77,6 +77,7 @@ export function createInspector(root, store, actions) {
       if (byKey.has('fmRatio')) {
         add('Operador FM', ['fmRatio', 'fmIndex', 'fmTime']);
         add('Envolvente', ['decay', 'brightness', 'hardness']);
+        add('Cinta', ['detune', 'wow', 'wowRate']);
         add('Golpe', ['velocityCurve']);
         add('Espacio', ['width']);
       } else {
@@ -86,6 +87,9 @@ export function createInspector(root, store, actions) {
         add('Golpe', ['velocityCurve']);
         add('Espacio', ['width']);
       }
+    } else if (track.instrument === 'paloAgua') {
+      add('Semillas', ['rate', 'brightness', 'hardness', 'variation']);
+      add('Espacio', ['width']);
     } else if (track.family === 'noise') {
       add('Color', ['color']);
       add('Filtro', ['filterType', 'cutoff', 'q']);
@@ -148,7 +152,7 @@ export function createInspector(root, store, actions) {
         textControl('Nombre', pb('name'), syncers),
         textControl('Notas', pb('notes'), syncers, { multiline: true, placeholder: 'Idea, referencias…' })),
       section('Tiempo',
-        numberControl({ label: 'Duración', min: LIMITS.minDuration, max: maxDur, step: 1, unit: 's', def: 180 }, pb('duration'), syncers),
+        numberControl({ label: 'Duración', min: LIMITS.minDuration, max: maxDur, step: 1, unit: 's', def: 60 }, pb('duration'), syncers),
         enumControl({ label: 'Final', options: END_MODES }, {
           get: () => state.project.end.mode,
           set: (v) => commit((d) => {
@@ -1019,9 +1023,7 @@ export function createInspector(root, store, actions) {
           }),
         }, syncers),
         performanceButtons(track, el, () => state.view.keyboardOctave ?? 4),
-        h('p', { class: 'help' }, random
-          ? 'Notas generadas con los ajustes de abajo. Pulsa ▶ en una fila para oírla.'
-          : 'Cada fila es una nota con su tiempo. Pulsa ▶ para oírla o graba con el teclado.'),
+        random ? h('p', { class: 'help' }, 'Notas generadas con los ajustes de abajo. Pulsa ▶ en una fila para oírla.') : null,
         list));
       if (random) {
         blocks.push(section('Nube generativa',

@@ -4,7 +4,7 @@
   "name": "Tema sin título",
   "notes": "",
   "seed": "vacio",
-  "duration": 180,
+  "duration": 60,
   "end": { "mode": "tail", "fadeOut": 4 },
   "tuning": { "a4": 440 },
   "key": { "root": "C", "scale": "mayor" },

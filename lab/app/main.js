@@ -22,6 +22,7 @@ import { downloadAlbum, isAlbumDownloaded, loadAutosave, readProjectFile, schedu
 import { createAlbum, createAlbumTheme } from './album.js';
 import { midiToTracks } from './midi.js';
 import { createSceneSource } from './scenes.js';
+import { maxProjectDuration, stretchProjectTime } from './stretch.js';
 
 /* ------------------------------------------------------------ requisitos */
 
@@ -309,14 +310,10 @@ function boot() {
     addTrack(inst) {
       let elId = null;
       const ok = guarded((d) => {
-        // Una capa nueva empieza siempre en 0 y dura lo que la capa más larga.
-        let longest = 0;
-        for (const track of d.tracks) {
-          for (const el of track.elements) longest = Math.max(longest, el.start + elementSpan(track, el));
-        }
+        // Una capa nueva empieza en 0 y ocupa siempre la duración completa.
         const t = createTrack(inst, d);
         const e = createElement(t, d, 0);
-        if (longest > 0) e.length = Math.round(clampNum(longest, 0.1, d.duration) * 1000) / 1000;
+        if (e.type !== 'hit') e.length = d.duration;
         t.elements.push(e);
         d.tracks.push(t);
         elId = e.id;
@@ -351,6 +348,14 @@ function boot() {
       audio.seek(time);
       timeline.updatePlayhead(time);
       updateClock(time);
+    },
+    stretchDuration(duration) {
+      const current = state.project.duration;
+      const next = Math.round(clampNum(Number(duration) || current, LIMITS.minDuration, maxProjectDuration(state.project)) * 1000) / 1000;
+      if (Math.abs(next - current) < 0.001) return;
+      store.commit((d) => stretchProjectTime(d, next), { source: 'stretch' });
+      if (state.playhead > next) actions.seek(next);
+      announce(`Duración del tema: ${fmtTime(next)}.`);
     },
     regionChanged() {
       updateTransport();

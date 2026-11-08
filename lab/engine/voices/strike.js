@@ -74,6 +74,7 @@ const DOUBLETS = new Set(['cuenco', 'handpan', 'lengueta', 'steelpan']);
 const STRIKE_GAIN = {
   campana: 1, cuenco: 1.15, kalimba: 1.3, cajaMusica: 1.5, celesta: 1.2, marimba: 1.8, vibrafono: 1, piano: 1.1, arpa: 0.9, guitarra: 1,
   ukelele: 1.05, slide: 0.95, handpan: 1.1, lengueta: 1.05, steelpan: 1.15, pulsada: 3.2, gotaTonal: 2, paloLluvia: 1, fmPiano: 1.1, fmBell: 1.15,
+  pianoCinta: 1.1, cristal80: 1.15, metal80: 1.05,
 };
 const ATTACKS = {
   kalimba: 0.003, celesta: 0.004, cuenco: 0.006, marimba: 0.0015, vibrafono: 0.003, piano: 0.005, arpa: 0.002, guitarra: 0.002,
@@ -217,7 +218,9 @@ export function strikeLength(inst, p, freq) {
   if (inst === 'gotaTonal') return Math.min(6, (p.decay / 6.91) * TAIL_DB + 0.01);
   if (inst === 'paloLluvia') return Math.min(32, p.decay * 1.15 + 0.4);
   if (inst === 'pulsada') return Math.min(40, (p.decay / 6.91) * TAIL_DB * 1.1 + 0.02);
-  if (inst === 'fmPiano' || inst === 'fmBell') return Math.min(45, (p.decay / 6.91) * TAIL_DB + 0.02);
+  if (inst === 'fmPiano' || inst === 'fmBell' || inst === 'pianoCinta' || inst === 'cristal80' || inst === 'metal80') {
+    return Math.min(45, (p.decay / 6.91) * TAIL_DB + 0.02);
+  }
   const modes = MODAL_SETS[inst] || MODAL_SETS.campana;
   const maxScale = Math.max(...modes.map((m) => m[2]));
   const bright = p.brightness ?? 0.5;
@@ -254,11 +257,12 @@ export function createStrikeVoice(inst, p, freq, amp, vel, pan, seed, sr, i0) {
       freq, amp, vel, duration: p.decay, brightness: p.brightness ?? 0.5, hardness: p.hardness ?? 0.4, width: p.width ?? 0.7, seed, sr, i0,
     });
   }
-  if (inst === 'fmPiano' || inst === 'fmBell') {
+  if (inst === 'fmPiano' || inst === 'fmBell' || inst === 'pianoCinta' || inst === 'cristal80' || inst === 'metal80') {
     return new FMVoice({
       freq, amp, vel,
       decay: p.decay, brightness: p.brightness ?? 0.5, hardness: p.hardness ?? 0.3,
       ratio: p.fmRatio ?? 2, index: p.fmIndex ?? 3, time: p.fmTime ?? 1.2,
+      detune: p.detune ?? 0, wow: p.wow ?? 0, wowRate: p.wowRate ?? 0.28,
       pan, seed, sr, i0,
     });
   }
@@ -536,7 +540,10 @@ class KarplusVoice {
 /* ------------------------------------------------------------ FM (2 operadores) */
 
 class FMVoice {
-  constructor({ freq, amp, vel = 0.7, decay, brightness = 0.5, hardness = 0.3, ratio = 2, index = 3, time = 1.2, pan, seed, sr, i0 }) {
+  constructor({
+    freq, amp, vel = 0.7, decay, brightness = 0.5, hardness = 0.3, ratio = 2, index = 3, time = 1.2,
+    detune = 0, wow = 0, wowRate = 0.28, pan, seed, sr, i0,
+  }) {
     this.sr = sr;
     this.f = clamp(freq, 20, sr * 0.42);
     this.ratio = clamp(ratio, 0.25, 12);
@@ -557,6 +564,13 @@ class FMVoice {
     this.phaseM = (phM + (this.f * this.ratio * i0) / sr) % 1;
     this.incC = this.f / sr;
     this.incM = (this.f * this.ratio) / sr;
+    const cents = clamp(detune, 0, 30);
+    this.detGain = cents > 0 ? 0.32 : 0;
+    this.incD = (this.f * Math.pow(2, cents / 1200)) / sr;
+    this.phaseD = (noiseAt(seed, 9) * 0.5 + 0.5 + (this.f * i0) / sr) % 1;
+    this.wow = clamp(wow, 0, 40);
+    this.wowRate = clamp(wowRate, 0.05, 2);
+    this.wowPhase = noiseAt(seed, 11) * 2 * Math.PI;
     [this.gl, this.gr] = panGains(pan);
     // Golpe de púa: un soplo metálico muy breve.
     this.seed = seed;
@@ -583,7 +597,9 @@ class FMVoice {
       const ampEnv = (1 - Math.exp(-t / this.attack)) * Math.exp(-t / this.tau);
       const modEnv = Math.exp(-t / this.modTau);
       const mod = sineCycle(this.phaseM) * this.index * modEnv;
+      const wobble = this.wow ? Math.pow(2, (this.wow * Math.sin(2 * Math.PI * this.wowRate * t + this.wowPhase)) / 1200) : 1;
       let y = sineCycle(this.phaseC + mod) * ampEnv * this.amp;
+      if (this.detGain) y += sineCycle(this.phaseD + mod) * ampEnv * this.amp * this.detGain;
       const si = i + q;
       if (si < this.strikeLen) {
         y += this.bp.tick(noiseAt(this.seed, si) * Math.exp(-si / this.strikeTau)) * this.strikeAmp;
@@ -595,10 +611,12 @@ class FMVoice {
       }
       L[off + q] += y * this.gl;
       R[off + q] += y * this.gr;
-      this.phaseC += this.incC;
+      this.phaseC += this.incC * wobble;
       if (this.phaseC >= 1) this.phaseC -= 1;
-      this.phaseM += this.incM;
+      this.phaseM += this.incM * wobble;
       if (this.phaseM >= 1) this.phaseM -= 1;
+      this.phaseD += this.incD * wobble;
+      if (this.phaseD >= 1) this.phaseD -= 1;
     }
   }
 }

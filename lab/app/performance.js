@@ -340,17 +340,6 @@ export function createPerformance({ store, audio, actions }) {
     type: 'text', class: 'perform__edit-input', spellcheck: 'false',
     'aria-label': 'Notas del acorde', placeholder: 'Do3 Mi3 Sol3',
   });
-  const editPreview = h('span', { class: 'perform__add-preview' });
-  const editInvert = h('button', {
-    type: 'button', class: 'btn perform__edit-action',
-    title: 'Sube una octava la nota más grave (primera inversión)',
-    onclick: () => invertEdit(1),
-  }, 'Invertir');
-  const editInvertDown = h('button', {
-    type: 'button', class: 'btn btn--quiet perform__edit-action',
-    title: 'Baja una octava la nota más aguda',
-    onclick: () => invertEdit(-1),
-  }, 'Invertir ↓');
   const editPlay = h('button', {
     type: 'button', class: 'btn btn--quiet perform__edit-action perform__edit-play',
     'aria-label': 'Escuchar el acorde', title: 'Escuchar el acorde',
@@ -358,17 +347,14 @@ export function createPerformance({ store, audio, actions }) {
       const item = current?.chords[editIndex];
       if (item) tapMidis(item.midis);
     },
-  }, icon('play'), 'Escuchar');
-  const editHint = h('span', { class: 'perform__add-hint' });
+  }, icon('play'));
   const editMenu = h('div', {
     class: 'perform__add-menu perform__edit-menu', role: 'dialog',
     'aria-label': 'Editar las notas del acorde', hidden: true,
   },
   editTitle,
   editInput,
-  h('div', { class: 'perform__edit-actions' }, editInvert, editInvertDown, editPlay),
-  editPreview,
-  editHint);
+  h('div', { class: 'perform__edit-actions' }, editPlay));
   document.body.append(editMenu);
   const progRow = h('div', { class: 'perform__prog-row' }, progCards, addWrap);
   const typeChords = h('button', { type: 'button', class: 'perform__type', 'aria-pressed': 'true', onclick: () => setProgType('chords') }, 'Acordes');
@@ -707,11 +693,6 @@ export function createPerformance({ store, audio, actions }) {
     const notes = item.midis.map((midi) => noteLabel(midiToNote(midi), notation)).join(' ');
     editTitle.textContent = `Editar ${item.short}`;
     if (force || document.activeElement !== editInput) editInput.value = notes;
-    editPreview.textContent = `${item.fullName} · ${item.letters}`;
-    editPreview.title = item.fullName;
-    editHint.textContent = 'Escribe las notas separadas por espacios. Invertir sube una octava la más grave.';
-    editInvert.disabled = item.midis.length < 2;
-    editInvertDown.disabled = item.midis.length < 2;
   }
 
   /** Coloca el editor junto a la tarjeta, por encima si cabe. */
@@ -779,16 +760,6 @@ export function createPerformance({ store, audio, actions }) {
       return;
     }
     if (!applyEditNotes(midis)) syncEditMenu(item, { force: true });
-  }
-
-  /** Invertir: sube la nota más grave o baja la más aguda una octava. */
-  function invertEdit(direction) {
-    const item = current?.chords[editIndex];
-    if (!item || item.midis.length < 2) return;
-    const midis = [...item.midis].sort((a, b) => a - b);
-    if (direction > 0) midis[0] += 12;
-    else midis[midis.length - 1] -= 12;
-    applyEditNotes(midis);
   }
 
   /** Carga una progresión del catálogo en el editor de tarjetas. */

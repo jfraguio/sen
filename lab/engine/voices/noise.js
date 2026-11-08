@@ -4,19 +4,92 @@
  */
 
 import {
-  CONTROL_STEP, ColoredNoise, Control, ElementEnvelope, FILTER_MODES, Svf, clamp, quantizeFreq, smoothRandom,
+  CONTROL_STEP, ColoredNoise, Control, ElementEnvelope, FILTER_MODES, Svf, clamp, panGains, quantizeFreq, smoothRandom,
 } from '../dsp.js';
-import { subSeed } from '../rng.js';
+import { subSeed, unitAt } from '../rng.js';
 import { trackParams } from '../schema.js';
 
 export function compileNoiseElement(track, el, ctx) {
   const p = trackParams(track);
+  const palo = track.instrument === 'paloAgua';
   return [{
     t: 0,
     d: el.length,
     bed: true,
-    create: (sr, i0, period) => new NoiseVoice(p, el, ctx.elementSeed, sr, period),
+    create: (sr, i0, period) => (palo
+      ? new PaloAguaVoice(p, el, ctx.elementSeed, sr, period)
+      : new NoiseVoice(p, el, ctx.elementSeed, sr, period)),
   }];
+}
+
+/**
+ * Palo de agua como textura: granos de semillas que caen por un tubo. Cada
+ * grano excita uno de cuatro resonadores y deja un chasquido breve; el flujo
+ * es continuo y estéreo.
+ */
+class PaloAguaVoice {
+  constructor(p, el, seed, sr, period) {
+    this.sr = sr;
+    this.period = period;
+    this.env = new ElementEnvelope(el, sr, period);
+    this.rate = clamp(p.rate ?? 200, 5, 600);
+    this.q = 3 + 9 * clamp(p.hardness ?? 0.4, 0, 1);
+    const base = 260 + 900 * clamp(p.brightness ?? 0.5, 0, 1);
+    this.res = [3, 4.7, 6.9, 10.3].map((ratio) => {
+      const fc = clamp(base * ratio, 300, Math.min(9000, sr * 0.42));
+      return [
+        new Svf(2).set(fc, this.q, sr),
+        new Svf(2).set(fc * 1.013, this.q, sr),
+        Math.sqrt((this.q * sr) / (Math.PI * fc)),
+      ];
+    });
+    this.seeds = [1, 2, 3, 4, 5].map((k) => subSeed(seed, k));
+    this.width = clamp(p.width ?? 0.7, 0, 1);
+    this.variation = clamp(p.variation ?? 0.5, 0, 1);
+    this.exL = new Float64Array(4);
+    this.exR = new Float64Array(4);
+    this.ctl = new Control(1, (i, out) => {
+      out[0] = this.env.gainAt(i) * 1.2;
+    });
+  }
+
+  process(L, R, off, n, i) {
+    const { sr, res, exL, exR, seeds } = this;
+    const end = off + n;
+    let o = off;
+    while (o < end) {
+      const a0 = this.ctl.prepare(i);
+      const seg = Math.min(end - o, a0 + CONTROL_STEP - i);
+      let amp = this.ctl.value(0, i);
+      const damp = this.ctl.step(0);
+      for (let s = 0; s < seg; s++) {
+        const si = i + s;
+        const j = this.period ? si % this.period : si;
+        exL.fill(0);
+        exR.fill(0);
+        if (unitAt(seeds[0], j) < this.rate / sr) {
+          const u = unitAt(seeds[1], j);
+          const strength = (0.35 + 0.65 * u) * (1 - 0.35 * this.variation + 0.35 * this.variation * unitAt(seeds[2], j));
+          const sign = unitAt(seeds[3], j) < 0.5 ? -1 : 1;
+          const [gl, gr] = panGains(clamp(this.width * (unitAt(seeds[4], j) * 2 - 1), -1, 1));
+          const mode = Math.floor(unitAt(seeds[2], j + 17) * 4) & 3;
+          exL[mode] += sign * strength * gl;
+          exR[mode] += sign * strength * gr;
+        }
+        let yl = 0;
+        let yr = 0;
+        for (let k = 0; k < 4; k++) {
+          yl += res[k][0].tick(exL[k]) * res[k][2];
+          yr += res[k][1].tick(exR[k]) * res[k][2];
+        }
+        L[o + s] += yl * amp;
+        R[o + s] += yr * amp;
+        amp += damp;
+      }
+      o += seg;
+      i += seg;
+    }
+  }
 }
 
 /** Envolvente de oleaje: sube con `a` del ciclo y baja con el resto. */
