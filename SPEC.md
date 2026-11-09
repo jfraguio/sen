@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 5.3<br>
+**Versión:** 5.10<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de música ambiental
 
@@ -14,14 +14,14 @@ analítica ni persistencia: todo ocurre en el navegador.
 
 La experiencia tiene tres piezas:
 
-1. **Menú de constelación** con catorce ambientes representados solo por su
-   icono.
-2. **Sesión a pantalla completa** con una animación propia, audio en bucle,
+1. **Laboratorio** en `/`: la portada es un editor de música ambiental
+   sintética, independiente de los ambientes, para componer temas con notas
+   sostenidas, notas puntuales, ruidos y simulaciones de naturaleza y
+   descargarlos como WAV (sección 7).
+2. **Menú de constelación** en `/music/` con catorce ambientes representados
+   solo por su icono.
+3. **Sesión a pantalla completa** con una animación propia, audio en bucle,
    progreso y fundido final.
-3. **Laboratorio** en `/lab/`: un editor de música ambiental sintética,
-   independiente de los ambientes, para componer temas con notas sostenidas,
-   notas puntuales, ruidos y simulaciones de naturaleza y descargarlos como WAV
-   (sección 7).
 
 El motor puede generar **hasta diez escenas de audio por ambiente**. Las
 escenas no son copias: cada una es un paisaje distinto del mismo ambiente. Las
@@ -57,8 +57,8 @@ música (en el cuento es al revés). Al comenzar una sesión suena siempre
 - Reproducción en segundo plano garantizada por el sistema operativo.
 - Banco de versiones largas en MP3. Se retiró por peso y por usar una síntesis
   antigua que ya no representa la app actual.
-- URLs heredadas `/sounds/` y `/sound/`. La única URL de laboratorio es
-  `/lab/`.
+- URLs heredadas `/sounds/` y `/sound/`. Las rutas vigentes son `/` (editor),
+  `/music/` (ambientes) y `/lab/` (redirección a la portada).
 
 ---
 
@@ -66,8 +66,10 @@ música (en el cuento es al revés). Al comenzar una sesión suena siempre
 
 | Recurso | Ruta |
 | --- | --- |
-| Aplicación | `/` |
-| Laboratorio (editor) | `/lab/` |
+| Portada: laboratorio (editor) | `/` |
+| Ambientes y sesiones | `/music/` |
+| Laboratorio (redirección a `/`) | `/lab/` |
+| Instrucciones del laboratorio | `/lab/guia.html` |
 | Render local de temas del laboratorio | `scripts/render-lab.mjs` |
 | Audio de un ambiente | `/assets/audio/<id>/0N.wav` |
 | Configuración | `/src/config/ambients.js` |
@@ -83,7 +85,7 @@ música (en el cuento es al revés). Al comenzar una sesión suena siempre
 
 ### 4.1 Menú principal
 
-Al cargar `/`:
+Al cargar `/music/`:
 
 - Se dibuja un cielo místico animado en `#menu-canvas`: nebulosas violetas,
   magenta, cian y turquesa que derivan, cintas de aurora, polvo, un mandala
@@ -160,7 +162,7 @@ Al iniciar una sesión:
 10. Se añade `#<id>/<pista>` al historial mediante `pushState`, por ejemplo
     `#mar/01`. Si se entró directamente por URL, se usa `replaceState`.
 
-Al cargar el menú (`/`), un hash `#<id>/<pista>` (por ejemplo `#bosque/02`)
+Al cargar el menú (`/music/`), un hash `#<id>/<pista>` (por ejemplo `#bosque/02`)
 abre esa sesión directamente, con su animación y esa pista. Cambiar el hash
 con una sesión abierta (o usar Atrás/Adelante entre pistas) cierra la actual
 y abre la indicada. Como no hay gesto
@@ -792,9 +794,9 @@ No objetivos:
 
 ### 7.2 Acceso y requisitos
 
-- URL: **`/lab/`**. Página independiente; la app no enlaza al laboratorio
-  desde el menú (se mantiene la sobriedad) y el laboratorio enlaza de vuelta a
-  `/` con “← sen”.
+- URL: **`/`**. Es la portada del sitio; los ambientes viven en `/music/`. El
+  laboratorio enlaza de vuelta a los ambientes con “← sen” y `/lab/` redirige
+  a la portada.
 - Diseñado para **escritorio** (≥ 1024 px). En tablet horizontal funciona
   completo. Por debajo de 900 px se usa el modo compacto (7.5.6).
 - Requisitos del navegador: Web Audio, `AudioWorklet`, Web Workers de tipo
@@ -1201,11 +1203,11 @@ sin animaciones de fondo que compitan con el trabajo.
   inspector; `Alt` + arrastrar duplica; `S` divide en el cabezal; `Supr` borra. Selección múltiple con
   `Mayús` o marco. Copiar, cortar y pegar en el cabezal. Ajuste magnético a la
   rejilla y a los bordes de otros elementos (`Mayús` lo desactiva).
-- **Pistas:** en la cabecera, silencio, solo y volumen (deslizador de −60 a
-  +6 dB; doble clic vuelve al valor por defecto de la familia; si la pista
-  automatiza el volumen, el deslizador se desactiva). En el inspector,
-  renombrar, cambiar color, duplicar y borrar. Máximo 32. El orden de las
-  pistas es el de creación (no se reordenan ni se pliegan).
+- **Pistas:** en la cabecera, eliminar (icono de papelera), silencio, solo y
+  volumen (deslizador de −60 a +6 dB; doble clic vuelve al valor por defecto de
+  la familia; si la pista automatiza el volumen, el deslizador se desactiva).
+  En el inspector, renombrar, cambiar color, duplicar y borrar. Máximo 32. El
+  orden de las pistas es el de creación (no se reordenan ni se pliegan).
 - **Estirar el tema:** en la fila **Maestro**, el extremo de la **línea de
   duración** se arrastra para cambiar la duración total. Todo el contenido se
   escala en tiempo: posiciones, sostenidos, cambios de nota, eventos de frases
@@ -1328,7 +1330,7 @@ la interfaz ya no los ofrece.
 
 #### 7.5.5 Ejemplo de flujo
 
-1. Abrir `/lab/` (ya hay un tema vacío) y poner la tonalidad en Re pentatónica mayor.
+1. Abrir `/` (ya hay un tema vacío) y poner la tonalidad en Re pentatónica mayor.
 2. Arrastrar **Drone** al inicio; en el inspector, notas `D2` y `A2`, fundido
    de entrada de 10 s.
 3. Arrastrar **Campana** a 0:20 (crea una **nube de notas** vacía); marcar
@@ -1947,8 +1949,9 @@ cuenta las que suenan a la vez (notas × voces de unísono).
 ### 7.13 Estructura
 
 ```text
+index.html                  Página del editor (portada)
 lab/
-  index.html                Página del editor
+  index.html                Redirección a la portada
   guia.html                 Instrucciones para el usuario (página estática)
   lab.css
   worker.js                 Worker de escucha: compila y emite bloques
@@ -2034,7 +2037,8 @@ Las tres fases previstas están implementadas en la versión 4.0:
 `node scripts/test-lab.mjs --full` comprueba automáticamente los marcados con
 **(auto)**.
 
-- [x] `/lab/` carga sin errores y sin peticiones fuera del mismo origen.
+- [x] `/` carga el editor sin errores y sin peticiones fuera del mismo origen;
+      `/music/` carga los ambientes y `/lab/` redirige a `/`.
 - [x] Ningún módulo de `lab/engine/` ni de `lab/app/` importa de `src/` ni de
       `scripts/lib/`; solo `lab/scene-worker.js` usa `scripts/lib/published.js`
       (comprobable con `grep`).
@@ -2105,7 +2109,8 @@ ambientes y exportaba un JSON `sen-lab/2`. En la versión 4.0:
    a **`scripts/lib/`**, porque solo los usan los generadores de escenas.
 2. Se retiraron `lab/lab.js` y `lab/lab.css`; el esquema `sen-lab/2` ya no se
    admite (al abrirlo se muestra un aviso).
-3. `/lab/` sirve el editor. La URL no cambió.
+3. `/lab/` sirvió el editor hasta la versión 5.10; ahora `/` es la portada y
+   `/lab/` redirige a ella.
 
 ### 7.17 Canciones de sen por capas
 
@@ -2153,7 +2158,8 @@ otra mezcla) y exportarla de nuevo.
 ### 8.1 Estructura
 
 ```
-index.html                  Entrada de la app
+index.html                  Entrada del laboratorio (portada)
+music/index.html            Menú de ambientes y sesiones
 SPEC.md                     Esta especificación
 README.md                   Guía breve
 assets/
@@ -2589,15 +2595,18 @@ la siguiente sesión.
 - **Escenas borrables:** el usuario puede conservar solo las que le gusten.
 - **Sin banco largo:** se eliminó el MP3 de 10 minutos por peso y por usar una
   síntesis anterior. La app y el laboratorio son la referencia actual.
-- **Sin redirects heredados:** solo `/` y `/lab/`; las antiguas rutas
-  `/sounds/` y `/sound/` ya no existen.
-- **Laboratorio desacoplado:** el editor de `/lab/` tiene su propio motor y no
+- **Sin redirects heredados:** solo `/`, `/music/` y la redirección de `/lab/`;
+  las antiguas rutas `/sounds/` y `/sound/` ya no existen.
+- **Laboratorio desacoplado:** el editor de `/` tiene su propio motor y no
   depende de los ambientes, de sus escenas ni de sus generadores (7.12).
 
 ---
 
 ## 14. Historial mínimo
 
+- **5.10:** el **laboratorio** pasa a ser la portada (`/`) y los **ambientes**
+  se sirven en `/music/`; `/lab/` redirige a la portada. Cada cabecera de
+  pista incluye un icono de papelera para eliminar la capa o pista.
 - **5.9:** **Puntuales** estrena el grupo **Sintes** con piano de cinta,
   cristal y metal. Desaparece **Gotas y lluvia**; el palo de agua pasa a
   **Texturas → Ruido** como textura granular. **Lluvia fina** sale de

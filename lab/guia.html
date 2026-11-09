@@ -236,7 +236,7 @@
   </head>
   <body>
     <header class="bar">
-      <a href="./">← volver al laboratorio</a>
+      <a href="../">← volver al laboratorio</a>
       <span class="spacer"></span>
       <strong>sen · lab · instrucciones</strong>
     </header>
@@ -311,7 +311,7 @@
         <p>Cualquiera de las pistas que suenan en la app (las seis de cada ambiente, bucles de 60 s) se puede abrir en el laboratorio <b>separada en sus capas</b>: lluvia, pájaros, pad, melodía… Cada capa es una pista del laboratorio a 0 dB, así que, sin tocar nada, el tema suena exactamente como en la app.</p>
         <ol class="steps">
           <li>En la biblioteca, abre <b>Plantillas</b> y elige una canción de sen. Tarda unos segundos en calcular las capas.</li>
-          <li>Ajusta el <b>volumen de cada capa con el deslizador de su cabecera</b> (doble clic lo devuelve a 0 dB). Por ejemplo, baja el «Pad» 6 dB. También puedes silenciar (<b>M</b>), escuchar una sola (<b>S</b>), moverla en el estéreo, ajustar su curva de intensidad, automatizarla o añadir instrumentos nuevos encima.</li>
+          <li>Ajusta el <b>volumen de cada capa con el deslizador de su cabecera</b> (doble clic lo devuelve a 0 dB). Por ejemplo, baja el «Pad» 6 dB. También puedes eliminar la capa con el icono de papelera, silenciarla (<b>M</b>), escuchar una sola (<b>S</b>), moverla en el estéreo, ajustar su curva de intensidad, automatizarla o añadir instrumentos nuevos encima.</li>
           <li><b>Exportar</b> ya trae el preajuste <b>Escena para sen</b> y la sonoridad de la pista. Descarga el WAV y sustituye con él el archivo que indica el diálogo (por ejemplo <code>assets/audio/bosque/03.wav</code>).</li>
         </ol>
         <ul>
@@ -339,7 +339,7 @@
           <tr><td>Cabecera</td><td>Volver a sen, <b>nombre del álbum</b>, <b>nombre del tema abierto</b>, navegación entre temas (‹, selector y ›), <b>+ Nuevo</b> para añadir un tema, el menú <b>⋮</b> del tema (<b>Eliminar</b> y <b>Exportar</b>), un punto mientras se autoguarda, estas instrucciones (<b>?</b>), deshacer y rehacer y el menú <b>☰</b>, que reúne <b>Nuevo</b> (álbum nuevo), <b>Abrir</b> (álbum, tema <code>.json</code>, WAV o MIDI), <b>Guardar</b> (descarga el álbum <code>.sen-album.json</code>) y <b>Pantalla completa</b>.</td></tr>
           <tr><td>Transporte</td><td>Reproducir/pausa, detener (vuelve al inicio), posición, región en bucle, rejilla de ajuste, zoom y volumen de escucha. El volumen no afecta a lo que exportas.</td></tr>
           <tr><td>Biblioteca</td><td>Instrumentos agrupados por gesto (<b>Sostenidos</b>, <b>Puntuales</b>, <b>Texturas</b> y <b>Naturaleza</b>) y, dentro, por timbre, y <b>Plantillas</b>. Cada sección y subsección se pliega con su título y empieza plegada. El botón <b>▶</b> hace sonar una muestra de 3 s sin añadir nada.</td></tr>
-          <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja su curva de intensidad y una forma de onda resumida. La fila <b>Maestro</b> incluye la línea para estirar la duración del tema.</td></tr>
+          <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, eliminar, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja su curva de intensidad y una forma de onda resumida. La fila <b>Maestro</b> incluye la línea para estirar la duración del tema.</td></tr>
           <tr><td>Inspector</td><td>Los controles de lo que tengas seleccionado: el tema (sin selección), una pista, un elemento o el bus maestro.</td></tr>
           <tr><td>Pie</td><td>Medidor de salida, sonoridad a corto plazo (LUFS), pico, carga del motor, tonalidad y tempo. Aquí aparecen también los avisos.</td></tr>
         </table>
@@ -489,7 +489,7 @@
           <li>En la fila <b>Maestro</b>, arrastra el extremo de la <b>línea de duración</b> para estirar o encoger el tema entero: los sostenidos se alargan y los puntuales se separan. Las flechas ajustan 1 s (10 s con <kbd>Mayús</kbd>).</li>
         </ul>
         <h3>Pistas</h3>
-        <p>En la cabecera de cada pista: silencio (<b>M</b>), solo (<b>S</b>) y <b>volumen</b> (arrastra el deslizador; doble clic lo devuelve a su valor por defecto). Clic en el nombre selecciona la pista; en el inspector se renombra, se cambia de color, se duplica o se borra. Hasta 32 pistas.</p>
+        <p>En la cabecera de cada pista: eliminar (icono de papelera), silencio (<b>M</b>), solo (<b>S</b>) y <b>volumen</b> (arrastra el deslizador; doble clic lo devuelve a su valor por defecto). Clic en el nombre selecciona la pista; en el inspector se renombra, se cambia de color, se duplica o se borra. Hasta 32 pistas.</p>
         <h3>Navegar</h3>
         <ul>
           <li>Clic en la regla: mueve el cabezal. Arrastrar en la regla: marca la región de escucha.</li>

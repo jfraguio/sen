@@ -1445,6 +1445,24 @@ input[type="color"]::-moz-color-swatch {
   color: var(--ink);
 }
 
+.tl-ms.tl-del {
+  display: inline-grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.tl-ms.tl-del .i {
+  width: 13px;
+  height: 13px;
+  stroke-width: 1.5;
+}
+
+.tl-ms.tl-del:hover {
+  background: rgba(255, 141, 158, 0.12);
+  border-color: rgba(255, 141, 158, 0.45);
+  color: #ffc2cc;
+}
+
 .tl-ms[aria-pressed="true"].tl-mute {
   background: rgba(255, 141, 158, 0.16);
   color: #ffc2cc;

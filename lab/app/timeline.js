@@ -242,6 +242,7 @@ export function createTimeline(root, store, actions) {
         h('button', { type: 'button', class: 'tl-name', onclick: () => store.select({ kind: 'track', trackId: track.id }), title: 'Seleccionar pista' },
           track.name, trackTag(track) ? h('small', {}, trackTag(track)) : null, track.automation && Object.keys(track.automation).length ? h('small', { class: 'tl-auto', title: 'Pista con automatización' }, 'A') : null),
         h('div', { class: 'tl-ctrls' },
+          h('button', { type: 'button', class: 'tl-ms tl-del', 'aria-label': `Eliminar ${track.name}`, title: `Eliminar la pista «${track.name}»`, onclick: () => actions.deleteTrack(track.id) }, icon('trash')),
           h('button', { type: 'button', class: 'tl-ms tl-mute', 'aria-pressed': String(!!track.mix.mute), 'aria-label': `Silenciar ${track.name}`, title: 'Silencio (M)', onclick: () => actions.toggleMix(track.id, 'mute') }, 'M'),
           h('button', { type: 'button', class: 'tl-ms tl-solo', 'aria-pressed': String(!!track.mix.solo), 'aria-label': `Solo de ${track.name}`, title: 'Solo (Mayús+S)', onclick: () => actions.toggleMix(track.id, 'solo') }, 'S'),
           volumeControl(track)),

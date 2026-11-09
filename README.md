@@ -1,7 +1,7 @@
 # sen
 
-**App:** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/><br>
-**Laboratorio:** <https://fraguio.com/sen/lab/>
+**Laboratorio (portada):** <https://fraguio.com/sen/> · <https://jfraguio.github.io/sen/><br>
+**Ambientes:** <https://fraguio.com/sen/music/>
 
 Luz y sonido para descansar. Catorce ambientes, sesiones de **10, 15 o 30
 minutos** y ningún ajuste que distraiga: eliges un tema, la pantalla se llena
@@ -16,8 +16,9 @@ móvil y publicado en GitHub Pages.
 python3 -m http.server 4173
 ```
 
-Abre <http://localhost:4173>. No abras `index.html` con `file://`: los módulos
-ES y el audio necesitan un servidor.
+Abre <http://localhost:4173> para entrar en el laboratorio (portada) o
+<http://localhost:4173/music/> para ver los ambientes. No abras `index.html`
+con `file://`: los módulos ES y el audio necesitan un servidor.
 
 ## Qué incluye
 
@@ -36,8 +37,9 @@ ES y el audio necesitan un servidor.
   para cerrar y volver
   al menú.
 - Audio sintético, sin cuentas, sin anuncios y sin peticiones a servidores.
-- **Laboratorio** en **`/lab/`**: un editor de música ambiental sintética para
-  componer temas propios y descargarlos como WAV (ver más abajo).
+- **Portada (laboratorio)** en **`/`**: un editor de música ambiental sintética
+  para componer temas propios y descargarlos como WAV (ver más abajo).
+  Los ambientes viven en **`/music/`**.
 
 La funcionalidad completa, la arquitectura y la descripción precisa de cada
 ambiente están en **[`SPEC.md`](SPEC.md)**.
@@ -45,14 +47,17 @@ ambiente están en **[`SPEC.md`](SPEC.md)**.
 ## Estructura
 
 ```
-index.html
+index.html                  Portada: editor del laboratorio
+music/
+  index.html                Ambientes y sesiones de luz y sonido
 SPEC.md
 assets/
   audio/<id>/01.wav … 06.wav (seis por ambiente)
   audio/README.md
   favicon.svg
 lab/
-  index.html, guia.html, lab.css
+  index.html                Redirección a la portada
+  guia.html, lab.css
   worker.js, export-worker.js, overview-worker.js
   player-worklet.js (escucha), live-worklet.js (modo teclado)
   app/        interfaz del editor
@@ -114,7 +119,8 @@ cualquier escena sin tocar código.
 
 ## Laboratorio
 
-**`/lab/`** es un editor de música ambiental sintética con su propio motor:
+**`/`** es un editor de música ambiental sintética con su propio motor. El
+código del editor sigue en `lab/`; `/lab/` redirige a la portada:
 
 - **Canciones de sen por capas:** las plantillas abren cualquier canción de la
   app separada en capas (lluvia, pájaros, pad, melodía…), para cambiar sus
@@ -130,7 +136,7 @@ cualquier escena sin tocar código.
   notas, ruidos de color, la textura granular de **palo de agua** y
   **simulaciones** (grillos, cigarras, pájaros por especie, gaviotas incluidas,
   gotas, lluvia normal o lejana, arroyo, olas, viento, fuego, campanillas).
-  Cada pista tiene silencio, solo y volumen en su cabecera.
+  Cada pista tiene eliminar, silencio, solo y volumen en su cabecera.
 - **Biblioteca plegable por gesto y timbre:** Sostenidos, Puntuales, Texturas y
   Naturaleza, con subgrupos como Sintes, Teclados, Láminas, Agua o Animales.
   Las secciones y subsecciones empiezan plegadas.

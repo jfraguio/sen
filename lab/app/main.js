@@ -1106,7 +1106,7 @@ function boot() {
       toggleRegionLoop();
     } else if (k === '?') {
       e.preventDefault();
-      window.open('guia.html', '_blank', 'noopener');
+      window.open(new URL('../guia.html', import.meta.url), '_blank', 'noopener');
     } else if (k === '+' || k === '=') {
       timeline.zoom(1.5);
     } else if (k === '-' || k === '_') {

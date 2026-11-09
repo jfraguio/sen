@@ -9,11 +9,13 @@
  */
 
 const VARIANTS = ['01.wav', '02.wav', '03.wav', '04.wav', '05.wav', '06.wav'];
+/** Raíz del sitio, para que las rutas no dependan de la página que carga la app. */
+const SITE_ROOT = new URL('../../', import.meta.url);
 
 export function resolveAudioVariants(directory, prefix = '') {
   return Promise.all(
     VARIANTS.map(async (name) => {
-      const path = `${prefix}${directory}/${name}`;
+      const path = new URL(`${prefix}${directory}/${name}`, SITE_ROOT).href;
       try {
         const response = await fetch(path, {
           method: 'HEAD',

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#07080a" />
+    <meta
+      name="description"
+      content="sen: catorce ambientes de luz y sonido para descansar. Sesiones de 10, 15 o 30 minutos."
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="sen" />
+    <title>sen</title>
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../src/styles/main.css" />
+    <link rel="canonical" href="https://fraguio.com/sen/music/" />
+  </head>
+  <body>
+    <canvas class="menu-canvas" id="menu-canvas" aria-hidden="true"></canvas>
+    <div class="menu-shade" aria-hidden="true"></div>
+
+    <main class="app" id="app">
+      <a class="brand" href="../" aria-label="sen — abrir el laboratorio" title="Abrir el laboratorio">
+        <span class="brand__sigil" aria-hidden="true"></span>
+        <span class="brand__mark" aria-hidden="true">sen</span>
+      </a>
+
+      <h1 class="sr-only">sen — elige un ambiente de luz y sonido y la duración de tu sesión</h1>
+
+      <div class="constellation" id="constellation">
+        <svg class="constellation__lines" id="constellation-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="nodes" id="grid" role="group" aria-label="Elige un ambiente"></div>
+      </div>
+
+      <footer class="foot">
+        <button
+          class="foot__duration"
+          id="duration-trigger"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="duration-pop"
+          aria-label="Duración de la sesión: 10 minutos"
+        >10 MIN</button>
+      </footer>
+
+      <section class="duration-pop" id="duration-pop" role="dialog" aria-label="Duración de la sesión" hidden>
+        <div class="duration-options" id="duration-options" role="group" aria-label="Opciones de duración"></div>
+      </section>
+
+      <noscript>
+        <p class="noscript">sen necesita JavaScript para reproducir luz y sonido.</p>
+      </noscript>
+    </main>
+
+    <section
+      class="stage"
+      id="stage"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sesión"
+      aria-hidden="true"
+      tabindex="-1"
+      hidden
+    >
+      <canvas class="stage__canvas" id="canvas" aria-hidden="true"></canvas>
+      <div class="stage__vignette" aria-hidden="true"></div>
+      <div class="stage__progress" aria-hidden="true"><span id="progress"></span></div>
+      <div class="stage__dim" id="dim" aria-hidden="true"></div>
+
+      <div class="stage__hud">
+        <button class="stage__track" id="track-label" type="button" hidden></button>
+        <button class="stage__close" id="session-close" type="button" aria-label="Cerrar ambiente y volver al menú">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+
+      <p class="stage__note" id="note" hidden>Audio no disponible</p>
+      <p class="sr-only" id="live" aria-live="polite"></p>
+    </section>
+
+    <div class="portal" id="portal" aria-hidden="true" hidden></div>
+
+    <script type="module" src="../src/main.js"></script>
+  </body>
+</html>
