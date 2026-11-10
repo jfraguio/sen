@@ -1,6 +1,6 @@
 # sen · especificación funcional y técnica
 
-**Versión:** 5.10<br>
+**Versión:** 5.12<br>
 **Estado:** vigente<br>
 **Alcance:** aplicación web, generador de audio y laboratorio de música ambiental
 
@@ -29,10 +29,10 @@ escenas 01–03 salen de la síntesis base, las 04–06 son paisajes sonoros de
 alta calidad (más resolución, bucles de 60 s y modelos más realistas), las
 07–08 son esos paisajes con una melodía y, cuando encaja, un pad sostenido, y
 las 09–10 son paisajes nuevos con melodía. **El repositorio conserva seis por
-ambiente, renombradas `01.wav` … `06.wav`**: todas son bucles de un minuto de
-paisaje con una melodía baja, en los que el sonido ambiente manda sobre la
-música (en el cuento es al revés). Al comenzar una sesión suena siempre
-`01.wav`; las demás quedan como alternativas.
+ambiente, renombradas `01.wav` … `06.wav`, y Bichos añade una séptima,
+`07.wav`**: son bucles de paisaje con una melodía baja, en los que el sonido
+ambiente manda sobre la música (en el cuento es al revés). Al comenzar una
+sesión suena siempre `01.wav`; las demás quedan como alternativas.
 
 ---
 
@@ -152,7 +152,7 @@ Al iniciar una sesión:
 5. Se prepara el contexto de audio **de forma síncrona** dentro del gesto del
    usuario, antes de cualquier petición asíncrona.
 6. Se comprueban las escenas disponibles del ambiente con peticiones `HEAD`.
-7. El orden es siempre `01.wav`, `02.wav` … `06.wav`. Se empieza por
+7. El orden es siempre `01.wav`, `02.wav` … `07.wav`. Se empieza por
    `01.wav`; si no existe, por la primera disponible. El indicador arranca en
    `1/N`. Si la sesión se abre desde `#<id>/<pista>`, se empieza por esa pista
    (y si no existe, por la primera).
@@ -245,11 +245,11 @@ disponible no se muestra ningún error: la app funciona igual.
 ### 5.2 Selección de escena
 
 - Cada ambiente tiene una carpeta `assets/audio/<id>/`.
-- Los nombres válidos son `01.wav` … `06.wav`.
-- Al iniciar cada sesión se hacen seis peticiones `HEAD` con
+- Los nombres válidos son `01.wav` … `07.wav`.
+- Al iniciar cada sesión se hacen siete peticiones `HEAD` con
   `cache: 'no-store'`.
 - Solo se consideran las escenas que responden correctamente.
-- El orden es fijo: `01.wav`, `02.wav` … `06.wav`. La sesión empieza
+- El orden es fijo: `01.wav`, `02.wav` … `07.wav`. La sesión empieza
   siempre por `01.wav`; si no existe, por la primera disponible. El indicador
   siempre muestra `1/N`.
 - Al pulsar el indicador se avanza cíclicamente por ese orden: `1/N`, `2/N`…
@@ -285,8 +285,9 @@ compuesta para el bucle; las dos con melodía, publicadas como `03.wav`
 (escena 07) y `04.wav` (escena 08), y las dos nuevas, `05.wav` (escena 09) y
 `06.wav` (escena 10). La tabla de `assets/audio/README.md` dice de qué escena
 sale cada pista. Todas duran 60 s y la música queda unos 10 LU por debajo del
-paisaje, salvo en el cuento, donde manda la música. Las demás escenas pueden
-regenerarse con los scripts de audio.
+paisaje, salvo en el cuento, donde manda la música. Bichos añade además
+`07.wav` como séptima escena de la app, independiente de las tablas del
+generador. Las demás escenas pueden regenerarse con los scripts de audio.
 
 ### 6.2 Tabla general
 
@@ -650,6 +651,8 @@ regenerarse con los scripts de audio.
   un sapo partero y vibráfono bajo en La♭ mayor.
 - **Escena 10 — grillos junto al arroyo** (`06.wav`): coro de grillos, arroyo
   suave y kalimba baja en Sol mayor.
+- **Escena adicional `07.wav`:** escena de 180 s añadida al paisaje de Bichos;
+  la app la ofrece como séptima pista (`1/7`).
 - **Síntesis base:** `crickets` 0.60, `cicadas` 0.45, `air` 0.30, `brightness`
   0.50.
 
@@ -828,9 +831,9 @@ No objetivos:
 | Familia | Etiqueta en la UI | Qué es | Tipos de elemento |
 | --- | --- | --- | --- |
 | `sustain` | Sostenidos | Pads, drones, cuerdas, arpa eólica, flauta, coros, cuenco tibetano frotado, theremin y sintes analógicos: tonos que duran lo que dura el elemento. | `tone` |
-| `strike` | Puntuales | Campanas, cuencos tibetanos, kalimba, piano, tambores de acero (handpan, lengüeta, steel drum), arpa, guitarras, ukelele, vibráfono, FM 80 y tres sintes nostálgicos (piano de cinta, cristal y metal): golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
+| `strike` | Puntuales | Campanas, cuencos tibetanos, kalimba, piano, tambores de acero (handpan, lengüeta, steel drum), arpa, guitarras, ukelele, banjo, vibráfono, FM 80 y tres sintes nostálgicos (piano de cinta, cristal y metal): golpes con decaimiento natural. | `hit`, `phrase`, `cloud` |
 | `noise` | Texturas | Ruido de color filtrado y con movimiento (aire, rumor, oleaje abstracto). | `span` |
-| `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, cigarras, pájaros, gotas, lluvia normal/fina/lejana, arroyo, olas, viento, fuego, campanillas. | `span` |
+| `nature` | Naturaleza | Generadores estocásticos de naturaleza: grillos, cigarras, pájaros, gotas, lluvia normal/fina/lejana, arroyo, olas, fuego, campanillas. | `span` |
 | `layer` | Capas de pistas de sen | Una capa de una pista publicada de la app, en bucle (7.17). No está en la biblioteca. | `clip` |
 
 #### 7.3.3 Tipos de elemento
@@ -990,6 +993,7 @@ ancho.
 | `arpa` | Arpa | Cuerda modal pulsada cerca del centro: amplitudes sen(π·h·0,2)/h, agudos que se apagan antes y resonancias de la tabla. |
 | `guitarra` | Guitarra de nailon | Cuerda modal pulsada cerca del puente (p = 0,14), más corta y cálida, con tres resonancias de la caja (98, 204 y 392 Hz). |
 | `ukelele` | Ukelele | Cuerda de nailon corta pulsada en p = 0,22, decaimiento breve y caja pequeña (285, 540 y 910 Hz). |
+| `banjo` | Banjo | Cuerdas de acero pulsadas en p = 0,13, con armónicos brillantes y decaimiento rápido; el parche del resonador añade resonancias en 176, 420, 1180 y 2450 Hz. |
 | `slide` | Slide hawaiana | Cuerdas de acero (p = 0,18) tocadas con barra: cada golpe entra desde «deslizamiento» semitonos por debajo (0–12) y llega a la nota en «tiempo del deslizamiento» (0,01–2 s, curva que frena); después, vibrato de barra (0–50 cents, 0,05–8 Hz) que crece en 0,6 s. Los resonadores se reafinan a ritmo de control sin perder fase. |
 | `pulsada` | Cuerda pulsada | Karplus-Strong, entre arpa y guitarra suave. La excitación es ruido filtrado dos veces, sin media, con el peine del punto de pulsación y nivel normalizado, y entra en 0,7 ms: no chasca. |
 | `fmPiano` | Piano FM | FM de dos operadores: campana metálica y cuerpo cálido de piano eléctrico. |
@@ -1059,9 +1063,11 @@ admiten las opciones de color, filtro, movimiento y estéreo que siguen. Además
 | `lluviaLejana` | Lluvia lejana | intensidad (0,1–1,5) y variación. Rumor de fondo de ruido rosa filtrado entre 250 y 3200 Hz, sin gotas cercanas. |
 | `arroyo` | Arroyo | caudal (0–1), fuentes de burbujeo (1–24), registro. |
 | `olas` | Olas | periodo (4–20 s), tamaño, espuma (0–1), guijarros (0–1). |
-| `viento` | Viento | fuerza, racheo, aullido (0–1) y su afinación, hojas (0–1). |
 | `fuego` | Fuego | tamaño, chasquidos por segundo, estallidos, siseo. |
 | `campanillas` | Campanillas | material (metal, bambú, vidrio), tubos (3–8, afinados a la escala del tema), actividad del viento. |
+
+`viento` se conserva oculto en el motor para abrir proyectos anteriores, pero
+ya no aparece en la biblioteca.
 
 Parámetros comunes a todas las simulaciones:
 
@@ -1120,7 +1126,8 @@ por parámetro.
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Cabecera:** volver, nombre editable del **álbum**, nombre editable del
+- **Cabecera:** volver, **orbe de color** que abre los ambientes (`/music/`),
+  nombre editable del **álbum**, nombre editable del
   **tema abierto**, navegación circular entre los temas del álbum (‹, selector
   `posición/total · nombre` y ›), botón **+ Nuevo** siempre visible para añadir
   un tema, menú **⋮** del tema (**Eliminar**, con confirmación y desactivado si
@@ -1129,8 +1136,9 @@ por parámetro.
   pestaña), deshacer/rehacer y el menú **☰**. El menú **☰** se despliega con
   **Nuevo** (crea un álbum nuevo con su tema inicial), **Abrir** (un
   `.sen-album.json`, un tema `.sen.json`, un WAV o un MIDI), **Guardar**
-  (descarga el álbum completo `.sen-album.json`) y **Pantalla completa**
-  (entra o sale del modo de pantalla completa del navegador). Todos los
+  (actualiza el archivo abierto o descarga el álbum completo
+  `.sen-album.json`) y **Pantalla completa** (entra o sale del modo de
+  pantalla completa del navegador). Todos los
   controles y secciones de la interfaz llevan un atributo `title` para poder
   identificarlos.
 - **Álbum y temas:** un álbum contiene siempre al menos un tema. Cambiar de
@@ -1200,7 +1208,8 @@ sin animaciones de fondo que compitan con el trabajo.
   defecto de esa pista en ese punto.
 - **Editar elementos:** arrastrar para mover; bordes para cambiar la duración;
   la intensidad empieza y termina al máximo y su forma se edita con la curva del
-  inspector; `Alt` + arrastrar duplica; `S` divide en el cabezal; `Supr` borra. Selección múltiple con
+  inspector; los tonos con cambios muestran cada acorde centrado sobre su tramo.
+  `Alt` + arrastrar duplica; `S` divide en el cabezal; `Supr` borra. Selección múltiple con
   `Mayús` o marco. Copiar, cortar y pegar en el cabezal. Ajuste magnético a la
   rejilla y a los bordes de otros elementos (`Mayús` lo desactiva).
 - **Pistas:** en la cabecera, eliminar (icono de papelera), silencio, solo y
@@ -1649,12 +1658,18 @@ móvil puede fallar.
 
 #### 7.8.2 Álbum `.sen-album.json` y tema `.sen.json`
 
-- **Guardar** (`Cmd/Ctrl` + `S`): `<nombre-del-álbum>.sen-album.json` con todos
-  los temas, el nombre del álbum y el índice del tema abierto. Formateado con
-  dos espacios y con `savedAt` en ISO 8601.
+- **Guardar** (`Cmd/Ctrl` + `S`): si se abrió un archivo con el selector del
+  sistema (Chrome/Edge), escribe sobre ese mismo archivo: el álbum completo si
+  era un `.sen-album.json`, o el tema actual si era un `.sen.json`. El menú
+  muestra el nombre del archivo que se actualizará. Sin archivo asociado,
+  descarga `<nombre-del-álbum>.sen-album.json` con todos los temas, el nombre
+  del álbum y el índice del tema abierto. Formateado con dos espacios y con
+  `savedAt` en ISO 8601.
 - **Abrir** con selector de archivos o arrastrando: un álbum sustituye el
   actual; un tema `.sen.json` o un WAV con chunk `senp` se añade como tema
-  nuevo. Un álbum con un solo tema se mantiene válido.
+  nuevo. Un álbum con un solo tema se mantiene válido. El selector del sistema
+  conserva el permiso de escritura para que **Guardar** pueda actualizar el
+  archivo sin descargar una copia.
 - **Descargar tema** en el diálogo de exportación:
   `<nombre-del-tema>.sen.json`, también con dos espacios y `savedAt`. Guarda las
   últimas opciones de exportación (`export`), para que el render local produzca
@@ -1992,7 +2007,7 @@ lab/
     wav.js                  Escritura RIFF por trozos, chunks INFO y senp, lectura
     voices/
       sustain.js            pad, drone, cuerdas, eolica, flauta, coro, cuencoCanto, vidrio, seno, theremin y sintes analógicos
-      strike.js             campana, cuenco, kalimba, cajaMusica, celesta, marimba, vibrafono, piano, handpan, lengueta, steelpan, arpa, guitarra, ukelele, slide, pulsada, FM 80 y sintes nostálgicos; gotaTonal y paloLluvia antiguos
+      strike.js             campana, cuenco, kalimba, cajaMusica, celesta, marimba, vibrafono, piano, handpan, lengueta, steelpan, arpa, guitarra, ukelele, banjo, slide, pulsada, FM 80 y sintes nostálgicos; gotaTonal y paloLluvia antiguos
       layer.js              capa (capas de pistas de sen)
       noise.js              ruido y textura de palo de agua
       nature/kit.js         Planificación, sílabas y partículas
@@ -2017,8 +2032,9 @@ módulo al motor, va también en `ENGINE_MODULES` (orden de dependencias).
 
 Las tres fases previstas están implementadas en la versión 4.0:
 
-- **Base:** los instrumentos del catálogo (hoy 37: 11 sostenidas, 14 puntuales,
-  ruido y 11 simulaciones con todas sus especies y superficies), elementos `tone`,
+- **Base:** los instrumentos del catálogo (hoy 60 playables: 16 sostenidos,
+  24 puntuales, 7 texturas y 13 simulaciones, con las especies y superficies),
+  elementos `tone`,
   `hit`, `phrase`, `cloud` y `span`, línea de tiempo, inspector, biblioteca con
   audición, escucha en directo, reverb y eco maestros, EQ y limitador,
   exportación WAV (tres finales, chunk `senp`), `.sen.json`,
@@ -2058,6 +2074,8 @@ Las tres fases previstas están implementadas en la versión 4.0:
 - [x] Descargar y abrir un `.sen-album.json` devuelve el mismo álbum con sus
       temas y el tema abierto.
 - [x] Abrir un `.sen.json` o un WAV añade un tema nuevo; una plantilla también.
+- [x] Abrir un `.sen-album.json` o un `.sen.json` con el selector del sistema
+      y pulsar **Guardar** actualiza ese mismo archivo (Chrome/Edge).
 - [x] Un álbum no puede quedarse sin temas: con uno solo, **Eliminar** está
       desactivado.
 - [x] Descargar y abrir un `.sen.json` devuelve exactamente el mismo tema
@@ -2210,7 +2228,7 @@ laboratorio (`lab/engine/`) son independientes: no comparten código.
   de sesión y cruza pistas con un crossfade corto. Si falla, avisa mediante
   `onError` sin cortar la pista que ya suena.
 - **`src/core/variants.js`**: `resolveAudioVariants(directory, prefix)` devuelve
-  las rutas `01.wav` … `06.wav` que existan, en ese orden. La sesión empieza
+  las rutas `01.wav` … `07.wav` que existan, en ese orden. La sesión empieza
   siempre por la primera.
 - **`src/core/wake-lock.js`**: solicita y libera el bloqueo de pantalla; vuelve
   a solicitarlo al recuperar visibilidad o foco, cuando el sistema libera el
@@ -2487,7 +2505,8 @@ node scripts/analyze-audio.mjs assets/audio/mar --png=/tmp/espectros
 
 ### 11.4 Audio
 
-- [ ] Las 84 escenas existen: `01.wav` … `06.wav` en cada ambiente.
+- [ ] Las 85 escenas existen: `01.wav` … `06.wav` en cada ambiente y
+  `07.wav` en Bichos.
 - [ ] En todas se oye una melodía baja bajo el paisaje (en el cuento, la
   música delante).
 - [ ] Si se borra una escena, deja de elegirse.
@@ -2604,6 +2623,14 @@ la siguiente sesión.
 
 ## 14. Historial mínimo
 
+- **5.12:** la cabecera estrena un **orbe de color** que abre `/music/`. Bichos
+  añade la escena `07.wav` (`1/7` en la app). La línea de tiempo repite cada
+  acorde de un tono, con el nombre del acorde, centrado sobre el tramo en que
+  suena.
+- **5.11:** **Puntuales → Cuerdas pulsadas** añade el **Banjo**. Se retira de la
+  biblioteca **Naturaleza → Aire → Viento** (el motor lo conserva oculto para
+  abrir proyectos anteriores). **Guardar** actualiza el mismo JSON que se abrió
+  con **Abrir** en navegadores compatibles, en vez de descargar una copia.
 - **5.10:** el **laboratorio** pasa a ser la portada (`/`) y los **ambientes**
   se sirven en `/music/`; `/lab/` redirige a la portada. Cada cabecera de
   pista incluye un icono de papelera para eliminar la capa o pista.

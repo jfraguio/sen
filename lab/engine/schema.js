@@ -344,6 +344,11 @@ export const INSTRUMENTS = {
     description: 'Cuerdas de nailon cortas y una caja pequeña: pulsación clara y alegre, de isla tropical.',
     params: STRIKE_COMMON, defaults: { decay: 2.4, brightness: 0.55, hardness: 0.35, inharmonic: 0.03, beat: 0 },
   },
+  banjo: {
+    family: 'strike', label: 'Banjo', color: '#f6d68a',
+    description: 'Cuerdas de acero cortas y brillantes sobre un parche de resonador: pulsación seca, chispeante y con mucha madera.',
+    params: STRIKE_COMMON, defaults: { decay: 3.2, brightness: 0.68, hardness: 0.45, inharmonic: 0.02, beat: 0 },
+  },
   slide: {
     family: 'strike', label: 'Slide hawaiana', color: '#9fd3c7',
     description: 'Guitarra hawaiana de acero tocada con barra: cada nota entra deslizándose desde abajo y canta con un vibrato lento.',
@@ -568,8 +573,8 @@ export const INSTRUMENTS = {
     defaults: { distance: 0.4, spread: 0.9 },
   },
   viento: {
-    family: 'nature', label: 'Viento', color: '#b7d8d3',
-    description: 'Ráfagas con aullido afinado y hojas.',
+    family: 'nature', label: 'Viento', color: '#b7d8d3', hidden: true,
+    description: 'Ráfagas con aullido afinado y hojas. Se mantiene para abrir proyectos anteriores.',
     params: ['strength', 'gustiness', 'howl', 'howlPitch', 'leaves', ...NATURE_COMMON],
     defaults: { distance: 0.3, spread: 1 },
   },
@@ -618,7 +623,7 @@ export const INSTRUMENT_GROUPS = [
       { id: 'teclados', label: 'Teclados', instruments: ['piano', 'fmPiano', 'celesta', 'cajaMusica'] },
       { id: 'laminas', label: 'Láminas', instruments: ['marimba', 'vibrafono', 'kalimba'] },
       { id: 'tambores', label: 'Tambores de acero', instruments: ['handpan', 'lengueta', 'steelpan'] },
-      { id: 'pulsadas', label: 'Cuerdas pulsadas', instruments: ['arpa', 'guitarra', 'ukelele', 'slide', 'pulsada'] },
+      { id: 'pulsadas', label: 'Cuerdas pulsadas', instruments: ['arpa', 'guitarra', 'ukelele', 'banjo', 'slide', 'pulsada'] },
       { id: 'campanas', label: 'Campanas y cuencos', instruments: ['campana', 'fmBell', 'cuenco'] },
       { id: 'sintes80', label: 'Sintes', instruments: ['pianoCinta', 'cristal80', 'metal80'] },
     ],
@@ -633,7 +638,7 @@ export const INSTRUMENT_GROUPS = [
     id: 'naturaleza', label: 'Naturaleza',
     subgroups: [
       { id: 'agua', label: 'Agua', instruments: ['gotas', 'lluvia', 'lluviaLejana', 'arroyo', 'olas'] },
-      { id: 'aire', label: 'Aire', instruments: ['viento', 'campanillas'] },
+      { id: 'aire', label: 'Aire', instruments: ['campanillas'] },
       { id: 'animales', label: 'Animales', instruments: ['grillo', 'cigarra', 'pajaro'] },
       { id: 'fuego', label: 'Fuego', instruments: ['fuego'] },
     ],

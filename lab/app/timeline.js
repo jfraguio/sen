@@ -7,6 +7,7 @@
 import { h, icon, fmtShort, findElement, elementSpan, instrumentLabel, trackTag, clampNum, typingTarget } from './util.js';
 import { AUTOMATION_DEFS, ELEMENT_TYPES, INSTRUMENTS, LIMITS, curveFunction, newId, projectCounts } from '../engine/schema.js';
 import { noteLabel } from '../engine/music.js';
+import { describeNotes } from './chords.js';
 import { planStrikeHits } from '../engine/voices/strike.js';
 import { seedFrom } from '../engine/rng.js';
 import { fadeCurve } from '../engine/dsp.js';
@@ -29,10 +30,33 @@ export function defaultGain(track) {
 
 export const fmtDb = (v) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1).replace('.', ',').replace(/,0$/, '')} dB`;
 
+/** Tramos de notas de un tono: la base y cada cambio, con su intervalo. */
+function toneSegments(el) {
+  const changes = (el.changes || [])
+    .filter((c) => c.t > 0 && c.t < el.length)
+    .sort((a, b) => a.t - b.t);
+  const out = [];
+  let start = 0;
+  let notes = el.notes;
+  for (const change of changes) {
+    if (change.t - start > 0.0005) out.push({ start, end: change.t, notes });
+    start = change.t;
+    notes = change.notes;
+  }
+  out.push({ start, end: el.length, notes });
+  return out;
+}
+
+function chordName(notes, notation, a4 = 440) {
+  if (!notes?.length) return 'silencio';
+  return describeNotes(notes, notation, a4)?.short
+    || notes.map((n) => noteLabel(n, notation)).join(' ');
+}
+
 export function elementLabel(track, el, notation) {
   if (el.type === 'clip') return track.source?.name || track.name;
   if (el.type === 'tone') {
-    const base = el.notes.length ? el.notes.map((n) => noteLabel(n, notation)).join(' ') : 'silencio';
+    const base = chordName(el.notes, notation);
     return el.changes?.length ? `${base} · ${el.changes.length} ${el.changes.length === 1 ? 'cambio' : 'cambios'}` : base;
   }
   if (el.type === 'hit') return noteLabel(el.note, notation);
@@ -163,13 +187,35 @@ export function createTimeline(root, store, actions) {
       svg.append(path);
       node.append(svg);
     }
-    node.append(h('span', { class: 'el-label' }, label));
+    const segments = el.type === 'tone' ? toneSegments(el) : [];
+    if (segments.length > 1) {
+      const chords = h('span', { class: 'el-chords', 'aria-hidden': 'true' });
+      const a4 = state.project.tuning?.a4 ?? 440;
+      for (const seg of segments) {
+        const desc = seg.notes.length ? describeNotes(seg.notes, state.view.notation, a4) : null;
+        const name = chordName(seg.notes, state.view.notation, a4);
+        const from = el.start + seg.start;
+        const to = el.start + seg.end;
+        chords.append(h('span', {
+          class: 'el-chord',
+          style: { left: `${(seg.start / el.length) * 100}%`, width: `${((seg.end - seg.start) / el.length) * 100}%` },
+          title: `${fmtShort(from)}–${fmtShort(to)}: ${desc?.fullName || name}`,
+        }, name));
+      }
+      node.append(chords);
+    } else {
+      node.append(h('span', { class: 'el-label' }, label));
+    }
     if (el.type === 'tone' && el.changes?.length) {
       const marks = h('span', { class: 'el-changes', 'aria-hidden': 'true' });
+      const a4 = state.project.tuning?.a4 ?? 440;
       for (const c of el.changes) {
         if (c.t <= 0 || c.t >= el.length) continue;
-        const notes = c.notes.length ? c.notes.map((n) => noteLabel(n, state.view.notation)).join(' ') : 'silencio';
-        marks.append(h('i', { style: { left: `${(c.t / el.length) * 100}%` }, title: `Cambio en ${fmtShort(el.start + c.t)}: ${notes}` }));
+        const desc = c.notes.length ? describeNotes(c.notes, state.view.notation, a4) : null;
+        marks.append(h('i', {
+          style: { left: `${(c.t / el.length) * 100}%` },
+          title: `Cambio en ${fmtShort(el.start + c.t)}: ${desc?.fullName || chordName(c.notes, state.view.notation, a4)}`,
+        }));
       }
       node.append(marks);
     }

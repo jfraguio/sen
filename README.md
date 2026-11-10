@@ -27,10 +27,12 @@ con `file://`: los módulos ES y el audio necesitan un servidor.
 - Sesión a pantalla completa con animación propia, progreso y fundido final.
 - **Escenas de audio por ambiente**: el motor puede generar hasta diez
   (`01.wav` … `10.wav`): tres de síntesis base y siete paisajes de alta
-  calidad. **El repositorio conserva seis por ambiente, `01.wav` … `06.wav`**:
-  bucles de 60 s de paisaje con una melodía baja (el sonido ambiente manda; en
-  el cuento, la música). La sesión empieza siempre por `01.wav`.
-- **Indicador de pista discreto** arriba a la izquierda (`1/6`, `2/6`…): al
+  calidad. **El repositorio conserva seis por ambiente, `01.wav` … `06.wav`**,
+  y **Bichos añade una séptima escena, `07.wav`**: bucles de paisaje con una
+  melodía baja (el sonido ambiente manda; en el cuento, la música). La sesión
+  empieza siempre por `01.wav`.
+- **Indicador de pista discreto** arriba a la izquierda (`1/6`, `2/6`…; en
+  Bichos, `1/7`): al
   pulsarlo se pasa a la siguiente pista del ambiente. La URL indica el ambiente
   y la pista (`#mar/01`); abrir `#ambiente/NN` (por ejemplo `#bosque/02`)
   inicia directamente esa sesión con esa pista. Arriba a la derecha hay una **X**
@@ -52,7 +54,7 @@ music/
   index.html                Ambientes y sesiones de luz y sonido
 SPEC.md
 assets/
-  audio/<id>/01.wav … 06.wav (seis por ambiente)
+  audio/<id>/01.wav … 06.wav (Bichos añade 07.wav)
   audio/README.md
   favicon.svg
 lab/
@@ -86,8 +88,8 @@ src/
 ## Regenerar el audio
 
 El motor genera diez escenas sintéticas por ambiente; el repositorio conserva
-seis, renombradas `01.wav` (por defecto) … `06.wav`. Las demás se pueden
-regenerar:
+seis, renombradas `01.wav` (por defecto) … `06.wav`, y Bichos incluye además
+`07.wav`. Las demás se pueden regenerar:
 
 - **01–03**, síntesis base (`scripts/lib/synth.js`): 16 s, mono, 16 kHz.
 - **04–06**, paisajes de alta calidad (`scripts/lib/soundscapes.js`): 60 s, mono,
@@ -130,17 +132,21 @@ código del editor sigue en `lab/`; `/lab/` redirige a la portada:
   cuerdas, arpa eólica, flauta suave, coro, cuenco tibetano frotado, vidrio,
   seno, theremin, pad 80, metales 80, bajo 80 y lead 80), notas puntuales
   (campana, cuenco tibetano, kalimba, caja de música, celesta, marimba,
-  vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa, guitarra de nailon, ukelele, slide
-  hawaiana, cuerda pulsada, piano FM, campana FM, piano de cinta, cristal y
-  metal) como golpes, frases o nubes de
+  vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa,
+  guitarra de nailon, ukelele, banjo, slide hawaiana, cuerda pulsada, piano FM,
+  campana FM, piano de cinta, cristal y metal) como golpes, frases o nubes de
   notas, ruidos de color, la textura granular de **palo de agua** y
   **simulaciones** (grillos, cigarras, pájaros por especie, gaviotas incluidas,
-  gotas, lluvia normal o lejana, arroyo, olas, viento, fuego, campanillas).
+  gotas, lluvia normal o lejana, arroyo, olas, fuego, campanillas).
   Cada pista tiene eliminar, silencio, solo y volumen en su cabecera.
+- **Acordes en su sitio:** en un tono sostenido con cambios de notas, la línea
+  de tiempo repite cada acorde centrado sobre el tramo en el que suena.
 - **Biblioteca plegable por gesto y timbre:** Sostenidos, Puntuales, Texturas y
   Naturaleza, con subgrupos como Sintes, Teclados, Láminas, Agua o Animales.
   Las secciones y subsecciones empiezan plegadas.
 - **Escucha en directo** mientras editas; región de escucha en bucle.
+- **Guardar sobre el archivo abierto:** en Chrome o Edge, un álbum o tema
+  abierto con **Abrir** se actualiza en su mismo JSON al pulsar **Guardar**.
 - Tonalidad, tempo opcional, reverb y eco maestros, automatización por pista,
   deshacer, autoguardado, plantillas (Vacío y las canciones de sen), modo
   compacto en móvil e importación MIDI. La línea de duración de la fila

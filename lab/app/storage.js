@@ -80,6 +80,40 @@ export function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
+function jsonText(data) {
+  return `${JSON.stringify({ ...data, savedAt: new Date().toISOString() }, null, 2)}\n`;
+}
+
+/**
+ * Escribe un JSON en un archivo abierto con la API de acceso al sistema de
+ * archivos. Devuelve `false` si el navegador no permite escribir en él.
+ */
+async function writeJsonToHandle(handle, data) {
+  if (!handle || typeof handle.createWritable !== 'function') return false;
+  if (typeof handle.requestPermission === 'function') {
+    const permission = await handle.requestPermission({ mode: 'readwrite' });
+    if (permission !== 'granted') return false;
+  }
+  const writable = await handle.createWritable();
+  await writable.write(jsonText(data));
+  await writable.close();
+  return true;
+}
+
+/** Guarda el tema actual en el archivo del que se abrió. */
+export async function saveProjectToHandle(handle, project) {
+  if (!(await writeJsonToHandle(handle, project))) return false;
+  writeMeta({ downloadedThemeRevision: revisionKey(project) });
+  return true;
+}
+
+/** Guarda el álbum completo en el archivo del que se abrió. */
+export async function saveAlbumToHandle(handle, album) {
+  if (!(await writeJsonToHandle(handle, album))) return false;
+  writeMeta({ downloadedAlbumRevision: revisionKey(album) });
+  return true;
+}
+
 export function projectFileName(project) {
   return `${fileBase(project.name)}.sen.json`;
 }

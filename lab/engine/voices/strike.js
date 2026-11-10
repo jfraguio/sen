@@ -2,8 +2,8 @@
  * Notas puntuales: campana, cuenco tibetano, kalimba, caja de música,
  * celesta, marimba, vibráfono, piano de fieltro, handpan, tambor de
  * lengüeta, steel drum, arpa,
- * guitarra de nailon, ukelele y slide hawaiana (síntesis modal, con cuerpo de
- * madera en las cuerdas y deslizamiento de tono en la slide), cuerda pulsada
+ * guitarra de nailon, ukelele, banjo y slide hawaiana (síntesis modal, con
+ * cuerpo de madera en las cuerdas y deslizamiento de tono en la slide), cuerda pulsada
  * (Karplus-Strong), gota tonal (burbuja de Minnaert afinada), palo de lluvia
  * (granos que caen por un tubo) y los FM de estética ochentera (piano y
  * campana).
@@ -48,6 +48,8 @@ export const MODAL_SETS = {
   arpa: [[1, 1, 1], [2, 0.81, 0.74], [3, 0.54, 0.54], [4, 0.25, 0.41], [6, 0.17, 0.26], [7, 0.23, 0.22], [8, 0.2, 0.19], [9, 0.11, 0.16]],
   guitarra: [[1, 1, 1], [2, 0.9, 0.67], [3, 0.75, 0.45], [4, 0.57, 0.33], [5, 0.36, 0.25], [6, 0.19, 0.2], [8, 0.07, 0.13]],
   ukelele: plucked(0.22, [1, 0.68, 0.48, 0.37, 0.3, 0.24, 0.2, 0.17]),
+  // Banjo: pulsación cerca del puente, muchos armónicos y decaimiento rápido.
+  banjo: plucked(0.13, [1, 0.84, 0.69, 0.56, 0.46, 0.38, 0.31, 0.26, 0.22, 0.18]),
   // Cuerdas de acero de la guitarra hawaiana: más armónicos y más largos.
   slide: plucked(0.18, [1, 0.78, 0.6, 0.48, 0.4, 0.34, 0.29, 0.25, 0.22]),
   metal: [[1, 1, 1], [2.76, 0.45, 0.47], [5.4, 0.2, 0.24], [8.93, 0.06, 0.1]],
@@ -63,6 +65,7 @@ const BODIES = {
   guitarra: [[98, 0.12, 0.07], [204, 0.1, 0.05], [392, 0.05, 0.035]],
   arpa: [[150, 0.06, 0.09], [340, 0.04, 0.05]],
   ukelele: [[285, 0.12, 0.04], [540, 0.07, 0.03], [910, 0.03, 0.02]],
+  banjo: [[176, 0.1, 0.06], [420, 0.09, 0.045], [1180, 0.055, 0.03], [2450, 0.035, 0.02]],
   slide: [[118, 0.06, 0.08], [255, 0.05, 0.05]],
   handpan: [[90, 0.05, 0.12]],
   lengueta: [[95, 0.07, 0.18]],
@@ -73,12 +76,12 @@ const DOUBLETS = new Set(['cuenco', 'handpan', 'lengueta', 'steelpan']);
 
 const STRIKE_GAIN = {
   campana: 1, cuenco: 1.15, kalimba: 1.3, cajaMusica: 1.5, celesta: 1.2, marimba: 1.8, vibrafono: 1, piano: 1.1, arpa: 0.9, guitarra: 1,
-  ukelele: 1.05, slide: 0.95, handpan: 1.1, lengueta: 1.05, steelpan: 1.15, pulsada: 3.2, gotaTonal: 2, paloLluvia: 1, fmPiano: 1.1, fmBell: 1.15,
+  ukelele: 1.05, banjo: 1.12, slide: 0.95, handpan: 1.1, lengueta: 1.05, steelpan: 1.15, pulsada: 3.2, gotaTonal: 2, paloLluvia: 1, fmPiano: 1.1, fmBell: 1.15,
   pianoCinta: 1.1, cristal80: 1.15, metal80: 1.05,
 };
 const ATTACKS = {
   kalimba: 0.003, celesta: 0.004, cuenco: 0.006, marimba: 0.0015, vibrafono: 0.003, piano: 0.005, arpa: 0.002, guitarra: 0.002,
-  ukelele: 0.0015, slide: 0.003, handpan: 0.005, lengueta: 0.006, steelpan: 0.0015,
+  ukelele: 0.0015, banjo: 0.001, slide: 0.003, handpan: 0.005, lengueta: 0.006, steelpan: 0.0015,
 };
 const TAIL_DB = 8.06; // ln(10^(70/20)): de 0 a −70 dB
 

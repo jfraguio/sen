@@ -2,10 +2,11 @@
 
 El motor puede generar hasta diez escenas en WAV por ambiente (`01.wav` …
 `10.wav`). **Este repositorio conserva seis escenas por ambiente, renombradas
-`01.wav` (la que suena por defecto) … `06.wav`.** Todas son bucles de 60 s de
-paisaje con una melodía baja: el sonido ambiente manda y la música queda de
-fondo (≈ 10 LU por debajo). En el cuento es al revés: la música es lo
-principal. Las demás escenas se pueden regenerar con los scripts.
+`01.wav` (la que suena por defecto) … `06.wav`, y Bichos incluye además una
+séptima, `07.wav`.** Todas son bucles de paisaje con una melodía baja: el
+sonido ambiente manda y la música queda de fondo (≈ 10 LU por debajo). En el
+cuento es al revés: la música es lo principal. Las demás escenas se pueden
+regenerar con los scripts.
 
 Cada archivo es una escena distinta del mismo ambiente.
 
@@ -30,8 +31,8 @@ todas las pistas basta con cambiar esa constante y volver a publicar.
 
 La aplicación comprueba al iniciar la sesión qué archivos existen, empieza
 siempre por `01.wav` y permite pasar a la siguiente desde el indicador de pista
-(`1/6` → `2/6` → …). Si borras alguna escena, la app usa solo las que queden;
-no hace falta tocar código ni configuración.
+(`1/6` → `2/6` → …; en Bichos, `1/7`). Si borras alguna escena, la app usa
+solo las que queden; no hace falta tocar código ni configuración.
 
 - Regenerar las escenas 01–03: `node scripts/make-audio-variants.mjs`
   (¡sobrescribe `01.wav` … `03.wav`!)
@@ -69,3 +70,5 @@ archivo.
 | burbujas | Burbujeo bajo el agua (05) | Acuario (06) | Burbujas y caja de música (07) | Acuario sereno (08) | Pecera de noche (09) | Gotas en la cueva (10) |
 
 Entre paréntesis, la escena del generador de la que sale cada pista.
+
+Bichos conserva además `07.wav` como séptima escena disponible en la app.

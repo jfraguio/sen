@@ -18,7 +18,9 @@ import { createLibrary, startTemplates } from './library.js';
 import { createExportDialog } from './export.js';
 import { createCompact } from './compact.js';
 import { createPerformance } from './performance.js';
-import { downloadAlbum, isAlbumDownloaded, loadAutosave, readProjectFile, scheduleAutosave, writeMeta } from './storage.js';
+import {
+  downloadAlbum, isAlbumDownloaded, loadAutosave, readProjectFile, saveAlbumToHandle, saveProjectToHandle, scheduleAutosave, writeMeta,
+} from './storage.js';
 import { createAlbum, createAlbumTheme } from './album.js';
 import { midiToTracks } from './midi.js';
 import { createSceneSource } from './scenes.js';
@@ -69,11 +71,106 @@ function boot() {
   const { state } = store;
   const $ = (id) => document.getElementById(id);
 
+  /** Archivos abiertos con la API del sistema: se guardan sobre sí mismos. */
+  let albumFileHandle = null;
+  const themeFileHandles = new Map();
+
   /** Vuelca el tema abierto (con sus cambios) en el documento del álbum. */
   function syncAlbum() {
     album.themes[albumIndex] = state.project;
     album.current = albumIndex;
     return album;
+  }
+
+  function saveTargetHandle() {
+    const theme = themeFileHandles.get(albumIndex);
+    if (theme) return { handle: theme, kind: 'theme' };
+    if (albumFileHandle) return { handle: albumFileHandle, kind: 'album' };
+    return null;
+  }
+
+  /** La etiqueta de Guardar dice si actualizará un archivo abierto o descargará uno nuevo. */
+  function updateSaveTarget() {
+    const item = $('save-project');
+    const meta = $('save-meta');
+    if (!item || !meta) return;
+    const target = saveTargetHandle();
+    if (!target) {
+      meta.textContent = 'Álbum completo · Cmd/Ctrl+S';
+      item.title = 'Guardar el álbum completo (.sen-album.json) · Cmd/Ctrl+S';
+      return;
+    }
+    const file = target.handle.name || (target.kind === 'theme' ? 'el tema' : 'el álbum');
+    meta.textContent = `Actualiza ${file} · Cmd/Ctrl+S`;
+    item.title = `Actualizar ${file} · Cmd/Ctrl+S`;
+  }
+
+  function clearFileTargets() {
+    albumFileHandle = null;
+    themeFileHandles.clear();
+    updateSaveTarget();
+  }
+
+  function rememberAlbumFile(handle) {
+    albumFileHandle = handle;
+    themeFileHandles.clear();
+    updateSaveTarget();
+  }
+
+  function rememberThemeFile(handle) {
+    for (const [index, current] of [...themeFileHandles]) {
+      if (current === handle) themeFileHandles.delete(index);
+    }
+    themeFileHandles.set(albumIndex, handle);
+    updateSaveTarget();
+  }
+
+  function forgetThemeFile(index) {
+    for (const [current, handle] of [...themeFileHandles]) {
+      if (current === index) themeFileHandles.delete(current);
+      else if (current > index) {
+        themeFileHandles.delete(current);
+        themeFileHandles.set(current - 1, handle);
+      }
+    }
+    updateSaveTarget();
+  }
+
+  async function saveCurrent() {
+    const target = saveTargetHandle();
+    if (!target) {
+      downloadAlbum(syncAlbum());
+      updateSaveState();
+      announce('Álbum descargado.');
+      return;
+    }
+    try {
+      const ok = target.kind === 'album'
+        ? await saveAlbumToHandle(target.handle, syncAlbum())
+        : await saveProjectToHandle(target.handle, state.project);
+      if (ok) {
+        updateSaveState();
+        announce(`Archivo «${target.handle.name}» actualizado.`);
+        return;
+      }
+      notify(`No se pudo actualizar «${target.handle.name}». Se descarga una copia.`, true);
+    } catch (err) {
+      notify(`No se pudo actualizar «${target.handle.name}»: ${err.message}`, true);
+    }
+    if (target.kind === 'theme' && albumFileHandle) {
+      try {
+        if (await saveAlbumToHandle(albumFileHandle, syncAlbum())) {
+          updateSaveState();
+          announce(`Archivo «${albumFileHandle.name}» actualizado.`);
+          return;
+        }
+      } catch {
+        /* sin permiso: se descarga una copia */
+      }
+    }
+    downloadAlbum(syncAlbum());
+    updateSaveState();
+    announce('Álbum descargado.');
   }
 
   let meters = null;
@@ -734,12 +831,14 @@ function boot() {
     album.current = nextIndex;
     store.load(album.themes[nextIndex]);
     requestAnimationFrame(() => timeline.fit());
+    updateSaveTarget();
     announce(`Tema «${themeName(album.themes[nextIndex], nextIndex)}» abierto.`);
   }
 
   function addTheme(project, warnings = []) {
     if (state.playing) togglePlay();
     syncAlbum();
+    themeFileHandles.delete(album.themes.length);
     album.themes.push(project);
     albumIndex = album.themes.length - 1;
     album.current = albumIndex;
@@ -747,6 +846,7 @@ function boot() {
     requestAnimationFrame(() => timeline.fit());
     if (warnings.length) notify(warnings.join(' '));
     announce(`Tema «${themeName(project, albumIndex)}» añadido al álbum.`);
+    updateSaveTarget();
   }
 
   function newTheme() {
@@ -759,9 +859,11 @@ function boot() {
     if (!window.confirm(`¿Eliminar el tema «${name}» del álbum?`)) return;
     if (state.playing) togglePlay();
     syncAlbum();
-    album.themes.splice(albumIndex, 1);
+    const removed = albumIndex;
+    album.themes.splice(removed, 1);
     if (albumIndex >= album.themes.length) albumIndex = album.themes.length - 1;
     album.current = albumIndex;
+    forgetThemeFile(removed);
     store.load(album.themes[albumIndex]);
     requestAnimationFrame(() => timeline.fit());
     announce(`Tema «${name}» eliminado del álbum.`);
@@ -774,6 +876,7 @@ function boot() {
     album = createAlbum({ name: 'Álbum sin título', themes: [theme] });
     albumIndex = 0;
     album.current = 0;
+    clearFileTargets();
     store.load(theme);
     writeMeta({ downloadedAlbumRevision: null });
     requestAnimationFrame(() => timeline.fit());
@@ -788,6 +891,7 @@ function boot() {
     album = nextAlbum;
     albumIndex = Math.min(Math.max(0, album.current || 0), album.themes.length - 1);
     album.current = albumIndex;
+    clearFileTargets();
     store.load(album.themes[albumIndex]);
     writeMeta({ downloadedAlbumRevision: null });
     requestAnimationFrame(() => timeline.fit());
@@ -924,16 +1028,16 @@ function boot() {
   $('theme-next').addEventListener('click', () => setTheme(albumIndex + 1));
   themeSelect.addEventListener('change', () => setTheme(Number(themeSelect.value)));
   $('delete-theme').addEventListener('click', deleteTheme);
-  $('open').addEventListener('click', () => $('open-file').click());
+  $('open').addEventListener('click', () => {
+    chooseOpenFile();
+  });
   $('open-file').addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (file) await openFile(file);
   });
   $('save-project').addEventListener('click', () => {
-    downloadAlbum(syncAlbum());
-    updateSaveState();
-    announce('Álbum descargado.');
+    saveCurrent();
   });
   $('export').addEventListener('click', () => exporter.open());
 
@@ -989,7 +1093,36 @@ function boot() {
     }
   }
 
-  async function openFile(file) {
+  /** Abre el selector del sistema cuando el navegador puede escribir luego en el archivo. */
+  async function chooseOpenFile() {
+    if (typeof window.showOpenFilePicker !== 'function') {
+      $('open-file').click();
+      return;
+    }
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        multiple: false,
+        excludeAcceptAllOption: false,
+        types: [{
+          description: 'Álbumes, temas y audio de sen',
+          accept: {
+            'application/json': ['.json'],
+            'audio/wav': ['.wav'],
+            'audio/x-wav': ['.wav'],
+            'audio/midi': ['.mid', '.midi'],
+          },
+        }],
+      });
+      if (!handle) return;
+      await openFile(await handle.getFile(), { handle });
+    } catch (err) {
+      if (err?.name === 'AbortError') return;
+      notify(`No se pudo abrir el selector de archivos: ${err.message}`, true);
+      $('open-file').click();
+    }
+  }
+
+  async function openFile(file, { handle = null } = {}) {
     const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
     if (String.fromCharCode(...head) === 'MThd') {
       await importMidi(file);
@@ -1002,12 +1135,15 @@ function boot() {
       notify(err instanceof LabFileError ? err.message : `No se puede abrir este archivo: ${err.message}`, true);
       return;
     }
+    const jsonHandle = handle && /\.json$/i.test(file.name) ? handle : null;
     if (read.kind === 'album') {
       if (!confirmDiscard()) return;
       loadAlbum(read.album, read.warnings);
+      if (jsonHandle) rememberAlbumFile(jsonHandle);
       return;
     }
     addTheme(read.project, read.warnings);
+    if (jsonHandle) rememberThemeFile(jsonHandle);
   }
 
   /* ------------------------------------------------------------ arrastrar archivos */
@@ -1057,9 +1193,7 @@ function boot() {
     }
     if (mod && k.toLowerCase() === 's') {
       e.preventDefault();
-      downloadAlbum(syncAlbum());
-      updateSaveState();
-      announce('Álbum descargado.');
+      saveCurrent();
       return;
     }
     if (mod && k.toLowerCase() === 'e') {

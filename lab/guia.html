@@ -336,10 +336,10 @@
 └───────────────────────────────────────────────────────────────────┘</pre>
         <table>
           <tr><th>Zona</th><th>Para qué sirve</th></tr>
-          <tr><td>Cabecera</td><td>Volver a sen, <b>nombre del álbum</b>, <b>nombre del tema abierto</b>, navegación entre temas (‹, selector y ›), <b>+ Nuevo</b> para añadir un tema, el menú <b>⋮</b> del tema (<b>Eliminar</b> y <b>Exportar</b>), un punto mientras se autoguarda, estas instrucciones (<b>?</b>), deshacer y rehacer y el menú <b>☰</b>, que reúne <b>Nuevo</b> (álbum nuevo), <b>Abrir</b> (álbum, tema <code>.json</code>, WAV o MIDI), <b>Guardar</b> (descarga el álbum <code>.sen-album.json</code>) y <b>Pantalla completa</b>.</td></tr>
+          <tr><td>Cabecera</td><td>Volver a sen, el orbe de color que abre los ambientes (<code>/music/</code>), <b>nombre del álbum</b>, <b>nombre del tema abierto</b>, navegación entre temas (‹, selector y ›), <b>+ Nuevo</b> para añadir un tema, el menú <b>⋮</b> del tema (<b>Eliminar</b> y <b>Exportar</b>), un punto mientras se autoguarda, estas instrucciones (<b>?</b>), deshacer y rehacer y el menú <b>☰</b>, que reúne <b>Nuevo</b> (álbum nuevo), <b>Abrir</b> (álbum, tema <code>.json</code>, WAV o MIDI), <b>Guardar</b> (actualiza el archivo abierto o descarga el álbum <code>.sen-album.json</code>) y <b>Pantalla completa</b>.</td></tr>
           <tr><td>Transporte</td><td>Reproducir/pausa, detener (vuelve al inicio), posición, región en bucle, rejilla de ajuste, zoom y volumen de escucha. El volumen no afecta a lo que exportas.</td></tr>
           <tr><td>Biblioteca</td><td>Instrumentos agrupados por gesto (<b>Sostenidos</b>, <b>Puntuales</b>, <b>Texturas</b> y <b>Naturaleza</b>) y, dentro, por timbre, y <b>Plantillas</b>. Cada sección y subsección se pliega con su título y empieza plegada. El botón <b>▶</b> hace sonar una muestra de 3 s sin añadir nada.</td></tr>
-          <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, eliminar, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja su curva de intensidad y una forma de onda resumida. La fila <b>Maestro</b> incluye la línea para estirar la duración del tema.</td></tr>
+          <tr><td>Línea de tiempo</td><td>Una fila por pista con su cabecera (nombre, color, eliminar, silencio <b>M</b>, solo <b>S</b>, <b>volumen</b>, medidor y una <b>A</b> si tiene automatización) y sus elementos. Cada elemento dibuja su curva de intensidad y una forma de onda resumida; los tonos con cambios muestran cada acorde centrado sobre el tramo en el que suena. La fila <b>Maestro</b> incluye la línea para estirar la duración del tema.</td></tr>
           <tr><td>Inspector</td><td>Los controles de lo que tengas seleccionado: el tema (sin selección), una pista, un elemento o el bus maestro.</td></tr>
           <tr><td>Pie</td><td>Medidor de salida, sonoridad a corto plazo (LUFS), pico, carga del motor, tonalidad y tempo. Aquí aparecen también los avisos.</td></tr>
         </table>
@@ -371,9 +371,9 @@
         <table>
           <tr><th>Familia</th><th>Qué es</th><th>Elementos</th></tr>
           <tr><td>Sostenidos</td><td>Pad, drone, cuerdas, arpa eólica, flauta suave, coro, cuenco tibetano frotado, vidrio, seno, theremin, pad 80, cinta y bruma: tonos que duran lo que dura el elemento.</td><td><b>Tono</b></td></tr>
-          <tr><td>Puntuales</td><td>Campana, cuenco tibetano, kalimba, caja de música, celesta, marimba, vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa, guitarra de nailon, ukelele, slide hawaiana, cuerda pulsada, piano FM, campana FM, piano de cinta, cristal y metal: golpes que decaen solos.</td><td><b>Nube</b>, <b>golpe</b>, <b>frase</b></td></tr>
+          <tr><td>Puntuales</td><td>Campana, cuenco tibetano, kalimba, caja de música, celesta, marimba, vibráfono, piano de fieltro, handpan, tambor de lengüeta, steel drum, arpa, guitarra de nailon, ukelele, banjo, slide hawaiana, cuerda pulsada, piano FM, campana FM, piano de cinta, cristal y metal: golpes que decaen solos.</td><td><b>Nube</b>, <b>golpe</b>, <b>frase</b></td></tr>
           <tr><td>Texturas</td><td>Ruido de color filtrado y con movimiento, más la textura granular de palo de agua: aire, rumor, oleaje abstracto.</td><td><b>Tramo</b></td></tr>
-          <tr><td>Naturaleza</td><td>Naturaleza generada al azar: grillos, cigarras, pájaros, gotas, lluvia (normal o lejana), arroyo, olas, viento, fuego, campanillas.</td><td><b>Tramo</b></td></tr>
+          <tr><td>Naturaleza</td><td>Naturaleza generada al azar: grillos, cigarras, pájaros, gotas, lluvia (normal o lejana), arroyo, olas, fuego, campanillas.</td><td><b>Tramo</b></td></tr>
           <tr><td>Capas de pistas de sen</td><td>Una capa de una canción de la app, tal como suena allí. Solo aparecen al abrir una canción de sen desde las <a href="#pistas-sen">plantillas</a>.</td><td><b>Capa de audio</b></td></tr>
         </table>
         <ul>
@@ -436,6 +436,7 @@
           <tr><td>Arpa</td><td>Cuerda larga y redonda, con la resonancia de la tabla.</td></tr>
           <tr><td>Guitarra de nailon</td><td>Cuerda cálida y más corta, con el «toc» de la caja; buena para arpegios.</td></tr>
           <tr><td>Ukelele</td><td>Cuerdas cortas y caja pequeña: pulsación clara y alegre. Prueba una nube con probabilidad de acorde alta para rasgueos.</td></tr>
+          <tr><td>Banjo</td><td>Cuerdas de acero cortas y brillantes sobre un parche de resonador: pulsación seca y chispeante, con mucha madera. Ideal para arpegios rápidos y nubes con acordes.</td></tr>
           <tr><td>Slide hawaiana</td><td>Guitarra de acero tocada con barra: cada nota entra deslizándose desde abajo y canta con vibrato. <b>Deslizamiento</b> (semitonos) y <b>Tiempo del deslizamiento</b> controlan la entrada; <b>Vibrato</b> y su velocidad, el final.</td></tr>
           <tr><td>Cuerda pulsada</td><td>Entre arpa y guitarra suave (otro modelo, más sencillo).</td></tr>
           <tr><td>Piano FM</td><td>FM de dos operadores: campana metálica y cuerpo cálido de piano eléctrico.</td></tr>
@@ -459,7 +460,6 @@
           <tr><td>Lluvia lejana</td><td>Rumor de fondo grave y difuso, sin gotas cercanas. Intensidad y variación.</td></tr>
           <tr><td>Arroyo</td><td>Caudal, fuentes de burbujeo y registro.</td></tr>
           <tr><td>Olas</td><td>Periodo, tamaño, espuma y guijarros.</td></tr>
-          <tr><td>Viento</td><td>Fuerza, racheo, aullido y hojas.</td></tr>
           <tr><td>Fuego</td><td>Tamaño, chasquidos, estallidos y siseo.</td></tr>
           <tr><td>Campanillas</td><td>Material (metal, bambú, vidrio), número de tubos (afinados a la escala del tema) y viento.</td></tr>
         </table>
@@ -609,7 +609,7 @@
           <p><b>El WAV contiene el tema.</b> Cada WAV exportado lleva dentro el proyecto completo del tema. Arrástralo al laboratorio y se añadirá como un tema nuevo del álbum para seguir editándolo.</p>
         </div>
         <h3>Usar un tema como pista de sen</h3>
-        <p>Exporta con el preajuste <b>Escena para sen</b> y copia el archivo a mano en <code>assets/audio/&lt;ambiente&gt;/</code> con el número de la pista que sustituye (<code>01.wav</code> … <code>06.wav</code>). Si has retocado una pista de sen, el diálogo de exportar te dice qué archivo es. El laboratorio no publica nada por sí solo.</p>
+        <p>Exporta con el preajuste <b>Escena para sen</b> y copia el archivo a mano en <code>assets/audio/&lt;ambiente&gt;/</code> con el número de la pista que sustituye (<code>01.wav</code> … <code>06.wav</code>; Bichos incluye además <code>07.wav</code>). Si has retocado una pista de sen, el diálogo de exportar te dice qué archivo es. El laboratorio no publica nada por sí solo.</p>
         <h3>Otras descargas</h3>
         <ul>
           <li><b>Descargar tema</b>: el <code>.sen.json</code> del tema abierto para reabrirlo suelto o guardarlo en tu control de versiones.</li>
@@ -625,11 +625,11 @@ node scripts/render-lab.mjs tema.wav     # usa el proyecto guardado dentro del W
         <!-- ------------------------------------------------------------ -->
         <h2 id="archivos">Guardar, abrir y MIDI</h2>
         <ul>
-          <li><b>Autoguardado</b>: el álbum completo se guarda solo en el navegador, un segundo después de cada cambio, y se recupera al volver, incluido el tema que estaba abierto. Mientras guarda aparece un punto en la cabecera; cuando termina, desaparece. Es una copia local: si borras los datos del navegador se pierde, así que <b>descarga el álbum</b> (<b>Guardar</b> o <kbd>Cmd/Ctrl</kbd> + <kbd>S</kbd>) para conservarlo.</li>
-          <li><b>Guardar</b> descarga <code>&lt;nombre-del-álbum&gt;.sen-album.json</code> con todos los temas.</li>
+          <li><b>Autoguardado</b>: el álbum completo se guarda solo en el navegador, un segundo después de cada cambio, y se recupera al volver, incluido el tema que estaba abierto. Mientras guarda aparece un punto en la cabecera; cuando termina, desaparece. Es una copia local: si borras los datos del navegador se pierde, así que guarda también en un archivo (<b>Guardar</b> o <kbd>Cmd/Ctrl</kbd> + <kbd>S</kbd>) para conservarlo.</li>
+          <li><b>Guardar</b> actualiza el mismo archivo que abriste con <b>Abrir</b> cuando el navegador lo permite (Chrome o Edge): un álbum se guarda como álbum y un tema como tema. El menú muestra el nombre del archivo que se actualizará. Si no hay archivo abierto, descarga <code>&lt;nombre-del-álbum&gt;.sen-album.json</code> con todos los temas.</li>
           <li><b>Nuevo</b> del menú <b>☰</b> te pregunta antes de descartar un álbum que no has descargado.</li>
           <li><b>Deshacer</b> hasta 200 pasos dentro del tema abierto. Un arrastre o un gesto de deslizador cuentan como un solo paso. Al cambiar de tema, el historial empieza de nuevo.</li>
-          <li><b>Abrir</b> (o arrastrar a la ventana): un <code>.sen-album.json</code> (sustituye el álbum), un <code>.sen.json</code> de un tema o un WAV exportado por el laboratorio (se añaden como tema nuevo) o un MIDI.</li>
+          <li><b>Abrir</b> (o arrastrar a la ventana): un <code>.sen-album.json</code> (sustituye el álbum), un <code>.sen.json</code> de un tema o un WAV exportado por el laboratorio (se añaden como tema nuevo) o un MIDI. En navegadores compatibles, el archivo elegido con <b>Abrir</b> queda asociado para que <b>Guardar</b> lo actualice en su sitio.</li>
           <li><b>MIDI</b> (<code>.mid</code>): se importa en el tema actual como pistas nuevas, y se deshace en un solo paso. Las notas largas se convierten en una pista de <b>Pad</b> con acordes; el resto, en <b>Kalimba</b> con frases. La percusión (canal 10) se ignora. Si hace falta, el tema se alarga.</li>
           <li>Si un archivo trae valores fuera de rango, se recortan y se te avisa una vez.</li>
         </ul>

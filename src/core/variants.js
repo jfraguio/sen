@@ -2,13 +2,12 @@
  * Descubre las escenas WAV disponibles en una carpeta.
  *
  * El repositorio conserva seis escenas por ambiente, de `01.wav` (la que
- * suena por defecto) a `06.wav`: bucles de 60 s de paisaje con una melodía
- * baja. El usuario puede borrar cualquiera sin tocar código; comprobamos con
- * HEAD cada vez que se inicia una escucha para usar solo las que sigan
- * existiendo.
+ * suena por defecto) a `06.wav`, y Bichos añade una séptima. El usuario puede
+ * borrar cualquiera sin tocar código; comprobamos con HEAD cada vez que se
+ * inicia una escucha para usar solo las que sigan existiendo.
  */
 
-const VARIANTS = ['01.wav', '02.wav', '03.wav', '04.wav', '05.wav', '06.wav'];
+const VARIANTS = ['01.wav', '02.wav', '03.wav', '04.wav', '05.wav', '06.wav', '07.wav'];
 /** Raíz del sitio, para que las rutas no dependan de la página que carga la app. */
 const SITE_ROOT = new URL('../../', import.meta.url);
 

@@ -86,6 +86,7 @@
         </div>
         <span class="save-state" id="save-state" role="status" aria-live="polite" hidden></span>
         <div class="topbar__actions">
+          <a class="ambient-orb" href="music/" aria-label="Ir a los ambientes de sen" title="Ir a los ambientes"><span aria-hidden="true"></span></a>
           <a class="icon-btn help-link" id="help" href="lab/guia.html" target="_blank" rel="noopener" aria-label="Instrucciones (se abre en otra pestaña)" title="Instrucciones (?)"><svg class="i i--help" aria-hidden="true" focusable="false"><use href="#i-help"/></svg></a>
           <button class="icon-btn" id="undo" type="button" aria-label="Deshacer" title="Deshacer (Cmd/Ctrl+Z)"><svg class="i i--undo" aria-hidden="true" focusable="false"><use href="#i-undo"/></svg></button>
           <button class="icon-btn" id="redo" type="button" aria-label="Rehacer" title="Rehacer (Mayús+Cmd/Ctrl+Z)"><svg class="i i--redo" aria-hidden="true" focusable="false"><use href="#i-redo"/></svg></button>
@@ -104,7 +105,7 @@
               </button>
               <button class="menu__item" id="save-project" type="button" role="menuitem" title="Guardar el álbum completo (.sen-album.json) · Cmd/Ctrl+S">
                 <span class="menu__label">Guardar</span>
-                <span class="menu__meta">Álbum completo · Cmd/Ctrl+S</span>
+                <span class="menu__meta" id="save-meta">Álbum completo · Cmd/Ctrl+S</span>
               </button>
               <button class="menu__item" id="fullscreen" type="button" role="menuitem" title="Poner la aplicación en pantalla completa">
                 <span class="menu__label" id="fullscreen-label">Pantalla completa</span>
